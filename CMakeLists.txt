@@ -871,8 +871,9 @@ else()
   list(APPEND SOURCES
     port/port_posix.cc
     env/env_posix.cc
-    env/fs_posix.cc
-    env/io_posix.cc)
+    env/fs_RDMA.cc
+    env/io_posix.cc
+    env/rdma.cc)
 endif()
 
 if(WITH_FOLLY_DISTRIBUTED_MUTEX)
@@ -1309,6 +1310,10 @@ if(WITH_BENCHMARK_TOOLS)
     utilities/persistent_cache/hash_table_bench.cc)
   target_link_libraries(hash_table_bench
     ${ROCKSDB_LIB} ${GFLAGS_LIB})
+  add_executable(Try_DB
+          main.cc)
+  target_link_libraries(Try_DB
+          ${ROCKSDB_LIB} ${GFLAGS_LIB})
 endif()
 
 if(WITH_CORE_TOOLS OR WITH_TOOLS)

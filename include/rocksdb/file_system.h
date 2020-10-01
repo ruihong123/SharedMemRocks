@@ -29,6 +29,7 @@
 #include "rocksdb/io_status.h"
 #include "rocksdb/options.h"
 #include "rocksdb/thread_status.h"
+#include "rocksdb/rdma.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -534,6 +535,8 @@ class FileSystem {
 
  private:
   void operator=(const FileSystem&);
+  std::map<std::string, char *> file_to_address;
+  struct resources rdma_res;
 };
 
 // A file abstraction for reading sequentially through a file
