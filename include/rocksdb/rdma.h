@@ -12,6 +12,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include <getopt.h>
+#include <cassert>
 //#include <options.h>
 
 #include <sys/time.h>
@@ -46,15 +47,21 @@
 struct config_t
 {
   const char* dev_name; /* IB device name */
-  char* server_name;	/* server host name */
+  const char* server_name;	/* server host name */
   u_int32_t tcp_port;   /* server TCP port */
   int ib_port;		  /* local IB port to work with */
   int gid_idx;		  /* gid index to use */
 };
-/* structure to exchange data which is needed to connect the QPs */
-struct registered_mem_config
+struct computing_to_memory_msg
 {
+  size_t mem_size;
+
+
+};
+/* structure to exchange data which is needed to connect the QPs */
+struct registered_qp_config {
   uint64_t addr;   /* Buffer address */
+  size_t size;    /* Buffer size */
   uint32_t rkey;   /* Remote key */
   uint32_t qp_num; /* QP number */
   uint16_t lid;	/* LID of the IB port */
@@ -70,14 +77,19 @@ struct resources
   struct ibv_sge* sge;
   struct ibv_recv_wr*	rr;
   struct ibv_port_attr port_attr;	/* IB port attributes */
-  std::vector<registered_mem_config> mem_regions; /* memory buffers for RDMA */
+//  std::vector<registered_qp_config> remote_mem_regions; /* memory buffers for RDMA */
   struct ibv_context* ib_ctx;		   /* device handle */
   struct ibv_pd* pd;				   /* PD handle */
   struct ibv_cq* cq;				   /* CQ handle */
   struct ibv_qp* qp;				   /* QP handle */
-  struct ibv_mr* mr;				   /* MR handle for buf */
-  char* buf;						   /* memory buffer pointer, used for RDMA and send
-	ops */
+  struct ibv_mr* mr_receive;              /* MR handle for receive_buf */
+  struct ibv_mr* mr_send;                 /* MR handle for send_buf */
+  struct ibv_mr* mr_SST;                        /* MR handle for SST_buf */
+//  struct ibv_mr* mr_remote;                     /* remote MR handle for computing node */
+  char* SST_buf;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
+  char* send_buf;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
+  char* receive_buf;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
+  std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   int sock;						   /* TCP socket file descriptor */
 };
 /* structure of test parameters */
@@ -86,19 +98,26 @@ class RDMA_Manager{
   RDMA_Manager(config_t config);
   ~RDMA_Manager();
 
-  void set_up_RDMA();
+  void Set_Up_RDMA();
+  bool Local_Memory_Register(char* buff,ibv_mr* mr, size_t size);// register the memory on the local side
+  bool Remote_Memory_Register(size_t size);
+  int Remote_Memory_Deregister();
+  void Sever_thread();
+  int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
+  int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
+  int RDMA_Send();
 
  private:
   config_t rdma_config;
-  resources* res;
+  resources* res = nullptr;
   int sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
-  int poll_completion();
-  int post_send(int opcode);
-  int post_receives(int len);
-  int post_receive();
-  void resources_init();
-  int resources_create();
+  int poll_completion(ibv_wc &wc);
+  int post_send(void* mr, bool is_server);
+//  int post_receives(int len);
+  int post_receive(void* mr, bool is_server);
+
+  int resources_create(size_t buffer_size);
   int modify_qp_to_init(struct ibv_qp* qp);
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid, uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
