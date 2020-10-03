@@ -60,9 +60,6 @@ struct computing_to_memory_msg
 };
 /* structure to exchange data which is needed to connect the QPs */
 struct registered_qp_config {
-  uint64_t addr;   /* Buffer address */
-  size_t size;    /* Buffer size */
-  uint32_t rkey;   /* Remote key */
   uint32_t qp_num; /* QP number */
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
@@ -74,21 +71,21 @@ struct resources
   struct ibv_device_attr
       device_attr;
   /* Device attributes */
-  struct ibv_sge* sge;
-  struct ibv_recv_wr*	rr;
+  struct ibv_sge* sge = nullptr;
+  struct ibv_recv_wr*	rr = nullptr;
   struct ibv_port_attr port_attr;	/* IB port attributes */
 //  std::vector<registered_qp_config> remote_mem_regions; /* memory buffers for RDMA */
-  struct ibv_context* ib_ctx;		   /* device handle */
-  struct ibv_pd* pd;				   /* PD handle */
-  struct ibv_cq* cq;				   /* CQ handle */
-  struct ibv_qp* qp;				   /* QP handle */
-  struct ibv_mr* mr_receive;              /* MR handle for receive_buf */
-  struct ibv_mr* mr_send;                 /* MR handle for send_buf */
-  struct ibv_mr* mr_SST;                        /* MR handle for SST_buf */
+  struct ibv_context* ib_ctx = nullptr;		   /* device handle */
+  struct ibv_pd* pd = nullptr;				   /* PD handle */
+  struct ibv_cq* cq = nullptr;				   /* CQ handle */
+  struct ibv_qp* qp = nullptr;				   /* QP handle */
+  struct ibv_mr* mr_receive = nullptr;              /* MR handle for receive_buf */
+  struct ibv_mr* mr_send = nullptr;                 /* MR handle for send_buf */
+  struct ibv_mr* mr_SST = nullptr;                        /* MR handle for SST_buf */
 //  struct ibv_mr* mr_remote;                     /* remote MR handle for computing node */
-  char* SST_buf;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
-  char* send_buf;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
-  char* receive_buf;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
+  char* SST_buf = nullptr;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
+  char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
+  char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   int sock;						   /* TCP socket file descriptor */
 };
@@ -106,10 +103,10 @@ class RDMA_Manager{
   int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
-
+  resources* res = nullptr;
  private:
   config_t rdma_config;
-  resources* res = nullptr;
+
   int sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
   int poll_completion(ibv_wc &wc);

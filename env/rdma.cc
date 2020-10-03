@@ -1,7 +1,79 @@
 #include <include/rocksdb/rdma.h>
+/******************************************************************************
+* Function: RDMA_Manager
+
+*
+* Output
+* none
+*
+*
+* Description
+* Initialize the resource for RDMA.
+******************************************************************************/
 RDMA_Manager::RDMA_Manager(config_t config) : rdma_config(config){
   res = new resources();
   res->sock = -1;
+}
+/******************************************************************************
+* Function: ~RDMA_Manager
+
+*
+* Output
+* none
+*
+*
+* Description
+* Cleanup and deallocate all resources used for RDMA
+******************************************************************************/
+RDMA_Manager::~RDMA_Manager()
+{
+  if (res->qp)
+    if (ibv_destroy_qp(res->qp))
+    {
+      fprintf(stderr, "failed to destroy QP\n");
+    }
+  if (res->mr_receive)
+    if (ibv_dereg_mr(res->mr_receive))
+    {
+      fprintf(stderr, "failed to deregister MR\n");
+    }
+  if (res->mr_send)
+    if (ibv_dereg_mr(res->mr_send))
+    {
+      fprintf(stderr, "failed to deregister MR\n");
+    }
+  if (res->mr_SST)
+    if (ibv_dereg_mr(res->mr_SST))
+    {
+      fprintf(stderr, "failed to deregister MR\n");
+    }
+
+  if (res->receive_buf)
+    delete res->receive_buf;
+  if (res->send_buf)
+    delete res->send_buf;
+  if (res->SST_buf)
+    delete res->SST_buf;
+  if (res->cq)
+    if (ibv_destroy_cq(res->cq))
+    {
+      fprintf(stderr, "failed to destroy CQ\n");
+    }
+  if (res->pd)
+    if (ibv_dealloc_pd(res->pd))
+    {
+      fprintf(stderr, "failed to deallocate PD\n");
+    }
+  if (res->ib_ctx)
+    if (ibv_close_device(res->ib_ctx))
+    {
+      fprintf(stderr, "failed to close device context\n");
+    }
+  if (res->sock >= 0)
+    if (close(res->sock))
+    {
+      fprintf(stderr, "failed to close socket\n");
+    }
 }
 /******************************************************************************
 Socket operations
@@ -139,6 +211,8 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
 	}
 	return rc;
 }
+//    register the memory through ibv_reg_mr on the local side. this function will be
+//    called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
   int mr_flags = 0;
   buff = (char *)malloc(size);
@@ -960,81 +1034,7 @@ int RDMA_Manager::modify_qp_to_rts(struct ibv_qp* qp)
 	return rc;
 }
 
-/******************************************************************************
-* Function: resources_destroy
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, 1 on failure
-*
-* Description
-* Cleanup and deallocate all resources used
-******************************************************************************/
-int RDMA_Manager::resources_destroy()
-{
-  int rc = 0;
-  if (res->qp)
-          if (ibv_destroy_qp(res->qp))
-          {
-                  fprintf(stderr, "failed to destroy QP\n");
-                  rc = 1;
-          }
-  if (res->mr_receive)
-          if (ibv_dereg_mr(res->mr_receive))
-          {
-                  fprintf(stderr, "failed to deregister MR\n");
-                  rc = 1;
-          }
-  if (res->mr_send)
-    if (ibv_dereg_mr(res->mr_send))
-    {
-      fprintf(stderr, "failed to deregister MR\n");
-      rc = 1;
-    }
-  if (res->mr_SST)
-    if (ibv_dereg_mr(res->mr_SST))
-    {
-      fprintf(stderr, "failed to deregister MR\n");
-      rc = 1;
-    }
 
-  if (res->receive_buf)
-    delete res->receive_buf;
-  if (res->send_buf)
-    delete res->send_buf;
-  if (res->SST_buf)
-    delete res->SST_buf;
-  if (res->cq)
-          if (ibv_destroy_cq(res->cq))
-          {
-                  fprintf(stderr, "failed to destroy CQ\n");
-                  rc = 1;
-          }
-  if (res->pd)
-          if (ibv_dealloc_pd(res->pd))
-          {
-                  fprintf(stderr, "failed to deallocate PD\n");
-                  rc = 1;
-          }
-  if (res->ib_ctx)
-          if (ibv_close_device(res->ib_ctx))
-          {
-                  fprintf(stderr, "failed to close device context\n");
-                  rc = 1;
-          }
-  if (res->sock >= 0)
-          if (close(res->sock))
-          {
-                  fprintf(stderr, "failed to close socket\n");
-                  rc = 1;
-          }
-  return rc;
-}
 /******************************************************************************
 * Function: print_config
 *

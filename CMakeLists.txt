@@ -556,11 +556,14 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
+
 if(WITH_FOLLY_DISTRIBUTED_MUTEX)
   include_directories(${PROJECT_SOURCE_DIR}/third-party/folly)
 endif()
 find_package(Threads REQUIRED)
-
+find_package(ibverbs REQUIRED)
+include_directories(${IBVERBS_INCLUDE_DIRS})
+list(APPEND THIRDPARTY_LIBS ibverbs::ibverbs)
 # Main library source code
 
 set(SOURCES
@@ -1310,9 +1313,13 @@ if(WITH_BENCHMARK_TOOLS)
     utilities/persistent_cache/hash_table_bench.cc)
   target_link_libraries(hash_table_bench
     ${ROCKSDB_LIB} ${GFLAGS_LIB})
-  add_executable(Try_DB
-          main.cc)
-  target_link_libraries(Try_DB
+  add_executable(Try_DB_Server
+          server.cc)
+  target_link_libraries(Try_DB_Server
+          ${ROCKSDB_LIB} ${GFLAGS_LIB})
+  add_executable(Try_DB_Client
+          client.cc)
+  target_link_libraries(Try_DB_Client
           ${ROCKSDB_LIB} ${GFLAGS_LIB})
 endif()
 
