@@ -51,6 +51,7 @@ struct config_t
   u_int32_t tcp_port;   /* server TCP port */
   int ib_port;		  /* local IB port to work with */
   int gid_idx;		  /* gid index to use */
+  int init_local_buffer_size;   /*initial local SST buffer size*/
 };
 struct computing_to_memory_msg
 {
@@ -81,7 +82,7 @@ struct resources
   struct ibv_qp* qp = nullptr;				   /* QP handle */
   struct ibv_mr* mr_receive = nullptr;              /* MR handle for receive_buf */
   struct ibv_mr* mr_send = nullptr;                 /* MR handle for send_buf */
-  struct ibv_mr* mr_SST = nullptr;                        /* MR handle for SST_buf */
+//  struct ibv_mr* mr_SST = nullptr;                        /* MR handle for SST_buf */
 //  struct ibv_mr* mr_remote;                     /* remote MR handle for computing node */
   char* SST_buf = nullptr;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
   char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
@@ -115,7 +116,7 @@ class RDMA_Manager{
 //  int post_receives(int len);
   int post_receive(void* mr, bool is_server);
 
-  int resources_create(size_t buffer_size);
+  int resources_create();
   int modify_qp_to_init(struct ibv_qp* qp);
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid, uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);

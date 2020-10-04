@@ -43,12 +43,6 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to deregister MR\n");
     }
-  if (res->mr_SST)
-    if (ibv_dereg_mr(res->mr_SST))
-    {
-      fprintf(stderr, "failed to deregister MR\n");
-    }
-
   if (res->receive_buf)
     delete res->receive_buf;
   if (res->send_buf)
@@ -79,10 +73,19 @@ RDMA_Manager::~RDMA_Manager()
   {
     for (auto p : res->local_mem_pool)
     {
-      ibv_dereg_mr(res->mr_receive);
-      delete p;
+      ibv_dereg_mr(res->mr_receive); //local buffer is registered on this machine need deregistering.
+
     }
     res->local_mem_pool.clear();
+  }
+  if (!res->remote_mem_pool.empty())
+  {
+    for (auto p : res->remote_mem_pool)
+    {
+
+      delete p; // remote buffer is not registered on this machine so just delete the structure
+    }
+    res->remote_mem_pool.clear();
   }
   delete res;
 }
@@ -219,7 +222,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
 * This function creates and allocates all necessary system resources. These
 * are stored in res.
 *****************************************************************************/
-int RDMA_Manager::resources_create(size_t buffer_size)
+int RDMA_Manager::resources_create()
 {
 	struct ibv_device** dev_list = NULL;
 	struct ibv_qp_init_attr qp_init_attr;
@@ -314,8 +317,14 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 		rc = 1;
 	}
 	/* allocate the memory buffer that will hold the data */
-
-        Local_Memory_Register(&(res->SST_buf), &(res->mr_SST), buffer_size);
+        if (rdma_config.server_name){
+          ibv_mr* mr = new ibv_mr();
+          char* buff = new char[rdma_config.init_local_buffer_size];
+          if(!Local_Memory_Register(&buff, &mr, rdma_config.init_local_buffer_size)){
+            fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(rdma_config.init_local_buffer_size));
+          }
+          res->local_mem_pool.push_back(mr);
+        }
         Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000);
         Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000);
 //        if(condition){
@@ -1057,7 +1066,7 @@ void RDMA_Manager::Set_Up_RDMA(){
   std::string ip_add;
   std:: cin >> ip_add;
   rdma_config.server_name = ip_add.c_str();
-  if (resources_create(4*10*1024*1024))
+  if (resources_create())
   {
     fprintf(stderr, "failed to create resources\n");
     return;
@@ -1101,7 +1110,7 @@ void RDMA_Manager::Sever_thread(){
   int rc = 1;
   //int trans_times;
   char temp_char;
-  if (resources_create(4))
+  if (resources_create())
   {
     fprintf(stderr, "failed to create resources\n");
 
@@ -1125,6 +1134,8 @@ void RDMA_Manager::Sever_thread(){
         fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(temp_pointer->mem_size));
       }
       res->local_mem_pool.push_back(mr);
+      post_send(mr,true);
+
 
     }
 

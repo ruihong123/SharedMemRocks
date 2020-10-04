@@ -10,7 +10,8 @@ int main()
       NULL,  /* server_name */
       19875, /* tcp_port */
       1,	 /* ib_port */
-      -1 /* gid_idx */ };
+      -1, /* gid_idx */
+  0};
   RDMA_Manager RDMA_manager(config);
   RDMA_manager.Sever_thread();
 
