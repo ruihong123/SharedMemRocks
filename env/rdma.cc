@@ -32,6 +32,7 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to destroy QP\n");
     }
+
   if (res->mr_receive)
     if (ibv_dereg_mr(res->mr_receive))
     {
@@ -74,6 +75,15 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to close socket\n");
     }
+  if (!res->local_mem_pool.empty())
+  {
+    for (auto p : res->local_mem_pool)
+    {
+      ibv_dereg_mr(res->mr_receive);
+      delete p;
+    }
+    res->local_mem_pool.clear();
+  }
 }
 /******************************************************************************
 Socket operations
@@ -215,13 +225,13 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
 //    called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
   int mr_flags = 0;
-  buff = (char *)malloc(size);
+  buff = new char[size];
   if (!buff)
   {
     fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n", size);
     return false;
   }
-  memset(buff, 0, 1000);
+  memset(buff, 0, size);
 
   /* register the memory buffer */
   mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -229,7 +239,7 @@ bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
   mr = ibv_reg_mr(res->pd, res->SST_buf, size, mr_flags);
   if (!mr)
   {
-    fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x\n", mr_flags);
+    fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
     return false;
   }
   return true;
@@ -402,17 +412,17 @@ resources_create_exit:
                 }
 		if (res->send_buf)
 		{
-			free(res->send_buf);
+			delete res->send_buf;
 			res->send_buf = NULL;
 		}
                 if (res->SST_buf)
                 {
-                  free(res->SST_buf);
+                  delete res->SST_buf;
                   res->SST_buf = NULL;
                 }
                 if (res->receive_buf)
                 {
-                  free(res->receive_buf);
+                  delete res->receive_buf;
                   res->receive_buf = NULL;
                 }
 		if (res->cq)
@@ -1156,7 +1166,6 @@ void RDMA_Manager::Sever_thread(){
   int rc = 1;
   //int trans_times;
   char temp_char;
-  std::vector<ibv_mr*> memory_pool;
   if (resources_create(4))
   {
     fprintf(stderr, "failed to create resources\n");
@@ -1169,17 +1178,18 @@ void RDMA_Manager::Sever_thread(){
   ibv_wc wc = {0};
   computing_to_memory_msg * receive_pointer;
   receive_pointer = (computing_to_memory_msg*)res->receive_buf;
+  computing_to_memory_msg * temp_pointer = new computing_to_memory_msg;
   while(true){
     poll_completion(wc);
     if(wc.opcode == IBV_WC_RECV && wc.status == IBV_WC_SUCCESS){
-      computing_to_memory_msg * temp_pointer = new computing_to_memory_msg;
+
       *temp_pointer = *receive_pointer;
       ibv_mr* mr = new ibv_mr();
       char* buff = new char[temp_pointer->mem_size];
       if(!Local_Memory_Register(buff, mr, temp_pointer->mem_size)){
         fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(temp_pointer->mem_size));
       }
-      memory_pool.push_back(mr);
+      res->local_mem_pool.push_back(mr);
 
     }
 

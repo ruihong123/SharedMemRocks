@@ -87,6 +87,7 @@ struct resources
   char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
   char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
+  std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
   int sock;						   /* TCP socket file descriptor */
 };
 /* structure of test parameters */
