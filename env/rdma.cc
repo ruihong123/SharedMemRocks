@@ -219,6 +219,7 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
 		else
 			rc = read_bytes;
 	}
+        fprintf(stdout, "The data which has been read is %s", remote_data);
 	return rc;
 }
 //    register the memory through ibv_reg_mr on the local side. this function will be
@@ -279,7 +280,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
                 fprintf(stderr, "failed to establish TCP connection to server %s, port %d\n",
                         rdma_config.server_name, rdma_config.tcp_port);
                 rc = -1;
-                goto resources_create_exit;
+
         }
 
 	fprintf(stdout, "TCP connection was established\n");
@@ -290,14 +291,14 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "failed to get IB devices list\n");
 		rc = 1;
-		goto resources_create_exit;
+
 	}
 	/* if there isn't any IB device in host */
 	if (!num_devices)
 	{
 		fprintf(stderr, "found %d device(s)\n", num_devices);
 		rc = 1;
-		goto resources_create_exit;
+
 	}
 	fprintf(stdout, "found %d device(s)\n", num_devices);
 	/* search for the specific device we want to work with */
@@ -319,7 +320,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "IB device %s wasn't found\n", rdma_config.dev_name);
 		rc = 1;
-		goto resources_create_exit;
+
 	}
 	/* get device handle */
 	res->ib_ctx = ibv_open_device(ib_dev);
@@ -327,7 +328,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "failed to open device %s\n", rdma_config.dev_name);
 		rc = 1;
-		goto resources_create_exit;
+
 	}
 	/* We are now done with device list, free it */
 	ibv_free_device_list(dev_list);
@@ -338,7 +339,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "ibv_query_port on port %u failed\n", rdma_config.ib_port);
 		rc = 1;
-		goto resources_create_exit;
+
 	}
 	/* allocate Protection Domain */
 	res->pd = ibv_alloc_pd(res->ib_ctx);
@@ -346,7 +347,6 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "ibv_alloc_pd failed\n");
 		rc = 1;
-		goto resources_create_exit;
 	}
 	/* each side will send only one WR, so Completion Queue with 1 entry is enough */
 	cq_size = 1000;
@@ -355,16 +355,14 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "failed to create CQ with %u entries\n", cq_size);
 		rc = 1;
-		goto resources_create_exit;
 	}
 	/* allocate the memory buffer that will hold the data */
 
-        bool flag = !(Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size) &&
+        bool condition = !(Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size) &&
                       Local_Memory_Register(res->send_buf, res->mr_send, buffer_size)&&
                       Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size));
-        if(flag){
+        if(condition){
           fprintf(stderr, "Local memory registering failed\n");
-          goto resources_create_exit;
 
         }
 
@@ -384,75 +382,8 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	{
 		fprintf(stderr, "failed to create QP\n");
 		rc = 1;
-		goto resources_create_exit;
 	}
 	fprintf(stdout, "QP was created, QP number=0x%x\n", res->qp->qp_num);
-resources_create_exit:
-	if (rc)
-	{
-		/* Error encountered, cleanup */
-		if (res->qp)
-		{
-			ibv_destroy_qp(res->qp);
-			res->qp = NULL;
-		}
-		if (res->mr_receive)
-		{
-			ibv_dereg_mr(res->mr_receive);
-			res->mr_receive = NULL;
-		}
-                if (res->mr_send)
-                {
-                  ibv_dereg_mr(res->mr_send);
-                  res->mr_send = NULL;
-                }
-                if (res->mr_SST)
-                {
-                  ibv_dereg_mr(res->mr_SST);
-                  res->mr_SST = NULL;
-                }
-		if (res->send_buf)
-		{
-			delete res->send_buf;
-			res->send_buf = NULL;
-		}
-                if (res->SST_buf)
-                {
-                  delete res->SST_buf;
-                  res->SST_buf = NULL;
-                }
-                if (res->receive_buf)
-                {
-                  delete res->receive_buf;
-                  res->receive_buf = NULL;
-                }
-		if (res->cq)
-		{
-			ibv_destroy_cq(res->cq);
-			res->cq = NULL;
-		}
-		if (res->pd)
-		{
-			ibv_dealloc_pd(res->pd);
-			res->pd = NULL;
-		}
-		if (res->ib_ctx)
-		{
-			ibv_close_device(res->ib_ctx);
-			res->ib_ctx = NULL;
-		}
-		if (dev_list)
-		{
-			ibv_free_device_list(dev_list);
-			dev_list = NULL;
-		}
-		if (res->sock >= 0)
-		{
-			if (close(res->sock))
-				fprintf(stderr, "failed to close socket\n");
-			res->sock = -1;
-		}
-	}
 	return rc;
 }
 /******************************************************************************
