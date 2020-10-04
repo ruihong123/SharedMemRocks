@@ -826,7 +826,7 @@ int RDMA_Manager::post_receive(void* mr, bool is_server)
 * poll the queue until MAX_POLL_CQ_TIMEOUT milliseconds have passed.
 *
 ******************************************************************************/
-int RDMA_Manager::poll_completion(ibv_wc &wc)
+int RDMA_Manager::poll_completion(ibv_wc* &wc_p)
 {
 
 	//unsigned long start_time_msec;
@@ -839,7 +839,7 @@ int RDMA_Manager::poll_completion(ibv_wc &wc)
 	//start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
 	do
 	{
-		poll_result = ibv_poll_cq(res->cq, 1, &wc);
+		poll_result = ibv_poll_cq(res->cq, 1, wc_p);
 		/*gettimeofday(&cur_time, NULL);
 		cur_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);*/
 	} while (poll_result == 0);// && ((cur_time_msec - start_time_msec) < MAX_POLL_CQ_TIMEOUT));
@@ -861,10 +861,10 @@ int RDMA_Manager::poll_completion(ibv_wc &wc)
 		/* CQE found */
 		//fprintf(stdout, "completion was found in CQ with status 0x%x\n", wc.status);
 		/* check the completion status (here we don't care about the completion opcode */
-		if (wc.status != IBV_WC_SUCCESS)
+		if (wc_p->status != IBV_WC_SUCCESS)
 		{
-			fprintf(stderr, "got bad completion with status: 0x%x, vendor syndrome: 0x%x\n", wc.status,
-				wc.vendor_err);
+			fprintf(stderr, "got bad completion with status: 0x%x, vendor syndrome: 0x%x\n", wc_p->status,
+				wc_p->vendor_err);
 			rc = 1;
 		}
 	}
@@ -1086,13 +1086,17 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
   receive_pointer = (ibv_mr*)res->receive_buf;
   post_receive(receive_pointer, false);
   post_send(send_pointer, false);
-  ibv_wc wc = {0};
-  while(wc.opcode != IBV_WC_RECV){
+  ibv_wc* wc = nullptr;
+  while(wc->opcode != IBV_WC_RECV){
     poll_completion(wc);
+    if (wc->status != 0){
+      fprintf(stderr, "Work completion status is %d \n", wc->status);
+    }
+
   }
 
-  assert(wc.opcode == IBV_WC_RECV);
-  if(wc.status == IBV_WC_SUCCESS){
+  assert(wc->opcode == IBV_WC_RECV);
+  if(wc->status == IBV_WC_SUCCESS){
     ibv_mr* temp_pointer = new ibv_mr();
     *temp_pointer = *receive_pointer; //create a new ibv_mr for storing the new remote memory region handler
     res->remote_mem_pool.push_back(temp_pointer);// push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
@@ -1119,16 +1123,16 @@ void RDMA_Manager::Sever_thread(){
   {
     fprintf(stderr, "failed to connect QPs\n");
   }
-  ibv_wc wc = {0};
+  ibv_wc* wc = nullptr;
   computing_to_memory_msg * receive_pointer;
   receive_pointer = (computing_to_memory_msg*)res->receive_buf;
   computing_to_memory_msg * temp_pointer = new computing_to_memory_msg;
   while(true){
     poll_completion(wc);
-    if(wc.opcode == IBV_WC_RECV && wc.status == IBV_WC_SUCCESS){
+    if(wc->opcode == IBV_WC_RECV && wc->status == IBV_WC_SUCCESS){
 
       *temp_pointer = *receive_pointer;
-      ibv_mr* mr = new ibv_mr();
+      ibv_mr* mr;
       char* buff = new char[temp_pointer->mem_size];
       if(!Local_Memory_Register(&buff, &mr, temp_pointer->mem_size)){
         fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(temp_pointer->mem_size));
@@ -1139,11 +1143,11 @@ void RDMA_Manager::Sever_thread(){
 
     }
 
-    else if(wc.status != IBV_WC_SUCCESS ) {
+    else if(wc->status != IBV_WC_SUCCESS ) {
       fprintf(stderr, "failed to poll receive\n");
     }
   }
-  // TODO: Build up a exit method for shared memroy side, don't forget to destroy all the RDMA resourses.
+  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
 
 
 };

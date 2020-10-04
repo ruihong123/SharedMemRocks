@@ -111,7 +111,7 @@ class RDMA_Manager{
 
   int sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
-  int poll_completion(ibv_wc &wc);
+  int poll_completion(ibv_wc* &wc);
   int post_send(void* mr, bool is_server);
 //  int post_receives(int len);
   int post_receive(void* mr, bool is_server);
