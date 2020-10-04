@@ -177,51 +177,7 @@ sock_connect_exit:
 	}
 	return sockfd;
 }
-/******************************************************************************
-* Function: sock_sync_data
-*
-* Input
-* sock socket to transfer data on
-* xfer_size size of data to transfer
-* local_data pointer to data to be sent to remote
-*
-* Output
-* remote_data pointer to buffer to receive remote data
-*
-* Returns
-* 0 on success, negative error code on failure
-*
-* Description
-* Sync data across a socket. The indicated local data will be sent to the
-* remote. It will then wait for the remote to send its data back. It is
-* assumed that the two sides are in sync and call this function in the proper
-* order. Chaos will ensue if they are not. :)
-*
-* Also note this is a blocking function and will wait for the full data to be
-* received from the remote.
-*
-******************************************************************************/
-int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data)
-{
-	int rc;
-	int read_bytes = 0;
-	int total_read_bytes = 0;
-	rc = write(sock, local_data, xfer_size);
-	if (rc < xfer_size)
-		fprintf(stderr, "Failed writing data during sock_sync_data, total bytes are %d\n", rc);
-	else
-		rc = 0;
-	while (!rc && total_read_bytes < xfer_size)
-	{
-		read_bytes = read(sock, remote_data, xfer_size);
-		if (read_bytes > 0)
-			total_read_bytes += read_bytes;
-		else
-			rc = read_bytes;
-	}
-        fprintf(stdout, "The data which has been read through is %s size is %d\n", remote_data, read_bytes);
-	return rc;
-}
+
 //    register the memory through ibv_reg_mr on the local side. this function will be
 //    called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
@@ -385,6 +341,51 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	}
 	fprintf(stdout, "QP was created, QP number=0x%x\n", res->qp->qp_num);
 	return rc;
+}
+/******************************************************************************
+* Function: sock_sync_data
+*
+* Input
+* sock socket to transfer data on
+* xfer_size size of data to transfer
+* local_data pointer to data to be sent to remote
+*
+* Output
+* remote_data pointer to buffer to receive remote data
+*
+* Returns
+* 0 on success, negative error code on failure
+*
+* Description
+* Sync data across a socket. The indicated local data will be sent to the
+* remote. It will then wait for the remote to send its data back. It is
+* assumed that the two sides are in sync and call this function in the proper
+* order. Chaos will ensue if they are not. :)
+*
+* Also note this is a blocking function and will wait for the full data to be
+* received from the remote.
+*
+******************************************************************************/
+int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data)
+{
+  int rc;
+  int read_bytes = 0;
+  int total_read_bytes = 0;
+  rc = write(sock, local_data, xfer_size);
+  if (rc < xfer_size)
+    fprintf(stderr, "Failed writing data during sock_sync_data, total bytes are %d\n", rc);
+  else
+    rc = 0;
+  while (!rc && total_read_bytes < xfer_size)
+  {
+    read_bytes = read(sock, remote_data, xfer_size);
+    if (read_bytes > 0)
+      total_read_bytes += read_bytes;
+    else
+      rc = read_bytes;
+  }
+  fprintf(stdout, "The data which has been read through is %s size is %d\n", remote_data, rc);
+  return rc;
 }
 /******************************************************************************
 * Function: connect_qp
