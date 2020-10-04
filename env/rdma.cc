@@ -236,7 +236,7 @@ bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
   /* register the memory buffer */
   mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
-  mr = ibv_reg_mr(res->pd, res->SST_buf, size, mr_flags);
+  mr = ibv_reg_mr(res->pd, buff, size, mr_flags);
   if (!mr)
   {
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
@@ -1122,7 +1122,7 @@ void RDMA_Manager::Set_Up_RDMA(){
   std::string ip_add;
   std:: cin >> ip_add;
   rdma_config.server_name = ip_add.c_str();
-  if (resources_create(4*10*1024))
+  if (resources_create(4*10*1024*1024))
   {
     fprintf(stderr, "failed to create resources\n");
     return;
