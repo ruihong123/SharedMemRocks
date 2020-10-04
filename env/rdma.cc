@@ -182,12 +182,7 @@ sock_connect_exit:
 //    called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
   int mr_flags = 0;
-  buff = new char[size];
-  if (!buff)
-  {
-    fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n", size);
-    return false;
-  }
+
   memset(buff, 0, size);
 
   /* register the memory buffer */
@@ -313,10 +308,18 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 		rc = 1;
 	}
 	/* allocate the memory buffer that will hold the data */
-
+        res->SST_buf = new char[buffer_size];
+        res->send_buf = new char[1000];
+        res->receive_buf = new char[1000];
+        if (!(res->SST_buf && res->send_buf && res->receive_buf))
+        {
+          fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n");
+          rc = 1;
+          return rc;
+        }
         Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size);
-        Local_Memory_Register(res->send_buf, res->mr_send, buffer_size);
-        Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size);
+        Local_Memory_Register(res->send_buf, res->mr_send, 1000);
+        Local_Memory_Register(res->receive_buf, res->mr_receive, 1000);
 //        if(condition){
 //          fprintf(stderr, "Local memory registering failed\n");
 //
@@ -384,7 +387,7 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
     else
       rc = read_bytes;
   }
-  fprintf(stdout, "The data which has been read through is %s size is %d\n", remote_data, rc);
+  fprintf(stdout, "The data which has been read through is %s size is %d\n", remote_data, read_bytes);
   return rc;
 }
 /******************************************************************************
