@@ -84,6 +84,7 @@ RDMA_Manager::~RDMA_Manager()
     }
     res->local_mem_pool.clear();
   }
+  delete res;
 }
 /******************************************************************************
 Socket operations
@@ -180,19 +181,24 @@ sock_connect_exit:
 
 //    register the memory through ibv_reg_mr on the local side. this function will be
 //    called by both of the server side and client side.
-bool RDMA_Manager::Local_Memory_Register(char* buff, ibv_mr* mr, size_t size){
+bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size){
   int mr_flags = 0;
-
-  memset(buff, 0, size);
+  *p2buffpointer = new char[size];
+  if (!*p2buffpointer)
+  {
+    fprintf(stderr, "failed to malloc bytes to memory buffer\n");
+    return false;
+  }
+  memset(*p2buffpointer, 0, size);
 
   /* register the memory buffer */
   mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
-  mr = ibv_reg_mr(res->pd, buff, size, mr_flags);
-  if (!mr)
+  *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
+  if (!*p2mrpointer)
   {
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
-    return false;
+//    return false;
   }
   return true;
 };
@@ -308,22 +314,15 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 		rc = 1;
 	}
 	/* allocate the memory buffer that will hold the data */
-        res->SST_buf = new char[buffer_size];
-        res->send_buf = new char[1000];
-        res->receive_buf = new char[1000];
-        if (!(res->SST_buf && res->send_buf && res->receive_buf))
-        {
-          fprintf(stderr, "failed to malloc bytes to memory buffer\n");
-          rc = 1;
-          return rc;
-        }
-        Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size);
-        Local_Memory_Register(res->send_buf, res->mr_send, 1000);
-        Local_Memory_Register(res->receive_buf, res->mr_receive, 1000);
+
+        Local_Memory_Register(&(res->SST_buf), &(res->mr_SST), buffer_size);
+        Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000);
+        Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000);
 //        if(condition){
 //          fprintf(stderr, "Local memory registering failed\n");
 //
 //        }
+
 
 	fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
 	/* create the Queue Pair */
@@ -1122,7 +1121,7 @@ void RDMA_Manager::Sever_thread(){
       *temp_pointer = *receive_pointer;
       ibv_mr* mr = new ibv_mr();
       char* buff = new char[temp_pointer->mem_size];
-      if(!Local_Memory_Register(buff, mr, temp_pointer->mem_size)){
+      if(!Local_Memory_Register(&buff, &mr, temp_pointer->mem_size)){
         fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(temp_pointer->mem_size));
       }
       res->local_mem_pool.push_back(mr);

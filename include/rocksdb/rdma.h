@@ -97,7 +97,7 @@ class RDMA_Manager{
   ~RDMA_Manager();
 
   void Set_Up_RDMA();
-  bool Local_Memory_Register(char* buff,ibv_mr* mr, size_t size);// register the memory on the local side
+  bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
   void Sever_thread();
