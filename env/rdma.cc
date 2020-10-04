@@ -314,13 +314,13 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 	}
 	/* allocate the memory buffer that will hold the data */
 
-        bool condition = !(Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size) &&
-                      Local_Memory_Register(res->send_buf, res->mr_send, buffer_size)&&
-                      Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size));
-        if(condition){
-          fprintf(stderr, "Local memory registering failed\n");
-
-        }
+        Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size);
+        Local_Memory_Register(res->send_buf, res->mr_send, buffer_size);
+        Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size);
+//        if(condition){
+//          fprintf(stderr, "Local memory registering failed\n");
+//
+//        }
 
 	fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
 	/* create the Queue Pair */
