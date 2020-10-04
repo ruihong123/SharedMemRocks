@@ -219,7 +219,7 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
 		else
 			rc = read_bytes;
 	}
-        fprintf(stdout, "The data which has been read is %s", remote_data);
+        fprintf(stdout, "The data which has been read through is %s size is %d\n", remote_data, read_bytes);
 	return rc;
 }
 //    register the memory through ibv_reg_mr on the local side. this function will be
@@ -366,7 +366,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 
         }
 
-	fprintf(stdout, "SST buffer, send&receive buffer were registered with a");
+	fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
 	/* create the Queue Pair */
 	memset(&qp_init_attr, 0, sizeof(qp_init_attr));
 	qp_init_attr.qp_type = IBV_QPT_RC;
@@ -454,7 +454,7 @@ int RDMA_Manager::connect_qp()
 		fprintf(stderr, "change QP state to INIT failed\n");
 		goto connect_qp_exit;
 	}
-	/* let the client post RR to be prepared for incoming messages */
+	/* let the server post RR to be prepared for incoming messages */
 	if (!rdma_config.server_name)
 	{
                 computing_to_memory_msg * receive_pointer;
