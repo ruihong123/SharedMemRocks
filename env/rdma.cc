@@ -358,10 +358,11 @@ int RDMA_Manager::resources_create(size_t buffer_size)
 		goto resources_create_exit;
 	}
 	/* allocate the memory buffer that will hold the data */
-//	size = buffer_size;
-        if(!(Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size) &&
-        Local_Memory_Register(res->send_buf, res->mr_send, buffer_size)&&
-        Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size))){
+
+        bool flag = !(Local_Memory_Register(res->SST_buf, res->mr_SST, buffer_size) &&
+                      Local_Memory_Register(res->send_buf, res->mr_send, buffer_size)&&
+                      Local_Memory_Register(res->receive_buf, res->mr_receive, buffer_size));
+        if(flag){
           fprintf(stderr, "Local memory registering failed\n");
           goto resources_create_exit;
 
@@ -546,7 +547,7 @@ int RDMA_Manager::connect_qp()
 	rc = modify_qp_to_rts(res->qp);
 	if (rc)
 	{
-		fprintf(stderr, "failed to modify QP state to RTR\n");
+		fprintf(stderr, "failed to modify QP state to RTS\n");
 		goto connect_qp_exit;
 	}
 	fprintf(stdout, "QP state was change to RTS\n");
