@@ -1123,7 +1123,7 @@ void RDMA_Manager::Sever_thread(){
   {
     fprintf(stderr, "failed to connect QPs\n");
   }
-  ibv_wc* wc = nullptr;
+  ibv_wc* wc = new ibv_wc();
   computing_to_memory_msg * receive_pointer;
   receive_pointer = (computing_to_memory_msg*)res->receive_buf;
   computing_to_memory_msg * temp_pointer = new computing_to_memory_msg;
