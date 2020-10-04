@@ -1086,7 +1086,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
   receive_pointer = (ibv_mr*)res->receive_buf;
   post_receive(receive_pointer, false);
   post_send(send_pointer, false);
-  ibv_wc* wc = nullptr;
+  ibv_wc* wc = new ibv_wc();
   while(wc->opcode != IBV_WC_RECV){
     poll_completion(wc);
     if (wc->status != 0){
