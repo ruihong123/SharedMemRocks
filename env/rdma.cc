@@ -313,7 +313,7 @@ int RDMA_Manager::resources_create(size_t buffer_size)
         res->receive_buf = new char[1000];
         if (!(res->SST_buf && res->send_buf && res->receive_buf))
         {
-          fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n");
+          fprintf(stderr, "failed to malloc bytes to memory buffer\n");
           rc = 1;
           return rc;
         }
