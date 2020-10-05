@@ -316,7 +316,7 @@ int RDMA_Manager::resources_create()
 		fprintf(stderr, "failed to create CQ with %u entries\n", cq_size);
 		rc = 1;
 	}
-	/* allocate the memory buffer that will hold the data */
+	/* computing node allocate SST buffers */
         if (rdma_config.server_name){
           ibv_mr* mr = new ibv_mr();
           char* buff = new char[rdma_config.init_local_buffer_size];
@@ -468,17 +468,10 @@ int RDMA_Manager::connect_qp()
 	}
 	/* let the server post RR to be prepared for incoming messages */
 	if (!rdma_config.server_name)
-	{
-                computing_to_memory_msg * receive_pointer;
-                receive_pointer = (computing_to_memory_msg*)res->receive_buf;
+	{       ibv_mr * receive_pointer;
+                receive_pointer = (ibv_mr*)res->receive_buf;
                 post_receive(receive_pointer, true);
-		//}
-		
-		if (rc)
-		{
-			fprintf(stderr, "failed to post RR\n");
-			goto connect_qp_exit;
-		}
+
 	}
 	/* modify the QP to RTR */
 	rc = modify_qp_to_rtr(res->qp, remote_con_data.qp_num, remote_con_data.lid, remote_con_data.gid);
@@ -701,62 +694,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 //  }
 //  return rc;
 //}
-/******************************************************************************
-* Function: post_receives
-*
-* Input
-* res and the list length for work request list
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-*
-******************************************************************************/
-//int RDMA_Manager::post_receives(int len)
-//{
-//
-//	struct ibv_sge sge[len];
-//	struct ibv_recv_wr* bad_wr;
-//	int rc;
-//	extern int msg_size;
-//	res->rr = new ibv_recv_wr[len];
-//	/* prepare the scatter/gather entry */
-//	memset(sge, 0, sizeof(sge));
-//
-//	/* prepare the receive work request */
-//	memset(res->rr, 0, sizeof(*(res->rr)));
-//	for (int i = 0; i < len; i++) {
-//		sge[i].addr = (uintptr_t)(&(res->buf[i* msg_size]));
-//		sge[i].length = msg_size;
-//		sge[i].lkey = res->mr->lkey;
-//		res->rr[i].next = NULL;
-//		res->rr[i].wr_id = i;
-//		res->rr[i].sg_list = &sge[i];
-//		res->rr[i].num_sge = 1;
-//	}
-//	for (int i = 0; i < len-1; i++) {
-//		res->rr[i].next = &(res->rr[i+1]);
-//	}
-//
-//
-//	/* post the Receive Request to the RQ */
-//	//for (int i = 0; i < len; i++) {
-//	rc = ibv_post_recv(res->qp, res->rr, &bad_wr);
-//	if (rc) {
-//		fprintf(stderr, "failed to post RR\n");
-//		//break;
-//	}
-//
-//	else
-//		fprintf(stdout, "Receive Request was posted\n");
-//	//}
-//
-//	return rc;
-//}
+
 /******************************************************************************
 * Function: post_receive
 *
@@ -772,6 +710,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 * Description
 *
 ******************************************************************************/
+// TODO: Add templete for post send and post receive, making the type of transfer data configurable.
 int RDMA_Manager::post_receive(void* mr, bool is_server)
 {
 	struct ibv_recv_wr rr;
@@ -780,6 +719,7 @@ int RDMA_Manager::post_receive(void* mr, bool is_server)
 	int rc;
         if(is_server){
           /* prepare the scatter/gather entry */
+
           memset(&sge, 0, sizeof(sge));
           sge.addr = (uintptr_t)mr;
           sge.length = sizeof(computing_to_memory_msg);
@@ -1125,20 +1065,26 @@ void RDMA_Manager::Sever_thread(){
   }
   ibv_wc* wc = new ibv_wc();
   computing_to_memory_msg * receive_pointer;
-  receive_pointer = (computing_to_memory_msg*)res->receive_buf;
-  computing_to_memory_msg * temp_pointer = new computing_to_memory_msg;
+  receive_pointer = (computing_to_memory_msg*)res->receive_buf; //copy the pointer of receive buf to a new place because
+                                                                // we don't want to change the pointer type for res->receive_buff,
+                                                                // making it always void.
+
+  ibv_mr* send_pointer = (ibv_mr*)res->send_buf; // it is the same with send buff pointer.
   while(true){
     poll_completion(wc);
     if(wc->opcode == IBV_WC_RECV && wc->status == IBV_WC_SUCCESS){
 
-      *temp_pointer = *receive_pointer;
       ibv_mr* mr;
-      char* buff = new char[temp_pointer->mem_size];
-      if(!Local_Memory_Register(&buff, &mr, temp_pointer->mem_size)){
-        fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(temp_pointer->mem_size));
+      char* buff = new char[receive_pointer->mem_size];
+      if(!Local_Memory_Register(&buff, &mr, receive_pointer->mem_size)){
+        fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(receive_pointer->mem_size));
       }
       res->local_mem_pool.push_back(mr);
-      post_send(mr,true);
+
+      *send_pointer = *mr;
+
+      post_send(send_pointer,true);
+      post_receive(receive_pointer,true);
 
 
     }
