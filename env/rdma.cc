@@ -73,7 +73,7 @@ RDMA_Manager::~RDMA_Manager()
   {
     for (auto p : res->local_mem_pool)
     {
-      ibv_dereg_mr(res->mr_receive); //local buffer is registered on this machine need deregistering.
+      ibv_dereg_mr(p); //local buffer is registered on this machine need deregistering.
 
     }
     res->local_mem_pool.clear();
@@ -612,7 +612,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   sr.wr_id = 0;
   sr.sg_list = &sge;
   sr.num_sge = 1;
-  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_RDMA_WRITE);
   sr.send_flags = IBV_SEND_SIGNALED;
 
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
