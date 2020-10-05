@@ -606,7 +606,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   int rc;
   /* prepare the scatter/gather entry */
   memset(&sge, 0, sizeof(sge));
-  sge.addr = (uintptr_t)local_mr;
+  sge.addr = (uintptr_t)local_mr->addr;
   sge.length = msg_size;
   sge.lkey = local_mr->lkey;
   /* prepare the send work request */
