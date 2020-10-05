@@ -25,10 +25,8 @@ int main()
   strcpy(msg, "message from computing node");
   int msg_size = sizeof("message from computing node");
   rdma_manager.RDMA_Write(rdma_manager.res->remote_mem_pool[0],rdma_manager.res->local_mem_pool[0], msg_size);
-  rdma_manager.RDMA_Read(rdma_manager.res->remote_mem_pool[0],rdma_manager.res->local_mem_pool[1], msg_size);
-  std::cout << "write buffer: " << (char*)rdma_manager.res->local_mem_pool[0]->addr << std::endl;
   ibv_wc* wc = new ibv_wc();
-  while(wc->opcode != IBV_WC_RDMA_READ){
+  while(wc->opcode != IBV_WC_RDMA_WRITE){
     rdma_manager.poll_completion(wc);
     if (wc->status != 0){
       fprintf(stderr, "Work completion status is %d \n", wc->status);
@@ -36,6 +34,9 @@ int main()
     }
 
   }
+  rdma_manager.RDMA_Read(rdma_manager.res->remote_mem_pool[0],rdma_manager.res->local_mem_pool[1], msg_size);
+  std::cout << "write buffer: " << (char*)rdma_manager.res->local_mem_pool[0]->addr << std::endl;
+
   std::cout << "read buffer: " << (char*)rdma_manager.res->local_mem_pool[1]->addr << std::endl;
 
   return 0;
