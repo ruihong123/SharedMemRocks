@@ -105,13 +105,14 @@ class RDMA_Manager{
   int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
+  int poll_completion(ibv_wc* &wc);
   resources* res = nullptr;
  private:
   config_t rdma_config;
 
   int sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
-  int poll_completion(ibv_wc* &wc);
+
   int post_send(void* mr, bool is_server);
 //  int post_receives(int len);
   int post_receive(void* mr, bool is_server);
