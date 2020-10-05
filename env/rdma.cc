@@ -577,8 +577,8 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
   sr.wr_id = 0;
   sr.sg_list = &sge;
   sr.num_sge = 1;
-  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_RDMA_READ);
-
+  sr.opcode = IBV_WR_RDMA_READ;
+  sr.send_flags = IBV_SEND_SIGNALED;
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
 
@@ -590,7 +590,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
     fprintf(stderr, "failed to post SR\n");
   else
   {
-    fprintf(stdout, "RDMA Read Request was posted\n");
+    fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
   }
   return rc;
 }
@@ -611,8 +611,8 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   sr.wr_id = 0;
   sr.sg_list = &sge;
   sr.num_sge = 1;
-  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_RDMA_WRITE);
-
+  sr.opcode = IBV_WR_RDMA_WRITE;
+  sr.send_flags = IBV_SEND_SIGNALED;
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
   /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
@@ -623,7 +623,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
     fprintf(stderr, "failed to post SR\n");
   else
   {
-    fprintf(stdout, "RDMA Write Request was posted\n");
+    fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
   }
   return rc;
 }

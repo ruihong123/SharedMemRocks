@@ -19,7 +19,7 @@ int main()
   ibv_mr mem_pool_table[2];
   mem_pool_table[0] = *(rdma_manager.res->local_mem_pool[0]);
   mem_pool_table[1] = *(rdma_manager.res->local_mem_pool[0]);
-  mem_pool_table[1].addr = (void*)((char*)mem_pool_table[1].addr + sizeof("message from computing node"));
+  mem_pool_table[1].addr = (void*)((char*)mem_pool_table[1].addr + sizeof("message from computing node"));// PROBLEM Could be here.
 
   char *msg = static_cast<char *>(rdma_manager.res->local_mem_pool[0]->addr);
   strcpy(msg, "message from computing node");
