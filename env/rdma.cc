@@ -323,6 +323,10 @@ int RDMA_Manager::resources_create()
           if(!Local_Memory_Register(&buff, &mr, rdma_config.init_local_buffer_size)){
             fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(rdma_config.init_local_buffer_size));
           }
+          else{
+            fprintf(stdout, "memory registering succeed by size of 0x%x\n", static_cast<unsigned>(rdma_config.init_local_buffer_size));
+
+          }
           res->local_mem_pool.push_back(mr);
         }
         Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000);
