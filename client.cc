@@ -32,6 +32,7 @@ int main()
     rdma_manager.poll_completion(wc);
     if (wc->status != 0){
       fprintf(stderr, "Work completion status is %d \n", wc->status);
+      fprintf(stderr, "Work completion opcode is %d \n", wc->opcode);
     }
 
   }
