@@ -54,11 +54,6 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to destroy CQ\n");
     }
-  if (res->pd)
-    if (ibv_dealloc_pd(res->pd))
-    {
-      fprintf(stderr, "failed to deallocate PD\n");
-    }
   if (!res->local_mem_pool.empty())
   {
     for (auto p : res->local_mem_pool)
@@ -77,6 +72,12 @@ RDMA_Manager::~RDMA_Manager()
     }
     res->remote_mem_pool.clear();
   }
+  if (res->pd)
+    if (ibv_dealloc_pd(res->pd))
+    {
+      fprintf(stderr, "failed to deallocate PD\n");
+    }
+
   if (res->ib_ctx)
     if (ibv_close_device(res->ib_ctx))
     {
