@@ -578,7 +578,6 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
   sr.sg_list = &sge;
   sr.num_sge = 1;
   sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_RDMA_READ);
-  sr.send_flags = IBV_SEND_SIGNALED;
 
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
@@ -613,7 +612,6 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   sr.sg_list = &sge;
   sr.num_sge = 1;
   sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_RDMA_WRITE);
-  sr.send_flags = IBV_SEND_SIGNALED;
 
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
@@ -625,21 +623,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
     fprintf(stderr, "failed to post SR\n");
   else
   {
-    /*switch (opcode)
-    {
-    case IBV_WR_SEND:
-            fprintf(stdout, "Send Request was posted\n");
-            break;
-    case IBV_WR_RDMA_READ:
-            fprintf(stdout, "RDMA Read Request was posted\n");
-            break;
-    case IBV_WR_RDMA_WRITE:
-            fprintf(stdout, "RDMA Write Request was posted\n");
-            break;
-    default:
-            fprintf(stdout, "Unknown Request was posted\n");
-            break;
-    }*/
+    fprintf(stdout, "RDMA Write Request was posted\n");
   }
   return rc;
 }
