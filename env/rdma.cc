@@ -59,16 +59,6 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to deallocate PD\n");
     }
-  if (res->ib_ctx)
-    if (ibv_close_device(res->ib_ctx))
-    {
-      fprintf(stderr, "failed to close device context\n");
-    }
-  if (res->sock >= 0)
-    if (close(res->sock))
-    {
-      fprintf(stderr, "failed to close socket\n");
-    }
   if (!res->local_mem_pool.empty())
   {
     for (auto p : res->local_mem_pool)
@@ -87,6 +77,17 @@ RDMA_Manager::~RDMA_Manager()
     }
     res->remote_mem_pool.clear();
   }
+  if (res->ib_ctx)
+    if (ibv_close_device(res->ib_ctx))
+    {
+      fprintf(stderr, "failed to close device context\n");
+    }
+  if (res->sock >= 0)
+    if (close(res->sock))
+    {
+      fprintf(stderr, "failed to close socket\n");
+    }
+
   delete res;
 }
 /******************************************************************************
