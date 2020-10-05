@@ -36,9 +36,9 @@ int main()
     }
 
   }
-  std::cout << "write buffer: " << (char*)rdma_manager.res->local_mem_pool[0]->addr << std::endl;
+  std::cout << "write buffer: " << (char*)mem_pool_table[0].addr << std::endl;
 
-  std::cout << "read buffer: " << (char*)rdma_manager.res->local_mem_pool[1]->addr << std::endl;
+  std::cout << "read buffer: " << (char*)mem_pool_table[1].addr << std::endl;
 
   return 0;
 }
