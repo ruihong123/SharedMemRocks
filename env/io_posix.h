@@ -49,11 +49,6 @@ class PosixHelper {
   static Status GetLogicalBlockSizeOfDirectory(const std::string& directory,
                                                size_t* size);
 };
-struct SST_Metadata{
-  std::string fname;
-  ibv_mr* mr;
-
-};
 
 #ifdef OS_LINUX
 // Files under a specific directory have the same logical block size.
@@ -188,16 +183,9 @@ class PosixRandomAccessFile : public FSRandomAccessFile {
 #endif
 
  public:
-  PosixRandomAccessFile(SST_Metadata sst_meta,
-                        size_t logical_block_size,
-                        const EnvOptions& options,
-                        RDMA_Manager* rdma_mg
-#if defined(ROCKSDB_IOURING_PRESENT)
-                        ,
-                        ThreadLocalPtr* thread_local_io_urings
-#endif
-  );
-  virtual ~PosixRandomAccessFile();
+  PosixRandomAccessFile(SST_Metadata sst_meta, size_t logical_block_size,
+                        const EnvOptions& options, RDMA_Manager* rdma_mg);
+  virtual ~PosixRandomAccessFile()=default;
 
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,

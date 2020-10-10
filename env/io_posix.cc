@@ -542,66 +542,25 @@ size_t PosixHelper::GetLogicalBlockSizeOfFd(int fd) {
  *
  * pread() based random-access
  */
-PosixRandomAccessFile::PosixRandomAccessFile(
-    SST_Metadata sst_meta, size_t logical_block_size,
-    const EnvOptions& options, RDMA_Manager* rdma_mg
-#if defined(ROCKSDB_IOURING_PRESENT)
-    ,
-    ThreadLocalPtr* thread_local_io_urings
-#endif
-    )
-    : use_direct_io_(options.use_direct_reads),
+PosixRandomAccessFile::PosixRandomAccessFile(SST_Metadata sst_meta,
+                                             size_t logical_block_size,
+                                             const EnvOptions& options,
+                                             RDMA_Manager* rdma_mg)
+    : sst_meta_(sst_meta),
+      use_direct_io_(options.use_direct_reads),
       logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg)
-#if defined(ROCKSDB_IOURING_PRESENT)
-      ,
-      thread_local_io_urings_(thread_local_io_urings)
-#endif
-{
-  assert(!options.use_direct_reads || !options.use_mmap_reads);
-  assert(!options.use_mmap_reads || sizeof(void*) < 8);
-}
+      rdma_mg_(rdma_mg){}
 
-PosixRandomAccessFile::~PosixRandomAccessFile() { close(fd_); }
+//PosixRandomAccessFile::~PosixRandomAccessFile(){}
 
 IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-  if (use_direct_io()) {
-    assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
-  }
+
   IOStatus s;
-  ssize_t r = -1;
-  size_t left = n;
-  char* ptr = scratch;
-  while (left > 0) {
-    r = pread(fd_, ptr, left, static_cast<off_t>(offset));
-    if (r <= 0) {
-      if (r == -1 && errno == EINTR) {
-        continue;
-      }
-      break;
-    }
-    ptr += r;
-    offset += r;
-    left -= r;
-    if (use_direct_io() &&
-        r % static_cast<ssize_t>(GetRequiredBufferAlignment()) != 0) {
-      // Bytes reads don't fill sectors. Should only happen at the end
-      // of the file.
-      break;
-    }
-  }
-  if (r < 0) {
-    // An error: return a non-ok status
-    s = IOError(
-        "While pread offset " + ToString(offset) + " len " + ToString(n),
-        filename_, errno);
-  }
-  *result = Slice(scratch, (r < 0) ? 0 : n - left);
+//  rdma_mg_->Find_empty_LM_Placeholder();
+//  *result = Slice(scratch, (r < 0) ? 0 : n - left);
   return s;
 }
 
@@ -751,77 +710,21 @@ IOStatus PosixRandomAccessFile::MultiRead(FSReadRequest* reqs,
 IOStatus PosixRandomAccessFile::Prefetch(uint64_t offset, size_t n,
                                          const IOOptions& /*opts*/,
                                          IODebugContext* /*dbg*/) {
-  IOStatus s;
-  if (!use_direct_io()) {
-    ssize_t r = 0;
-#ifdef OS_LINUX
-    r = readahead(fd_, offset, n);
-#endif
-#ifdef OS_MACOSX
-    radvisory advice;
-    advice.ra_offset = static_cast<off_t>(offset);
-    advice.ra_count = static_cast<int>(n);
-    r = fcntl(fd_, F_RDADVISE, &advice);
-#endif
-    if (r == -1) {
-      s = IOError("While prefetching offset " + ToString(offset) + " len " +
-                      ToString(n),
-                  filename_, errno);
-    }
-  }
-  return s;
+  return IOStatus::NotSupported();
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
 size_t PosixRandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
-  return PosixHelper::GetUniqueIdFromFile(fd_, id, max_size);
+  return 0;
 }
 #endif
 
 void PosixRandomAccessFile::Hint(AccessPattern pattern) {
-  if (use_direct_io()) {
-    return;
-  }
-  switch (pattern) {
-    case kNormal:
-      Fadvise(fd_, 0, 0, POSIX_FADV_NORMAL);
-      break;
-    case kRandom:
-      Fadvise(fd_, 0, 0, POSIX_FADV_RANDOM);
-      break;
-    case kSequential:
-      Fadvise(fd_, 0, 0, POSIX_FADV_SEQUENTIAL);
-      break;
-    case kWillNeed:
-      Fadvise(fd_, 0, 0, POSIX_FADV_WILLNEED);
-      break;
-    case kWontNeed:
-      Fadvise(fd_, 0, 0, POSIX_FADV_DONTNEED);
-      break;
-    default:
-      assert(false);
-      break;
-  }
+
 }
 
 IOStatus PosixRandomAccessFile::InvalidateCache(size_t offset, size_t length) {
-  if (use_direct_io()) {
-    return IOStatus::OK();
-  }
-#ifndef OS_LINUX
-  (void)offset;
-  (void)length;
-  return IOStatus::OK();
-#else
-  // free OS pages
-  int ret = Fadvise(fd_, offset, length, POSIX_FADV_DONTNEED);
-  if (ret == 0) {
-    return IOStatus::OK();
-  }
-  return IOError("While fadvise NotNeeded offset " + ToString(offset) +
-                     " len " + ToString(length),
-                 filename_, errno);
-#endif
+  return IOStatus::NotSupported("InvalidateCache not supported.");
 }
 
 /*

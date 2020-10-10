@@ -142,106 +142,39 @@ class RDMAFileSystem : public FileSystem {
   const char* Name() const override { return "Posix File System"; }
 
   ~RDMAFileSystem();
-
+  enum Open_Type {readtype, writetype, rwtype};
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
       fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
   }
-  void Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
-    //If the Remote buffer is empty, register one from the remote memory.
-    if(Remote_Bitmap->empty()){
-      rdma_mg_->Remote_Memory_Register(2*1024*1024*1024);
-    }
-    auto ptr = Remote_Bitmap->begin();
 
-    while(ptr != Remote_Bitmap->end()) {// iterate among all the remote memory region
-      //find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr*
-      // second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get
-      //from the remote memory. The memory was divided into chunks with size == SSTable size.
-      auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
-      if(it!= ptr->second->end()){
-        *it = true;
-        int sst_index = distance(ptr->second->begin(),it);
-        sst_meta.mr = new ibv_mr();
-        *(sst_meta.mr) = *(ptr->first);
-        sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
-        sst_meta.fname = file_name;
-        return;
+  IOStatus RDMA_open(std::string file_name, SST_Metadata &sst_meta, Open_Type type){
+    if(type == writetype || type == rwtype) {
+      //For write and read&write type if not found in the mapping table, then
+      //we can assign a space in the remote memory for this open request.//
+      //However, for the read type we have to report error, because we can not
+      //read an empty file
+      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+        // std container always copy the value to the container, Don't worry.
+        rdma_mg_->Find_empty_RM_Placeholder(file_name, sst_meta);
+        file_to_sst_meta[file_name] = sst_meta;
+        return IOStatus::OK();
+      } else {
+        sst_meta = file_to_sst_meta[file_name];
+        return IOStatus::OK();
       }
-      ptr++;
-    }
-    // If not find remote buffers are all used, allocate another remote memory region.
-    rdma_mg_->Remote_Memory_Register(2*1024*1024*1024);
-    ibv_mr* mr;
-    mr = rdma_mg_->res->remote_mem_pool.back();
-    auto it = std::find(Local_Bitmap->at(mr)->begin(), Local_Bitmap->at(mr)->end(), false);
-    *it = true;
-    int sst_index = distance(ptr->second->begin(),it);
-
-
-    sst_meta.mr = new ibv_mr();
-    *(sst_meta.mr) = *(ptr->first);
-    sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
-    sst_meta.fname = file_name;
-    return;
-  }
-  void Find_empty_LM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
-
-
-    if(Remote_Bitmap->empty()){
-      ibv_mr* mr = new ibv_mr();
-      char* buff = new char[kDefaultPageSize];
-      rdma_mg_->Local_Memory_Register(&buff, &mr, kDefaultPageSize*1024);
-    }
-    auto ptr = Local_Bitmap->begin();
-
-    while(ptr != Local_Bitmap->end()) {
-      auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
-      if(it!= ptr->second->end()){
-        *it = true;
-        int sst_index = distance(ptr->second->begin(),it);
-
-
-        sst_meta.mr = new ibv_mr();
-        *(sst_meta.mr) = *(ptr->first);
-        sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024;
-        sst_meta.fname = file_name;
-        return;
-      }
-      ptr++;
-    }
-    // if not find available Local block buffer then allocate a new buffer. then
-    //pick up one buffer from the new Local memory region.
-    ibv_mr* mr = new ibv_mr();
-    char* buff = new char[kDefaultPageSize];
-    rdma_mg_->Local_Memory_Register(&buff, &mr, kDefaultPageSize*1024);
-    auto it = std::find(Local_Bitmap->at(mr)->begin(), Local_Bitmap->at(mr)->end(), false);
-    *it = true;
-    int sst_index = distance(ptr->second->begin(),it);
-
-
-    sst_meta.mr = new ibv_mr();
-    *(sst_meta.mr) = *(ptr->first);
-    sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024);
-    sst_meta.fname = file_name;
-    return;
-
-
-
-  }
-  SST_Metadata RDMA_open(std::string file_name){
-
-    if(file_to_sst_meta.find(file_name)==file_to_sst_meta.end()){
-
-      SST_Metadata sst_meta;// std container always copy the value to the container, Don't worry.
-      Find_empty_RM_Placeholder(file_name, sst_meta);
-      return sst_meta;
     }
     else{
-      return file_to_sst_meta[file_name];
+      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+        // std container always copy the value to the container, Don't worry.
+        errno = ENOENT;
+        return IOError("While open a file for random read", file_name, errno);
+      } else {
+        sst_meta = file_to_sst_meta[file_name];
+        return IOStatus::OK();
+      }
     }
-
   }
   IOStatus NewSequentialFile(const std::string& fname,
                              const FileOptions& options,
@@ -304,11 +237,11 @@ class RDMAFileSystem : public FileSystem {
                                IODebugContext* /*dbg*/) override {
     IOStatus s = IOStatus::OK();
     result->reset();
-    SST_Metadata meta_data = RDMA_open(fname);
-    if (options.use_direct_reads && !options.use_mmap_reads) { //Notice: check here when debugging.
-      result->reset(new PosixRandomAccessFile(
-          meta_data, kDefaultPageSize,
-          options, rdma_mg_));
+    SST_Metadata meta_data;
+    RDMA_open(fname, meta_data, readtype);
+    if (!options.use_mmap_reads) { //Notice: check here when debugging.
+      result->reset(new PosixRandomAccessFile(meta_data, kDefaultPageSize,
+                                              options, rdma_mg_));
     }
     else{
       std::cout << "The option configuration is not correct" << std::endl;

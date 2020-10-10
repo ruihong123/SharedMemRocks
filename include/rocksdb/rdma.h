@@ -14,6 +14,7 @@
 #include <getopt.h>
 #include <cassert>
 #include <unordered_map>
+#include <algorithm>
 //#include <options.h>
 
 #include <sys/time.h>
@@ -33,9 +34,7 @@
 /* poll CQ timeout in millisec (2 seconds) */
 #define MAX_POLL_CQ_TIMEOUT 1000000
 #define MSG "SEND operation "
-#define RDMAMSGR "RDMA read operation "
-#define RDMAMSGW "RDMA write operation"
-//#define MSG_SIZE (1024*1024)
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
 	static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
@@ -66,12 +65,15 @@ struct registered_qp_config {
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
-
+// Structure for the file handle in RDMA file system.
+struct SST_Metadata{
+  std::string fname;
+  ibv_mr* mr;
+};
 /* structure of system resources */
 struct resources
 {
-  struct ibv_device_attr
-      device_attr;
+  struct ibv_device_attr device_attr;
   /* Device attributes */
   struct ibv_sge* sge = nullptr;
   struct ibv_recv_wr*	rr = nullptr;
@@ -88,10 +90,7 @@ struct resources
   char* SST_buf = nullptr;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
   char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
   char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
-  std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
-  std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Mem_Bitmap = nullptr;
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Mem_Bitmap = nullptr;
+
   int sock;						   /* TCP socket file descriptor */
 };
 /* structure of test parameters */
@@ -114,7 +113,15 @@ class RDMA_Manager{
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
   int poll_completion(ibv_wc* &wc);
+  //find an empty remote SST
+  void Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta);
+  void Find_empty_LM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta);
+
   resources* res = nullptr;
+  std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
+  std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Mem_Bitmap = nullptr;
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Mem_Bitmap = nullptr;
   int Block_Size = 4*1024;
   int Table_Size = 4*1024*1024;
  private:
