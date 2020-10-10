@@ -13,6 +13,7 @@
 #include <byteswap.h>
 #include <getopt.h>
 #include <cassert>
+#include <unordered_map>
 //#include <options.h>
 
 #include <sys/time.h>
@@ -89,16 +90,23 @@ struct resources
   char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Mem_Bitmap = nullptr;
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Mem_Bitmap = nullptr;
   int sock;						   /* TCP socket file descriptor */
 };
 /* structure of test parameters */
 class RDMA_Manager{
  public:
-  RDMA_Manager(config_t config);
+  RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
+               std::vector<bool>*>* Remote_Bitmap,
+               std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap);
+  RDMA_Manager()=delete;
   ~RDMA_Manager();
 
   void Set_Up_RDMA();
+  // Local memory register need to first allocate memory outside them register it.
   bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
+  // Remote Memory registering will call RDMA send and receive to the remote memory
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
   void Sever_thread();
@@ -107,13 +115,16 @@ class RDMA_Manager{
   int RDMA_Send();
   int poll_completion(ibv_wc* &wc);
   resources* res = nullptr;
+  int Block_Size = 4*1024;
+  int Table_Size = 4*1024*1024;
  private:
+
   config_t rdma_config;
 
   int sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
 
-  int post_send(void* mr, bool is_server);
+  int post_send(void* mr, bool is_server);// should change it into <template>post_send(void* mr, template &send_data)
 //  int post_receives(int len);
   int post_receive(void* mr, bool is_server);
 

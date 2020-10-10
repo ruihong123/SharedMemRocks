@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <algorithm>
+
 // Get nano time includes
 #if defined(OS_LINUX) || defined(OS_FREEBSD)
 #elif defined(__MACH__)
@@ -67,6 +68,7 @@
 #include "util/string_util.h"
 #include "util/thread_local.h"
 #include "util/threadpool_imp.h"
+#include "include/rocksdb/rdma.h"
 
 #if !defined(TMPFS_MAGIC)
 #define TMPFS_MAGIC 0x01021994
@@ -96,6 +98,7 @@ struct LockHoldingInfo {
   int64_t acquire_time;
   uint64_t acquiring_thread;
 };
+
 static std::map<std::string, LockHoldingInfo> locked_files;
 static port::Mutex mutex_locked_files;
 
@@ -131,21 +134,115 @@ int cloexec_flags(int flags, const EnvOptions* options) {
 #endif
   return flags;
 }
-
+//Add rdma manager into filesystem, maitaining a file to RDMA Placeholder table.
 class RDMAFileSystem : public FileSystem {
  public:
   RDMAFileSystem();
 
   const char* Name() const override { return "Posix File System"; }
 
-  ~RDMAFileSystem() override {}
+  ~RDMAFileSystem();
 
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
       fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
   }
+  void Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
+    //If the Remote buffer is empty, register one from the remote memory.
+    if(Remote_Bitmap->empty()){
+      rdma_mg_->Remote_Memory_Register(2*1024*1024*1024);
+    }
+    auto ptr = Remote_Bitmap->begin();
 
+    while(ptr != Remote_Bitmap->end()) {// iterate among all the remote memory region
+      //find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr*
+      // second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get
+      //from the remote memory. The memory was divided into chunks with size == SSTable size.
+      auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
+      if(it!= ptr->second->end()){
+        *it = true;
+        int sst_index = distance(ptr->second->begin(),it);
+        sst_meta.mr = new ibv_mr();
+        *(sst_meta.mr) = *(ptr->first);
+        sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
+        sst_meta.fname = file_name;
+        return;
+      }
+      ptr++;
+    }
+    // If not find remote buffers are all used, allocate another remote memory region.
+    rdma_mg_->Remote_Memory_Register(2*1024*1024*1024);
+    ibv_mr* mr;
+    mr = rdma_mg_->res->remote_mem_pool.back();
+    auto it = std::find(Local_Bitmap->at(mr)->begin(), Local_Bitmap->at(mr)->end(), false);
+    *it = true;
+    int sst_index = distance(ptr->second->begin(),it);
+
+
+    sst_meta.mr = new ibv_mr();
+    *(sst_meta.mr) = *(ptr->first);
+    sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
+    sst_meta.fname = file_name;
+    return;
+  }
+  void Find_empty_LM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
+
+
+    if(Remote_Bitmap->empty()){
+      ibv_mr* mr = new ibv_mr();
+      char* buff = new char[kDefaultPageSize];
+      rdma_mg_->Local_Memory_Register(&buff, &mr, kDefaultPageSize*1024);
+    }
+    auto ptr = Local_Bitmap->begin();
+
+    while(ptr != Local_Bitmap->end()) {
+      auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
+      if(it!= ptr->second->end()){
+        *it = true;
+        int sst_index = distance(ptr->second->begin(),it);
+
+
+        sst_meta.mr = new ibv_mr();
+        *(sst_meta.mr) = *(ptr->first);
+        sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024;
+        sst_meta.fname = file_name;
+        return;
+      }
+      ptr++;
+    }
+    // if not find available Local block buffer then allocate a new buffer. then
+    //pick up one buffer from the new Local memory region.
+    ibv_mr* mr = new ibv_mr();
+    char* buff = new char[kDefaultPageSize];
+    rdma_mg_->Local_Memory_Register(&buff, &mr, kDefaultPageSize*1024);
+    auto it = std::find(Local_Bitmap->at(mr)->begin(), Local_Bitmap->at(mr)->end(), false);
+    *it = true;
+    int sst_index = distance(ptr->second->begin(),it);
+
+
+    sst_meta.mr = new ibv_mr();
+    *(sst_meta.mr) = *(ptr->first);
+    sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024);
+    sst_meta.fname = file_name;
+    return;
+
+
+
+  }
+  SST_Metadata RDMA_open(std::string file_name){
+
+    if(file_to_sst_meta.find(file_name)==file_to_sst_meta.end()){
+
+      SST_Metadata sst_meta;// std container always copy the value to the container, Don't worry.
+      Find_empty_RM_Placeholder(file_name, sst_meta);
+      return sst_meta;
+    }
+    else{
+      return file_to_sst_meta[file_name];
+    }
+
+  }
   IOStatus NewSequentialFile(const std::string& fname,
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
@@ -197,7 +294,7 @@ class RDMAFileSystem : public FileSystem {
     }
     result->reset(new PosixSequentialFile(
         fname, file, fd, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
-        options));
+        options, rdma_mg_));
     return IOStatus::OK();
   }
 
@@ -205,68 +302,16 @@ class RDMAFileSystem : public FileSystem {
                                const FileOptions& options,
                                std::unique_ptr<FSRandomAccessFile>* result,
                                IODebugContext* /*dbg*/) override {
-    result->reset();
     IOStatus s = IOStatus::OK();
-    int fd;
-    int flags = cloexec_flags(O_RDONLY, &options);
-
-    if (options.use_direct_reads && !options.use_mmap_reads) {
-#ifdef ROCKSDB_LITE
-      return IOStatus::IOError(fname,
-                               "Direct I/O not supported in RocksDB lite");
-#endif  // !ROCKSDB_LITE
-#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
-      flags |= O_DIRECT;
-      TEST_SYNC_POINT_CALLBACK("NewRandomAccessFile:O_DIRECT", &flags);
-#endif
-    }
-
-    do {
-      IOSTATS_TIMER_GUARD(open_nanos);
-      fd = open(fname.c_str(), flags, GetDBFileMode(allow_non_owner_access_));
-    } while (fd < 0 && errno == EINTR);
-    if (fd < 0) {
-      s = IOError("While open a file for random read", fname, errno);
-      return s;
-    }
-    SetFD_CLOEXEC(fd, &options);
-
-    if (options.use_mmap_reads && sizeof(void*) >= 8) {
-      // Use of mmap for random reads has been removed because it
-      // kills performance when storage is fast.
-      // Use mmap when virtual address-space is plentiful.
-      uint64_t size;
-      IOOptions opts;
-      s = GetFileSize(fname, opts, &size, nullptr);
-      if (s.ok()) {
-        void* base = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
-        if (base != MAP_FAILED) {
-          result->reset(
-              new PosixMmapReadableFile(fd, fname, base, size, options));
-        } else {
-          s = IOError("while mmap file for read", fname, errno);
-          close(fd);
-        }
-      } else {
-        close(fd);
-      }
-    } else {
-      if (options.use_direct_reads && !options.use_mmap_reads) {
-#ifdef OS_MACOSX
-        if (fcntl(fd, F_NOCACHE, 1) == -1) {
-          close(fd);
-          return IOError("while fcntl NoCache", fname, errno);
-        }
-#endif
-      }
+    result->reset();
+    SST_Metadata meta_data = RDMA_open(fname);
+    if (options.use_direct_reads && !options.use_mmap_reads) { //Notice: check here when debugging.
       result->reset(new PosixRandomAccessFile(
-          fname, fd, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
-          options
-#if defined(ROCKSDB_IOURING_PRESENT)
-          ,
-          thread_local_io_urings_.get()
-#endif
-              ));
+          meta_data, kDefaultPageSize,
+          options, rdma_mg_));
+    }
+    else{
+      std::cout << "The option configuration is not correct" << std::endl;
     }
     return s;
   }
@@ -349,7 +394,7 @@ class RDMAFileSystem : public FileSystem {
 #endif
       result->reset(new PosixWritableFile(
           fname, fd, GetLogicalBlockSizeForWriteIfNeeded(options, fname, fd),
-          options));
+          options, rdma_mg_));
     } else {
       // disable mmap writes
       EnvOptions no_mmap_writes_options = options;
@@ -358,7 +403,7 @@ class RDMAFileSystem : public FileSystem {
           new PosixWritableFile(fname, fd,
                                 GetLogicalBlockSizeForWriteIfNeeded(
                                     no_mmap_writes_options, fname, fd),
-                                no_mmap_writes_options));
+                                no_mmap_writes_options, rdma_mg_));
     }
     return s;
   }
@@ -455,7 +500,7 @@ class RDMAFileSystem : public FileSystem {
 #endif
       result->reset(new PosixWritableFile(
           fname, fd, GetLogicalBlockSizeForWriteIfNeeded(options, fname, fd),
-          options));
+          options, rdma_mg_));
     } else {
       // disable mmap writes
       FileOptions no_mmap_writes_options = options;
@@ -464,7 +509,7 @@ class RDMAFileSystem : public FileSystem {
           new PosixWritableFile(fname, fd,
                                 GetLogicalBlockSizeForWriteIfNeeded(
                                     no_mmap_writes_options, fname, fd),
-                                no_mmap_writes_options));
+                                no_mmap_writes_options, rdma_mg_));
     }
     return s;
   }
@@ -489,7 +534,7 @@ class RDMAFileSystem : public FileSystem {
     }
 
     SetFD_CLOEXEC(fd, &options);
-    result->reset(new PosixRandomRWFile(fname, fd, options));
+    result->reset(new PosixRandomRWFile(fname, fd, options, rdma_mg_));
     return IOStatus::OK();
   }
 
@@ -938,6 +983,10 @@ class RDMAFileSystem : public FileSystem {
  private:
   bool checkedDiskForMmap_;
   bool forceMmapOff_;  // do we override Env options?
+  RDMA_Manager* rdma_mg_;
+  std::map<std::string, SST_Metadata> file_to_sst_meta;
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Bitmap;
+  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -1027,6 +1076,18 @@ RDMAFileSystem::RDMAFileSystem()
       forceMmapOff_(false),
       page_size_(getpagesize()),
       allow_non_owner_access_(true) {
+  struct config_t config = {
+      NULL,  /* dev_name */
+      NULL,  /* server_name */
+      19875, /* tcp_port */
+      1,	 /* ib_port */
+      -1, /* gid_idx */
+      4*10*1024*1024 /*initial local buffer size*/
+  };
+  Remote_Bitmap = new std::unordered_map<ibv_mr*, std::vector<bool>*>;
+  Local_Bitmap = new std::unordered_map<ibv_mr*, std::vector<bool>*>;
+  rdma_mg_ = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
+  rdma_mg_->Set_Up_RDMA();
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local
@@ -1037,6 +1098,9 @@ RDMAFileSystem::RDMAFileSystem()
     delete new_io_uring;
   }
 #endif
+}
+rocksdb::RDMAFileSystem::~RDMAFileSystem() {
+  delete rdma_mg_;
 }
 
 }  // namespace

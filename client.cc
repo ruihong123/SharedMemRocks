@@ -10,7 +10,7 @@ int main()
       19875, /* tcp_port */
       1,	 /* ib_port */
       -1, /* gid_idx */
-4*10*1024*1024 /*initial local SST buffer size*/
+4*10*1024*1024 /*initial local buffer size*/
       };
   RDMA_Manager rdma_manager(config);
   rdma_manager.Set_Up_RDMA();

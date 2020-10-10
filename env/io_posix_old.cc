@@ -208,14 +208,12 @@ bool IsSectorAligned(const void* ptr, size_t sector_size) {
  */
 PosixSequentialFile::PosixSequentialFile(const std::string& fname, FILE* file,
                                          int fd, size_t logical_block_size,
-                                         const EnvOptions& options,
-                                         RDMA_Manager* rdma_mg)
+                                         const EnvOptions& options)
     : filename_(fname),
       file_(file),
       fd_(fd),
       use_direct_io_(options.use_direct_reads),
-      logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg) {
+      logical_sector_size_(logical_block_size) {
   assert(!options.use_direct_reads || !options.use_mmap_reads);
 }
 
@@ -237,7 +235,7 @@ IOStatus PosixSequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   size_t r = 0;
   do {
     clearerr(file_);
-      r = fread_unlocked(scratch, 1, n, file_);
+    r = fread_unlocked(scratch, 1, n, file_);
   } while (r == 0 && ferror(file_) && errno == EINTR);
   *result = Slice(scratch, r);
   if (r < n) {
@@ -313,7 +311,7 @@ IOStatus PosixSequentialFile::InvalidateCache(size_t offset, size_t length) {
     int ret = Fadvise(fd_, offset, length, POSIX_FADV_DONTNEED);
     if (ret != 0) {
       return IOError("While fadvise NotNeeded offset " + ToString(offset) +
-                         " len " + ToString(length),
+                     " len " + ToString(length),
                      filename_, errno);
     }
   }
@@ -543,18 +541,19 @@ size_t PosixHelper::GetLogicalBlockSizeOfFd(int fd) {
  * pread() based random-access
  */
 PosixRandomAccessFile::PosixRandomAccessFile(
-    SST_Metadata sst_meta, size_t logical_block_size,
-    const EnvOptions& options, RDMA_Manager* rdma_mg
+    const std::string& fname, int fd, size_t logical_block_size,
+    const EnvOptions& options
 #if defined(ROCKSDB_IOURING_PRESENT)
     ,
     ThreadLocalPtr* thread_local_io_urings
 #endif
-    )
-    : use_direct_io_(options.use_direct_reads),
-      logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg)
+)
+    : filename_(fname),
+      fd_(fd),
+      use_direct_io_(options.use_direct_reads),
+      logical_sector_size_(logical_block_size)
 #if defined(ROCKSDB_IOURING_PRESENT)
-      ,
+,
       thread_local_io_urings_(thread_local_io_urings)
 #endif
 {
@@ -765,7 +764,7 @@ IOStatus PosixRandomAccessFile::Prefetch(uint64_t offset, size_t n,
 #endif
     if (r == -1) {
       s = IOError("While prefetching offset " + ToString(offset) + " len " +
-                      ToString(n),
+                  ToString(n),
                   filename_, errno);
     }
   }
@@ -819,7 +818,7 @@ IOStatus PosixRandomAccessFile::InvalidateCache(size_t offset, size_t length) {
     return IOStatus::OK();
   }
   return IOError("While fadvise NotNeeded offset " + ToString(offset) +
-                     " len " + ToString(length),
+                 " len " + ToString(length),
                  filename_, errno);
 #endif
 }
@@ -860,7 +859,7 @@ IOStatus PosixMmapReadableFile::Read(uint64_t offset, size_t n,
   if (offset > length_) {
     *result = Slice();
     return IOError("While mmap read offset " + ToString(offset) +
-                       " larger than file length " + ToString(length_),
+                   " larger than file length " + ToString(length_),
                    filename_, EINVAL);
   } else if (offset + n > length_) {
     n = static_cast<size_t>(length_ - offset);
@@ -881,7 +880,7 @@ IOStatus PosixMmapReadableFile::InvalidateCache(size_t offset, size_t length) {
     return IOStatus::OK();
   }
   return IOError("While fadvise not needed. Offset " + ToString(offset) +
-                     " len" + ToString(length),
+                 " len" + ToString(length),
                  filename_, errno);
 #endif
 }
@@ -1135,15 +1134,13 @@ IOStatus PosixMmapFile::Allocate(uint64_t offset, uint64_t len,
  */
 PosixWritableFile::PosixWritableFile(const std::string& fname, int fd,
                                      size_t logical_block_size,
-                                     const EnvOptions& options,
-                                     RDMA_Manager* rdma_mg)
+                                     const EnvOptions& options)
     : FSWritableFile(options),
       filename_(fname),
       use_direct_io_(options.use_direct_writes),
       fd_(fd),
       filesize_(0),
-      logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg){
+      logical_sector_size_(logical_block_size) {
 #ifdef ROCKSDB_FALLOCATE_PRESENT
   allow_fallocate_ = options.allow_fallocate;
   fallocate_with_keep_size_ = options.fallocate_with_keep_size;
@@ -1247,8 +1244,8 @@ IOStatus PosixWritableFile::Close(const IOOptions& /*opts*/,
     // If not, we should hack it with FALLOC_FL_PUNCH_HOLE
     if (result == 0 &&
         (file_stats.st_size + file_stats.st_blksize - 1) /
-                file_stats.st_blksize !=
-            file_stats.st_blocks / (file_stats.st_blksize / 512)) {
+        file_stats.st_blksize !=
+        file_stats.st_blocks / (file_stats.st_blksize / 512)) {
       IOSTATS_TIMER_GUARD(allocate_nanos);
       if (allow_fallocate_) {
         fallocate(fd_, FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE, filesize_,
@@ -1394,8 +1391,8 @@ size_t PosixWritableFile::GetUniqueId(char* id, size_t max_size) const {
  */
 
 PosixRandomRWFile::PosixRandomRWFile(const std::string& fname, int fd,
-                                     const EnvOptions& /*options*/, RDMA_Manager* rdma_mg)
-    : filename_(fname), fd_(fd), rdma_mg_(rdma_mg) {}
+                                     const EnvOptions& /*options*/)
+    : filename_(fname), fd_(fd) {}
 
 PosixRandomRWFile::~PosixRandomRWFile() {
   if (fd_ >= 0) {
@@ -1432,7 +1429,7 @@ IOStatus PosixRandomRWFile::Read(uint64_t offset, size_t n,
         continue;
       }
       return IOError("While reading random read/write file offset " +
-                         ToString(offset) + " len " + ToString(n),
+                     ToString(offset) + " len " + ToString(n),
                      filename_, errno);
     } else if (done == 0) {
       // Nothing more to read

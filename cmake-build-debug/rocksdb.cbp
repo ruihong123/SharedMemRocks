@@ -5,7 +5,7 @@
 		<Option title="rocksdb"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\cmake\;CMake Files\cmake\modules\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\lib\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\gflags\;CMake Files\util\;CMake Files\third-party\;CMake Files\third-party\gtest-1.8.1\;CMake Files\third-party\gtest-1.8.1\fused-src\;CMake Files\third-party\gtest-1.8.1\fused-src\gtest\;CMake Files\tools\;CMake Files\db_stress_tool\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\cmake\;CMake Files\cmake\modules\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\lib\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\gflags\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\Snappy\;CMake Files\util\;CMake Files\third-party\;CMake Files\third-party\gtest-1.8.1\;CMake Files\third-party\gtest-1.8.1\fused-src\;CMake Files\third-party\gtest-1.8.1\fused-src\gtest\;CMake Files\tools\;CMake Files\db_stress_tool\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/ruihong/Projects/rocksdb/cmake-build-debug"/>
@@ -65,6 +65,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -105,6 +107,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -145,6 +149,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -185,6 +191,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -225,6 +233,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -265,6 +275,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -305,6 +317,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -344,6 +358,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -383,6 +399,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -423,6 +441,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -463,6 +483,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -503,6 +525,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -543,6 +567,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -583,6 +609,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -623,6 +651,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -663,6 +693,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -703,6 +735,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -743,6 +777,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -783,6 +819,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -823,6 +861,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -863,6 +903,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -903,6 +945,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -943,6 +987,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -983,6 +1029,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1023,6 +1071,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1063,6 +1113,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1103,6 +1155,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1143,6 +1197,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1183,6 +1239,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1223,6 +1281,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1263,6 +1323,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1303,6 +1365,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1343,6 +1407,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1383,6 +1449,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1423,6 +1491,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1463,6 +1533,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1503,6 +1575,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1543,6 +1617,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1583,6 +1659,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1623,6 +1701,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1663,6 +1743,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1703,6 +1785,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1743,6 +1827,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1783,6 +1869,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1823,6 +1911,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1863,6 +1953,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1903,6 +1995,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1943,6 +2037,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -1983,6 +2079,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2023,6 +2121,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2063,6 +2163,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2103,6 +2205,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2143,6 +2247,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2183,6 +2289,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2223,6 +2331,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2263,6 +2373,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2303,6 +2415,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2343,6 +2457,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2383,6 +2499,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2423,6 +2541,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2463,6 +2583,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2503,6 +2625,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2543,6 +2667,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2583,6 +2709,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2623,6 +2751,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2663,6 +2793,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2703,6 +2835,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2743,6 +2877,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2783,6 +2919,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2823,6 +2961,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2863,6 +3003,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2903,6 +3045,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2943,6 +3087,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -2983,6 +3129,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3023,6 +3171,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3063,6 +3213,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3103,6 +3255,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3143,6 +3297,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3183,6 +3339,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3223,6 +3381,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3263,6 +3423,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3303,6 +3465,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3343,6 +3507,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3383,6 +3549,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3423,6 +3591,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3463,6 +3633,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3503,6 +3675,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3543,6 +3717,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3583,6 +3759,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3623,6 +3801,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3663,6 +3843,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3703,6 +3885,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3743,6 +3927,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3783,6 +3969,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3823,6 +4011,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3863,6 +4053,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3903,6 +4095,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3943,6 +4137,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -3983,6 +4179,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4023,6 +4221,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4063,6 +4263,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4103,6 +4305,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4143,6 +4347,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4183,6 +4389,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4223,6 +4431,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4263,6 +4473,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4303,6 +4515,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4343,6 +4557,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4383,6 +4599,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4423,6 +4641,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4483,6 +4703,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4523,6 +4745,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4563,6 +4787,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4603,6 +4829,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4643,6 +4871,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4683,6 +4913,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4723,6 +4955,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4763,6 +4997,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4803,6 +5039,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4843,6 +5081,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4883,6 +5123,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4923,6 +5165,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -4963,6 +5207,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5003,6 +5249,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5043,6 +5291,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5083,6 +5333,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5123,6 +5375,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5163,6 +5417,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5203,6 +5459,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5243,6 +5501,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5283,6 +5543,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5323,6 +5585,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5363,6 +5627,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5403,6 +5669,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5443,6 +5711,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5483,6 +5753,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5523,6 +5795,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5563,6 +5837,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5603,6 +5879,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5643,6 +5921,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5683,6 +5963,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5723,6 +6005,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5773,6 +6057,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5813,6 +6099,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5853,6 +6141,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5893,6 +6183,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5933,6 +6225,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -5973,6 +6267,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6013,6 +6309,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6053,6 +6351,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6093,6 +6393,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6133,6 +6435,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6173,6 +6477,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6213,6 +6519,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6253,6 +6561,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6293,6 +6603,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6333,6 +6645,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6373,6 +6687,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6413,6 +6729,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6453,6 +6771,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6493,6 +6813,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6533,6 +6855,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6573,6 +6897,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6613,6 +6939,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6653,6 +6981,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6693,6 +7023,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6733,6 +7065,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6773,6 +7107,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6813,6 +7149,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6852,6 +7190,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6891,6 +7231,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6931,6 +7273,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -6971,6 +7315,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7011,6 +7357,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7051,6 +7399,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7090,6 +7440,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7129,6 +7481,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7169,6 +7523,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7219,6 +7575,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7259,6 +7617,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7299,6 +7659,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7339,6 +7701,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7379,6 +7743,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7419,6 +7785,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7459,6 +7827,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7499,6 +7869,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7539,6 +7911,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7579,6 +7953,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7619,6 +7995,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7659,6 +8037,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7699,6 +8079,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7739,6 +8121,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7779,6 +8163,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7819,6 +8205,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7859,6 +8247,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7899,6 +8289,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7939,6 +8331,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -7979,6 +8373,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8019,6 +8415,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8059,6 +8457,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8099,6 +8499,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8139,6 +8541,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8179,6 +8583,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8219,6 +8625,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8259,6 +8667,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8299,6 +8709,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8339,6 +8751,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8379,6 +8793,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8419,6 +8835,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8459,6 +8877,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8499,6 +8919,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8539,6 +8961,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8579,6 +9003,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8619,6 +9045,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8659,6 +9087,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8699,6 +9129,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8739,6 +9171,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8779,6 +9213,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8819,6 +9255,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8859,6 +9297,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8909,6 +9349,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8949,6 +9391,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -8989,6 +9433,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9029,6 +9475,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9069,6 +9517,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9109,6 +9559,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9149,6 +9601,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9189,6 +9643,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9229,6 +9685,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9269,6 +9727,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9309,6 +9769,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9349,6 +9811,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9389,6 +9853,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9429,6 +9895,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9469,6 +9937,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9509,6 +9979,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9549,6 +10021,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9589,6 +10063,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9629,6 +10105,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9669,6 +10147,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9709,6 +10189,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9749,6 +10231,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9789,6 +10273,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9829,6 +10315,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9869,6 +10357,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9909,6 +10399,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9949,6 +10441,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -9989,6 +10483,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10029,6 +10525,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10069,6 +10567,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10109,6 +10609,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10149,6 +10651,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10189,6 +10693,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10229,6 +10735,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10269,6 +10777,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10309,6 +10819,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10349,6 +10861,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10389,6 +10903,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10429,6 +10945,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10469,6 +10987,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10509,6 +11029,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10549,6 +11071,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10589,6 +11113,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10629,6 +11155,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10669,6 +11197,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10709,6 +11239,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10749,6 +11281,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10789,6 +11323,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10829,6 +11365,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10869,6 +11407,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10909,6 +11449,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10949,6 +11491,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -10989,6 +11533,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11029,6 +11575,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11069,6 +11617,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11109,6 +11659,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11149,6 +11701,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11189,6 +11743,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11229,6 +11785,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11269,6 +11827,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11309,6 +11869,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11349,6 +11911,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11389,6 +11953,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11429,6 +11995,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11469,6 +12037,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11509,6 +12079,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11549,6 +12121,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11589,6 +12163,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11629,6 +12205,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11669,6 +12247,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11709,6 +12289,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11749,6 +12331,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11789,6 +12373,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11829,6 +12415,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11869,6 +12457,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11909,6 +12499,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11949,6 +12541,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -11989,6 +12583,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12029,6 +12625,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12069,6 +12667,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12109,6 +12709,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12149,6 +12751,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12189,6 +12793,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12229,6 +12835,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12269,6 +12877,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12309,6 +12919,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12349,6 +12961,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12389,6 +13003,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12429,6 +13045,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12469,6 +13087,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12509,6 +13129,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12549,6 +13171,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12589,6 +13213,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12629,6 +13255,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12669,6 +13297,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12709,6 +13339,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12749,6 +13381,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12789,6 +13423,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12829,6 +13465,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12869,6 +13507,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12909,6 +13549,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12949,6 +13591,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -12989,6 +13633,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13029,6 +13675,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13069,6 +13717,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13109,6 +13759,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13149,6 +13801,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13189,6 +13843,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13229,6 +13885,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13269,6 +13927,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13309,6 +13969,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13349,6 +14011,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13389,6 +14053,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13429,6 +14095,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13469,6 +14137,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13509,6 +14179,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13549,6 +14221,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13589,6 +14263,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13629,6 +14305,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13669,6 +14347,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13709,6 +14389,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13749,6 +14431,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13789,6 +14473,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13829,6 +14515,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13869,6 +14557,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13909,6 +14599,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13959,6 +14651,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -13999,6 +14693,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14039,6 +14735,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14079,6 +14777,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14119,6 +14819,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14159,6 +14861,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14199,6 +14903,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14239,6 +14945,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14279,6 +14987,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14319,6 +15029,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14359,6 +15071,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14399,6 +15113,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14439,6 +15155,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14479,6 +15197,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14519,6 +15239,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14559,6 +15281,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14599,6 +15323,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14639,6 +15365,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14679,6 +15407,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14719,6 +15449,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14759,6 +15491,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14798,6 +15532,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14837,6 +15573,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14877,6 +15615,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14917,6 +15657,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14956,6 +15698,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -14995,6 +15739,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15034,6 +15780,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15073,6 +15821,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15113,6 +15863,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15153,6 +15905,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15193,6 +15947,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15233,6 +15989,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15273,6 +16031,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15313,6 +16073,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15353,6 +16115,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15403,6 +16167,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -15443,6 +16209,8 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add option="-DGFLAGS=1"/>
+					<Add option="-DSNAPPY"/>
+					<Add option="-DZSTD"/>
 					<Add option="-DHAVE_SSE42"/>
 					<Add option="-DHAVE_PCLMUL"/>
 					<Add option="-DROCKSDB_SUPPORT_THREAD_LOCAL"/>
@@ -18049,6 +18817,9 @@
 		<Unit filename="/home/ruihong/Projects/rocksdb/cmake/modules/Findibverbs.cmake">
 			<Option virtualFolder="CMake Files\cmake\modules\"/>
 		</Unit>
+		<Unit filename="/home/ruihong/Projects/rocksdb/cmake/modules/Findzstd.cmake">
+			<Option virtualFolder="CMake Files\cmake\modules\"/>
+		</Unit>
 		<Unit filename="/home/ruihong/Projects/rocksdb/cmake/modules/ReadVersion.cmake">
 			<Option virtualFolder="CMake Files\cmake\modules\"/>
 		</Unit>
@@ -18063,6 +18834,18 @@
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/rocksdb/../../../../usr/lib/x86_64-linux-gnu/cmake/gflags/gflags-targets.cmake">
 			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\gflags\"/>
+		</Unit>
+		<Unit filename="/home/ruihong/Projects/rocksdb/../../../../usr/lib/x86_64-linux-gnu/cmake/Snappy/SnappyConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\Snappy\"/>
+		</Unit>
+		<Unit filename="/home/ruihong/Projects/rocksdb/../../../../usr/lib/x86_64-linux-gnu/cmake/Snappy/SnappyConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\Snappy\"/>
+		</Unit>
+		<Unit filename="/home/ruihong/Projects/rocksdb/../../../../usr/lib/x86_64-linux-gnu/cmake/Snappy/SnappyTargets-relwithdebinfo.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\Snappy\"/>
+		</Unit>
+		<Unit filename="/home/ruihong/Projects/rocksdb/../../../../usr/lib/x86_64-linux-gnu/cmake/Snappy/SnappyTargets.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\Snappy\"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/rocksdb/util/build_version.cc.in">
 			<Option virtualFolder="CMake Files\util\"/>

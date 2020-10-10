@@ -23,7 +23,6 @@
 #include "rocksdb/io_status.h"
 #include "util/mutexlock.h"
 #include "util/thread_local.h"
-#include "include/rocksdb/rdma.h"
 
 // For non linux platform, the following macros are used only as place
 // holder.
@@ -49,11 +48,6 @@ class PosixHelper {
   static Status GetLogicalBlockSizeOfDirectory(const std::string& directory,
                                                size_t* size);
 };
-struct SST_Metadata{
-  std::string fname;
-  ibv_mr* mr;
-
-};
 
 #ifdef OS_LINUX
 // Files under a specific directory have the same logical block size.
@@ -65,10 +59,10 @@ class LogicalBlockSizeCache {
  public:
   LogicalBlockSizeCache(
       std::function<size_t(int)> get_logical_block_size_of_fd =
-          PosixHelper::GetLogicalBlockSizeOfFd,
+      PosixHelper::GetLogicalBlockSizeOfFd,
       std::function<Status(const std::string&, size_t*)>
-          get_logical_block_size_of_directory =
-              PosixHelper::GetLogicalBlockSizeOfDirectory)
+      get_logical_block_size_of_directory =
+      PosixHelper::GetLogicalBlockSizeOfDirectory)
       : get_logical_block_size_of_fd_(get_logical_block_size_of_fd),
         get_logical_block_size_of_directory_(
             get_logical_block_size_of_directory) {}
@@ -135,13 +129,11 @@ class PosixSequentialFile : public FSSequentialFile {
   int fd_;
   bool use_direct_io_;
   size_t logical_sector_size_;
-  RDMA_Manager* rdma_mg_;
 
  public:
-  PosixSequentialFile(const std::string& fname, FILE* file,
-                      int fd, size_t logical_block_size,
-                      const EnvOptions& options,
-                      RDMA_Manager* rdma_mg);
+  PosixSequentialFile(const std::string& fname, FILE* file, int fd,
+                      size_t logical_block_size,
+                      const EnvOptions& options);
   virtual ~PosixSequentialFile();
 
   virtual IOStatus Read(size_t n, const IOOptions& opts, Slice* result,
@@ -179,21 +171,20 @@ inline struct io_uring* CreateIOUring() {
 
 class PosixRandomAccessFile : public FSRandomAccessFile {
  protected:
-  SST_Metadata sst_meta_;
+  std::string filename_;
+  int fd_;
   bool use_direct_io_;
   size_t logical_sector_size_;
-  RDMA_Manager* rdma_mg_;
 #if defined(ROCKSDB_IOURING_PRESENT)
   ThreadLocalPtr* thread_local_io_urings_;
 #endif
 
  public:
-  PosixRandomAccessFile(SST_Metadata sst_meta,
+  PosixRandomAccessFile(const std::string& fname, int fd,
                         size_t logical_block_size,
-                        const EnvOptions& options,
-                        RDMA_Manager* rdma_mg
+                        const EnvOptions& options
 #if defined(ROCKSDB_IOURING_PRESENT)
-                        ,
+      ,
                         ThreadLocalPtr* thread_local_io_urings
 #endif
   );
@@ -228,7 +219,6 @@ class PosixWritableFile : public FSWritableFile {
   int fd_;
   uint64_t filesize_;
   size_t logical_sector_size_;
-  RDMA_Manager* rdma_mg_;
 #ifdef ROCKSDB_FALLOCATE_PRESENT
   bool allow_fallocate_;
   bool fallocate_with_keep_size_;
@@ -242,8 +232,7 @@ class PosixWritableFile : public FSWritableFile {
  public:
   explicit PosixWritableFile(const std::string& fname, int fd,
                              size_t logical_block_size,
-                             const EnvOptions& options,
-                             RDMA_Manager* rdma_mg);
+                             const EnvOptions& options);
   virtual ~PosixWritableFile();
 
   // Need to implement this so the file is truncated correctly
@@ -374,7 +363,7 @@ class PosixMmapFile : public FSWritableFile {
 class PosixRandomRWFile : public FSRandomRWFile {
  public:
   explicit PosixRandomRWFile(const std::string& fname, int fd,
-                             const EnvOptions& options,RDMA_Manager* rdma_mg);
+                             const EnvOptions& options);
   virtual ~PosixRandomRWFile();
 
   virtual IOStatus Write(uint64_t offset, const Slice& data,
@@ -392,7 +381,6 @@ class PosixRandomRWFile : public FSRandomRWFile {
  private:
   const std::string filename_;
   int fd_;
-  RDMA_Manager* rdma_mg_;
 };
 
 struct PosixMemoryMappedFileBuffer : public MemoryMappedFileBuffer {

@@ -10,9 +10,14 @@
 * Description
 * Initialize the resource for RDMA.
 ******************************************************************************/
-RDMA_Manager::RDMA_Manager(config_t config) : rdma_config(config){
+RDMA_Manager::RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
+                          std::vector<bool>*>* Remote_Bitmap,
+                          std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap)
+    : rdma_config(config){
   res = new resources();
   res->sock = -1;
+  res->Remote_Mem_Bitmap = Remote_Bitmap;
+  res->Local_Mem_Bitmap = Local_Bitmap;
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -203,9 +208,16 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
   if (!*p2mrpointer)
   {
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
-//    return false;
+    return false;
   }
-  return true;
+  else{
+    res->local_mem_pool.push_back(*p2mrpointer);
+    int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
+    std::vector<bool>* vect = new std::vector<bool>(placeholder_num, false);
+    res->Local_Mem_Bitmap->insert({ *p2mrpointer, vect });
+    return true;
+  }
+
 };
 /******************************************************************************
 * Function: resources_create
@@ -329,7 +341,7 @@ int RDMA_Manager::resources_create()
             fprintf(stdout, "memory registering succeed by size of 0x%x\n", static_cast<unsigned>(rdma_config.init_local_buffer_size));
 
           }
-          res->local_mem_pool.push_back(mr);
+
         }
         Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000);
         Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000);
@@ -1009,6 +1021,7 @@ void RDMA_Manager::Set_Up_RDMA(){
 
 }
 bool RDMA_Manager::Remote_Memory_Register(size_t size){
+  //register the memory block from the remote memory
   computing_to_memory_msg * send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->mem_size = size;
@@ -1032,11 +1045,19 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
     res->remote_mem_pool.push_back(temp_pointer);// push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
 
 
+    //push the bitmap of the new registed buffer to the bitmap vector in resource.
+    int placeholder_num = temp_pointer->length/(Table_Size);// here we supposing the SSTables are 4 megabytes
+    std::vector<bool>* vect = new std::vector<bool>(placeholder_num, false);
+    res->Remote_Mem_Bitmap->insert({ temp_pointer, vect });
+    // NOTICE: Couold be problematic because the pushback may not an absolute
+    //   value copy. it could raise a segment fault(Double check it)
+
   }
   else{
     fprintf(stderr, "failed to poll receive\n");
     return false;
   }
+
   return true;
 };
 void RDMA_Manager::Sever_thread(){

@@ -102,7 +102,7 @@ class BlockFetcher {
   MemoryAllocator* memory_allocator_compressed_;
   Status status_;
   Slice slice_;
-  char* used_buf_ = nullptr;
+  char* used_buf_ = nullptr;// TODO: Make it RDMASST buffers.
   AlignedBuf direct_io_buf_;
   CacheAllocationPtr heap_buf_;
   CacheAllocationPtr compressed_buf_;
