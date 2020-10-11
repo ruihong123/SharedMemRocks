@@ -1041,6 +1041,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
   assert(wc->opcode == IBV_WC_RECV);
   if(wc->status == IBV_WC_SUCCESS){
     ibv_mr* temp_pointer = new ibv_mr();
+    //Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
+    // Please remember to delete it when diregistering mem region from the remote memory
     *temp_pointer = *receive_pointer; //create a new ibv_mr for storing the new remote memory region handler
     remote_mem_pool.push_back(temp_pointer);// push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
 
@@ -1149,7 +1151,7 @@ void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name, SST_M
   return;
 }
 // A function try to allocat
-void RDMA_Manager::Find_empty_LM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
+void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr* &mr_input){
   if(Local_Mem_Bitmap->empty()){
     ibv_mr* mr = new ibv_mr();
     char* buff = new char[Block_Size*1024];
@@ -1164,10 +1166,9 @@ void RDMA_Manager::Find_empty_LM_Placeholder(const std::string &file_name, SST_M
       int sst_index = distance(ptr->second->begin(),it);
 
 
-      sst_meta.mr = new ibv_mr();
-      *(sst_meta.mr) = *(ptr->first);
-      sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024);
-      sst_meta.fname = file_name;
+      mr_input = new ibv_mr();
+      *(mr_input) = *(ptr->first);
+      mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + sst_index*Block_Size);
       return;
     }
     ptr++;
@@ -1182,10 +1183,10 @@ void RDMA_Manager::Find_empty_LM_Placeholder(const std::string &file_name, SST_M
   int sst_index = distance(ptr->second->begin(),it);
 
 
-  sst_meta.mr = new ibv_mr();
-  *(sst_meta.mr) = *(ptr->first);
-  sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024);
-  sst_meta.fname = file_name;
+  mr_input = new ibv_mr();
+  *(mr_input) = *(ptr->first);
+  mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + sst_index*4*1024);
+//  mr_input.fname = file_name;
   return;
 
 

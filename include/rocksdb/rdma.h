@@ -115,7 +115,7 @@ class RDMA_Manager{
   int poll_completion(ibv_wc* &wc);
   //find an empty remote SST
   void Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta);
-  void Find_empty_LM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta);
+  void Find_empty_LM_Placeholder(ibv_mr* &mr_input);
 
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/

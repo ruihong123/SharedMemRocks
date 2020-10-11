@@ -366,14 +366,6 @@ class RDMAFileSystem : public FileSystem {
     int flags = 0;
     // Direct IO mode with O_DIRECT flag or F_NOCAHCE (MAC OSX)
     if (options.use_direct_writes && !options.use_mmap_writes) {
-#ifdef ROCKSDB_LITE
-      return IOStatus::IOError(fname,
-                               "Direct I/O not supported in RocksDB lite");
-#endif  // !ROCKSDB_LITE
-      flags |= O_WRONLY;
-#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
-      flags |= O_DIRECT;
-#endif
       TEST_SYNC_POINT_CALLBACK("NewWritableFile:O_DIRECT", &flags);
     } else if (options.use_mmap_writes) {
       // mmap needs O_RDWR mode
@@ -415,22 +407,7 @@ class RDMAFileSystem : public FileSystem {
     if (options.use_mmap_writes && !forceMmapOff_) {
       result->reset(new PosixMmapFile(fname, fd, page_size_, options));
     } else if (options.use_direct_writes && !options.use_mmap_writes) {
-#ifdef OS_MACOSX
-      if (fcntl(fd, F_NOCACHE, 1) == -1) {
-        close(fd);
-        s = IOError("while fcntl NoCache for reopened file for append", fname,
-                    errno);
-        return s;
-      }
-#elif defined(OS_SOLARIS)
-      if (directio(fd, DIRECTIO_ON) == -1) {
-        if (errno != ENOTTY) {  // ZFS filesystems don't support DIRECTIO_ON
-          close(fd);
-          s = IOError("while calling directio()", fname, errno);
-          return s;
-        }
-      }
-#endif
+
       result->reset(new PosixWritableFile(
           fname, fd, GetLogicalBlockSizeForWriteIfNeeded(options, fname, fd),
           options, rdma_mg_));
@@ -608,7 +585,7 @@ class RDMAFileSystem : public FileSystem {
     closedir(d);
     return IOStatus::OK();
   }
-
+// remember to delete the memory region for the SSTable
   IOStatus DeleteFile(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
     IOStatus result;

@@ -559,8 +559,25 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
                                      IODebugContext* /*dbg*/) const {
 
   IOStatus s;
-//  rdma_mg_->Find_empty_LM_Placeholder();
-//  *result = Slice(scratch, (r < 0) ? 0 : n - left);
+  assert(n <= kDefaultPageSize);
+  ibv_mr* local_mr_pointer = nullptr;
+  ibv_mr remote_mr = {};
+  remote_mr = *(sst_meta_.mr);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
+
+  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer);
+  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
+  if (flag!=0){
+
+    s = IOError(
+        "While RDMA Read offset " + ToString(offset) + " len " + ToString(n),
+        sst_meta_.fname, flag);
+
+
+  }
+  *result = Slice(scratch, n);
+
+
   return s;
 }
 
