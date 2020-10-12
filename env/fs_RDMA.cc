@@ -102,24 +102,24 @@ struct LockHoldingInfo {
 static std::map<std::string, LockHoldingInfo> locked_files;
 static port::Mutex mutex_locked_files;
 
-static int LockOrUnlock(int fd, bool lock) {
-  errno = 0;
-  struct flock f;
-  memset(&f, 0, sizeof(f));
-  f.l_type = (lock ? F_WRLCK : F_UNLCK);
-  f.l_whence = SEEK_SET;
-  f.l_start = 0;
-  f.l_len = 0;  // Lock/unlock entire file
-  int value = fcntl(fd, F_SETLK, &f);
+//static int LockOrUnlock(int fd, bool lock) {
+//  errno = 0;
+//  struct flock f;
+//  memset(&f, 0, sizeof(f));
+//  f.l_type = (lock ? F_WRLCK : F_UNLCK);
+//  f.l_whence = SEEK_SET;
+//  f.l_start = 0;
+//  f.l_len = 0;  // Lock/unlock entire file
+//  int value = fcntl(fd, F_SETLK, &f);
+//
+//  return value;
+//}
 
-  return value;
-}
-
-class PosixFileLock : public FileLock {
- public:
-  int fd_;
-  std::string filename;
-};
+//class PosixFileLock : public FileLock {
+// public:
+//  int fd_;
+//  std::string filename;
+//};
 
 int cloexec_flags(int flags, const EnvOptions* options) {
   // If the system supports opening the file with cloexec enabled,
@@ -142,19 +142,72 @@ class RDMAFileSystem : public FileSystem {
   const char* Name() const override { return "Posix File System"; }
 
   ~RDMAFileSystem();
-  enum Open_Type {readtype, writetype, rwtype};
+  enum Open_Type {readtype, write_reopen, write_new, rwtype};
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
       fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
   }
+  bool RDMA_Rename(const std::string &new_name, const std::string &old_name){
+    auto entry = file_to_sst_meta.find(old_name);
+    if (entry == file_to_sst_meta.end()) {
+      std::cout << "File rename did not find the old name" <<std::endl;
+      return false;
+    } else {
+        auto const value = std::move(entry->second);
+        file_to_sst_meta.erase(entry);
+        file_to_sst_meta.insert({new_name, std::move(value)});
+        return true;
+    }
 
-  IOStatus RDMA_open(std::string file_name, SST_Metadata &sst_meta, Open_Type type){
-    if(type == writetype || type == rwtype) {
-      //For write and read&write type if not found in the mapping table, then
-      //we can assign a space in the remote memory for this open request.//
-      //However, for the read type we have to report error, because we can not
-      //read an empty file
+  }
+  // Delete a file in rdma file system, return 0 mean success, return 1 mean
+  //did not find the key in the map, 2 means find keys in map larger than 1.
+  int RDMA_Delete_File(const std::string& fname){
+    //First find out the meta_data pointer, then search in the map weather there are
+    // other file name link to the same file. If it is the last one, unpin the region in the
+    // remote buffer pool.
+    SST_Metadata* file_meta = file_to_sst_meta.at(fname);
+    int erasenum = file_to_sst_meta.erase(fname);
+    if (erasenum==0) return 1;
+    else if (erasenum>1) return 2;
+    auto ptr = file_to_sst_meta.begin();
+    while(ptr != file_to_sst_meta.end())
+    {
+      // Check if value of this entry matches with given value
+      if(ptr->second == file_meta)
+        return 1;
+      // Go to next entry in map
+      ptr++;
+    }
+    int buff_offset = static_cast<char*>(file_meta->mr->addr) - static_cast<char*>(file_meta->map_pointer->addr);
+    assert(buff_offset%kDefaultPageSize == 0);
+    std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer);
+    (*vec)[buff_offset/kDefaultPageSize] = false;
+    delete file_meta;
+    return 0;
+
+  }
+
+  IOStatus RDMA_open(const std::string& file_name, SST_Metadata*& sst_meta, Open_Type type){
+    //For write_reopen and read type if not found in the mapping table, then
+    //it is an error.
+    //for write_new type, if there is one file existed with the same name, then overwrite it.otherwise
+    //create a new one
+    //for read&write type, try to find in the map table first, if missing then create a
+    //new one
+    if(type == write_new){
+      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+        // std container always copy the value to the container, Don't worry.
+        rdma_mg_->Find_empty_RM_Placeholder(file_name, sst_meta);
+        file_to_sst_meta[file_name] = sst_meta;
+        return IOStatus::OK();
+      } else {
+        file_to_sst_meta[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
+        sst_meta = file_to_sst_meta[file_name];
+        return IOStatus::OK();      }
+    }
+    if(type == rwtype) {
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
         rdma_mg_->Find_empty_RM_Placeholder(file_name, sst_meta);
@@ -165,7 +218,7 @@ class RDMAFileSystem : public FileSystem {
         return IOStatus::OK();
       }
     }
-    else{
+    if(type == write_reopen || type == readtype){
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
         errno = ENOENT;
@@ -175,7 +228,9 @@ class RDMAFileSystem : public FileSystem {
         return IOStatus::OK();
       }
     }
+    return IOStatus::OK();
   }
+
   IOStatus NewSequentialFile(const std::string& fname,
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
@@ -237,14 +292,14 @@ class RDMAFileSystem : public FileSystem {
                                IODebugContext* /*dbg*/) override {
     IOStatus s = IOStatus::OK();
     result->reset();
-    SST_Metadata meta_data;
+    SST_Metadata* meta_data = nullptr;
     RDMA_open(fname, meta_data, readtype);
     if (!options.use_mmap_reads) { //Notice: check here when debugging.
       result->reset(new PosixRandomAccessFile(meta_data, kDefaultPageSize,
                                               options, rdma_mg_));
     }
     else{
-      std::cout << "The option configuration is not correct" << std::endl;
+      std::cout << "Please turn off MMAP option"<< std::endl;
     }
     return s;
   }
@@ -254,89 +309,17 @@ class RDMAFileSystem : public FileSystem {
                                     bool reopen,
                                     std::unique_ptr<FSWritableFile>* result,
                                     IODebugContext* /*dbg*/) {
+
     result->reset();
     IOStatus s;
-    int fd = -1;
-    int flags = (reopen) ? (O_CREAT | O_APPEND) : (O_CREAT | O_TRUNC);
-    // Direct IO mode with O_DIRECT flag or F_NOCAHCE (MAC OSX)
-    if (options.use_direct_writes && !options.use_mmap_writes) {
-      // Note: we should avoid O_APPEND here due to ta the following bug:
-      // POSIX requires that opening a file with the O_APPEND flag should
-      // have no affect on the location at which pwrite() writes data.
-      // However, on Linux, if a file is opened with O_APPEND, pwrite()
-      // appends data to the end of the file, regardless of the value of
-      // offset.
-      // More info here: https://linux.die.net/man/2/pwrite
-#ifdef ROCKSDB_LITE
-      return IOStatus::IOError(fname,
-                               "Direct I/O not supported in RocksDB lite");
-#endif  // ROCKSDB_LITE
-      flags |= O_WRONLY;
-#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
-      flags |= O_DIRECT;
-#endif
-      TEST_SYNC_POINT_CALLBACK("NewWritableFile:O_DIRECT", &flags);
-    } else if (options.use_mmap_writes) {
-      // non-direct I/O
-      flags |= O_RDWR;
-    } else {
-      flags |= O_WRONLY;
-    }
-
-    flags = cloexec_flags(flags, &options);
-
-    do {
-      IOSTATS_TIMER_GUARD(open_nanos);
-      fd = open(fname.c_str(), flags, GetDBFileMode(allow_non_owner_access_));
-    } while (fd < 0 && errno == EINTR);
-
-    if (fd < 0) {
-      s = IOError("While open a file for appending", fname, errno);
-      return s;
-    }
-    SetFD_CLOEXEC(fd, &options);
-
-    if (options.use_mmap_writes) {
-      if (!checkedDiskForMmap_) {
-        // this will be executed once in the program's lifetime.
-        // do not use mmapWrite on non ext-3/xfs/tmpfs systems.
-        if (!SupportsFastAllocate(fname)) {
-          forceMmapOff_ = true;
-        }
-        checkedDiskForMmap_ = true;
-      }
-    }
-    if (options.use_mmap_writes && !forceMmapOff_) {
-      result->reset(new PosixMmapFile(fname, fd, page_size_, options));
-    } else if (options.use_direct_writes && !options.use_mmap_writes) {
-#ifdef OS_MACOSX
-      if (fcntl(fd, F_NOCACHE, 1) == -1) {
-        close(fd);
-        s = IOError("While fcntl NoCache an opened file for appending", fname,
-                    errno);
-        return s;
-      }
-#elif defined(OS_SOLARIS)
-      if (directio(fd, DIRECTIO_ON) == -1) {
-        if (errno != ENOTTY) {  // ZFS filesystems don't support DIRECTIO_ON
-          close(fd);
-          s = IOError("While calling directio()", fname, errno);
-          return s;
-        }
-      }
-#endif
-      result->reset(new PosixWritableFile(
-          fname, fd, GetLogicalBlockSizeForWriteIfNeeded(options, fname, fd),
-          options, rdma_mg_));
-    } else {
-      // disable mmap writes
-      EnvOptions no_mmap_writes_options = options;
-      no_mmap_writes_options.use_mmap_writes = false;
-      result->reset(
-          new PosixWritableFile(fname, fd,
-                                GetLogicalBlockSizeForWriteIfNeeded(
-                                    no_mmap_writes_options, fname, fd),
-                                no_mmap_writes_options, rdma_mg_));
+    Open_Type type = (reopen) ? (write_reopen) : (write_new);
+    SST_Metadata* meta_data = nullptr;
+    RDMA_open(fname, meta_data, type);
+    if (!options.use_mmap_reads){
+      result->reset(new PosixWritableFile(meta_data, kDefaultPageSize, options,
+                                          rdma_mg_));
+    }else{
+      std::cout << "Please turn off Mmap option" << std::endl;
     }
     return s;
   }
@@ -353,74 +336,33 @@ class RDMAFileSystem : public FileSystem {
                               IODebugContext* dbg) override {
     return OpenWritableFile(fname, options, true, result, dbg);
   }
-
+  //Find a file rename it and open it as writable file.
   IOStatus ReuseWritableFile(const std::string& fname,
                              const std::string& old_fname,
                              const FileOptions& options,
                              std::unique_ptr<FSWritableFile>* result,
                              IODebugContext* /*dbg*/) override {
-    result->reset();
     IOStatus s;
-    int fd = -1;
+    bool success = RDMA_Rename(fname, old_fname);
+    if (success){
+      result->reset();
 
-    int flags = 0;
-    // Direct IO mode with O_DIRECT flag or F_NOCAHCE (MAC OSX)
-    if (options.use_direct_writes && !options.use_mmap_writes) {
-      TEST_SYNC_POINT_CALLBACK("NewWritableFile:O_DIRECT", &flags);
-    } else if (options.use_mmap_writes) {
-      // mmap needs O_RDWR mode
-      flags |= O_RDWR;
-    } else {
-      flags |= O_WRONLY;
-    }
+      Open_Type type = write_reopen;
+      SST_Metadata* meta_data = nullptr;
+      RDMA_open(fname, meta_data, type);
+      if (!options.use_mmap_reads){
+        result->reset(new PosixWritableFile(meta_data, kDefaultPageSize, options,
+                                            rdma_mg_));
+      }else{
+        std::cout << "Please turn off Mmap option" << std::endl;
 
-    flags = cloexec_flags(flags, &options);
-
-    do {
-      IOSTATS_TIMER_GUARD(open_nanos);
-      fd = open(old_fname.c_str(), flags,
-                GetDBFileMode(allow_non_owner_access_));
-    } while (fd < 0 && errno == EINTR);
-    if (fd < 0) {
-      s = IOError("while reopen file for write", fname, errno);
-      return s;
-    }
-
-    SetFD_CLOEXEC(fd, &options);
-    // rename into place
-    if (rename(old_fname.c_str(), fname.c_str()) != 0) {
-      s = IOError("while rename file to " + fname, old_fname, errno);
-      close(fd);
-      return s;
-    }
-
-    if (options.use_mmap_writes) {
-      if (!checkedDiskForMmap_) {
-        // this will be executed once in the program's lifetime.
-        // do not use mmapWrite on non ext-3/xfs/tmpfs systems.
-        if (!SupportsFastAllocate(fname)) {
-          forceMmapOff_ = true;
-        }
-        checkedDiskForMmap_ = true;
       }
+    }else{
+      IOError("Renaming the file failed", old_fname, errno);
     }
-    if (options.use_mmap_writes && !forceMmapOff_) {
-      result->reset(new PosixMmapFile(fname, fd, page_size_, options));
-    } else if (options.use_direct_writes && !options.use_mmap_writes) {
 
-      result->reset(new PosixWritableFile(
-          fname, fd, GetLogicalBlockSizeForWriteIfNeeded(options, fname, fd),
-          options, rdma_mg_));
-    } else {
-      // disable mmap writes
-      FileOptions no_mmap_writes_options = options;
-      no_mmap_writes_options.use_mmap_writes = false;
-      result->reset(
-          new PosixWritableFile(fname, fd,
-                                GetLogicalBlockSizeForWriteIfNeeded(
-                                    no_mmap_writes_options, fname, fd),
-                                no_mmap_writes_options, rdma_mg_));
-    }
+
+
     return s;
   }
 
@@ -585,13 +527,23 @@ class RDMAFileSystem : public FileSystem {
     closedir(d);
     return IOStatus::OK();
   }
-// remember to delete the memory region for the SSTable
+// First try to delete file in the disk file system, if not found then delete in
+  //RDMA file system.
   IOStatus DeleteFile(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    IOStatus result;
+    IOStatus result = IOStatus::OK();
     if (unlink(fname.c_str()) != 0) {
       result = IOError("while unlink() file", fname, errno);
     }
+    if (result.ok()) return result;
+    else{
+      // Otherwise it is a RDMA file, delete it through the RDMA file delete.
+      if (RDMA_Delete_File(fname)!=0){
+        result = IOError("while RDMA unlink() file, error occur", fname, errno);
+      }
+      else result = IOStatus::OK();
+    }
+
     return result;
   }
 
@@ -654,7 +606,7 @@ class RDMAFileSystem : public FileSystem {
   IOStatus RenameFile(const std::string& src, const std::string& target,
                       const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    if (rename(src.c_str(), target.c_str()) != 0) {
+    if (!RDMA_Rename(target.c_str(), src.c_str())) {
       return IOError("While renaming a file to " + target, src, errno);
     }
     return IOStatus::OK();
@@ -705,84 +657,14 @@ class RDMAFileSystem : public FileSystem {
 
   IOStatus LockFile(const std::string& fname, const IOOptions& /*opts*/,
                     FileLock** lock, IODebugContext* /*dbg*/) override {
-    *lock = nullptr;
-
-    LockHoldingInfo lhi;
-    int64_t current_time = 0;
-    // Ignore status code as the time is only used for error message.
-    Env::Default()->GetCurrentTime(&current_time).PermitUncheckedError();
-    lhi.acquire_time = current_time;
-    lhi.acquiring_thread = Env::Default()->GetThreadID();
-
-    mutex_locked_files.Lock();
-    // If it already exists in the locked_files set, then it is already locked,
-    // and fail this lock attempt. Otherwise, insert it into locked_files.
-    // This check is needed because fcntl() does not detect lock conflict
-    // if the fcntl is issued by the same thread that earlier acquired
-    // this lock.
-    // We must do this check *before* opening the file:
-    // Otherwise, we will open a new file descriptor. Locks are associated with
-    // a process, not a file descriptor and when *any* file descriptor is
-    // closed, all locks the process holds for that *file* are released
-    const auto it_success = locked_files.insert({fname, lhi});
-    if (it_success.second == false) {
-      mutex_locked_files.Unlock();
-      errno = ENOLCK;
-      LockHoldingInfo& prev_info = it_success.first->second;
-      // Note that the thread ID printed is the same one as the one in
-      // posix logger, but posix logger prints it hex format.
-      return IOError("lock hold by current process, acquire time " +
-                         ToString(prev_info.acquire_time) +
-                         " acquiring thread " +
-                         ToString(prev_info.acquiring_thread),
-                     fname, errno);
-    }
-
-    IOStatus result = IOStatus::OK();
-    int fd;
-    int flags = cloexec_flags(O_RDWR | O_CREAT, nullptr);
-
-    {
-      IOSTATS_TIMER_GUARD(open_nanos);
-      fd = open(fname.c_str(), flags, 0644);
-    }
-    if (fd < 0) {
-      result = IOError("while open a file for lock", fname, errno);
-    } else if (LockOrUnlock(fd, true) == -1) {
-      // if there is an error in locking, then remove the pathname from
-      // lockedfiles
-      locked_files.erase(fname);
-      result = IOError("While lock file", fname, errno);
-      close(fd);
-    } else {
-      SetFD_CLOEXEC(fd, nullptr);
-      PosixFileLock* my_lock = new PosixFileLock;
-      my_lock->fd_ = fd;
-      my_lock->filename = fname;
-      *lock = my_lock;
-    }
-
-    mutex_locked_files.Unlock();
-    return result;
+    std::cout << "LockFile has not been implemented" << std::endl;
+    return IOStatus::OK();
   }
 
   IOStatus UnlockFile(FileLock* lock, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    PosixFileLock* my_lock = reinterpret_cast<PosixFileLock*>(lock);
-    IOStatus result;
-    mutex_locked_files.Lock();
-    // If we are unlocking, then verify that we had locked it earlier,
-    // it should already exist in locked_files. Remove it from locked_files.
-    if (locked_files.erase(my_lock->filename) != 1) {
-      errno = ENOLCK;
-      result = IOError("unlock", my_lock->filename, errno);
-    } else if (LockOrUnlock(my_lock->fd_, false) == -1) {
-      result = IOError("unlock", my_lock->filename, errno);
-    }
-    close(my_lock->fd_);
-    delete my_lock;
-    mutex_locked_files.Unlock();
-    return result;
+    std::cout << "UnlockFile has not been implemented" << std::endl;
+    return IOStatus::OK();
   }
 
   IOStatus GetAbsolutePath(const std::string& db_path,
@@ -891,10 +773,10 @@ class RDMAFileSystem : public FileSystem {
   }
 #endif
  private:
-  bool checkedDiskForMmap_;
-  bool forceMmapOff_;  // do we override Env options?
+//  bool checkedDiskForMmap_;
+//  bool forceMmapOff_;  // do we override Env options?
   RDMA_Manager* rdma_mg_;
-  std::map<std::string, SST_Metadata> file_to_sst_meta;
+  std::map<std::string, SST_Metadata*> file_to_sst_meta;
   std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Bitmap;
   std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap;
 
@@ -934,7 +816,7 @@ class RDMAFileSystem : public FileSystem {
   std::unique_ptr<ThreadLocalPtr> thread_local_io_urings_;
 #endif
 
-  size_t page_size_;
+//  size_t page_size_;
 
   // If true, allow non owner read access for db files. Otherwise, non-owner
   //  has no access to db files.
@@ -958,33 +840,27 @@ class RDMAFileSystem : public FileSystem {
 LogicalBlockSizeCache RDMAFileSystem::logical_block_size_cache_;
 #endif
 
-size_t RDMAFileSystem::GetLogicalBlockSize(const std::string& fname, int fd) {
-#ifdef OS_LINUX
-  return logical_block_size_cache_.GetLogicalBlockSize(fname, fd);
-#else
-  (void)fname;
-  return PosixHelper::GetLogicalBlockSizeOfFd(fd);
-#endif
-}
+//size_t RDMAFileSystem::GetLogicalBlockSize(const std::string& fname, int fd) {
+//#ifdef OS_LINUX
+//  return logical_block_size_cache_.GetLogicalBlockSize(fname, fd);
+//#else
+//  (void)fname;
+//  return PosixHelper::GetLogicalBlockSizeOfFd(fd);
+//#endif
+//}
 
 size_t RDMAFileSystem::GetLogicalBlockSizeForReadIfNeeded(
     const EnvOptions& options, const std::string& fname, int fd) {
-  return options.use_direct_reads
-             ? RDMAFileSystem::GetLogicalBlockSize(fname, fd)
-             : kDefaultPageSize;
+  return kDefaultPageSize;
 }
 
-size_t RDMAFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
-    const EnvOptions& options, const std::string& fname, int fd) {
-  return options.use_direct_writes
-             ? RDMAFileSystem::GetLogicalBlockSize(fname, fd)
-             : kDefaultPageSize;
-}
+//size_t RDMAFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
+//    const EnvOptions& options, const std::string& fname, int fd) {
+//  return kDefaultPageSize;
+//}
 
 RDMAFileSystem::RDMAFileSystem()
-    : checkedDiskForMmap_(false),
-      forceMmapOff_(false),
-      page_size_(getpagesize()),
+    :
       allow_non_owner_access_(true) {
   struct config_t config = {
       NULL,  /* dev_name */
@@ -1010,6 +886,8 @@ RDMAFileSystem::RDMAFileSystem()
 #endif
 }
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
+  delete Remote_Bitmap;
+  delete Local_Bitmap;
   delete rdma_mg_;
 }
 

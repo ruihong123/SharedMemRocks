@@ -15,6 +15,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <algorithm>
+#include <mutex>
 //#include <options.h>
 
 #include <sys/time.h>
@@ -36,8 +37,8 @@
 #define MSG "SEND operation "
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
-	static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
+//	static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
+//	static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
 #elif __BYTE_ORDER == __BIG_ENDIAN
 	static inline uint64_t htonll(uint64_t x) { return x; }
 	static inline uint64_t ntohll(uint64_t x) { return x; }
@@ -69,6 +70,9 @@ struct registered_qp_config {
 struct SST_Metadata{
   std::string fname;
   ibv_mr* mr;
+  ibv_mr* map_pointer;
+  size_t file_size;
+  std::mutex file_lock;
 };
 /* structure of system resources */
 struct resources
@@ -99,13 +103,16 @@ class RDMA_Manager{
   RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
                std::vector<bool>*>* Remote_Bitmap,
                std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap);
+  RDMA_Manager(config_t config) : rdma_config(config){}
   RDMA_Manager()=delete;
   ~RDMA_Manager();
 
   void Set_Up_RDMA();
   // Local memory register need to first allocate memory outside them register it.
+  // it also push the new block bit map to the Remote_Mem_Bitmap
   bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
   // Remote Memory registering will call RDMA send and receive to the remote memory
+  // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
   void Sever_thread();
@@ -113,9 +120,11 @@ class RDMA_Manager{
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
   int poll_completion(ibv_wc* &wc);
+  void Unref_Local_Buffer(ibv_mr* mr);
   //find an empty remote SST
-  void Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta);
-  void Find_empty_LM_Placeholder(ibv_mr* &mr_input);
+  void Find_empty_RM_Placeholder(const std::string &file_name,
+                                 SST_Metadata*& sst_meta);
+  void Find_empty_LM_Placeholder(ibv_mr*& mr_input, ibv_mr*& map_pointer);
 
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/

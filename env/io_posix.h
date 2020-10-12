@@ -174,7 +174,7 @@ inline struct io_uring* CreateIOUring() {
 
 class PosixRandomAccessFile : public FSRandomAccessFile {
  protected:
-  SST_Metadata sst_meta_;
+  SST_Metadata* sst_meta_;
   bool use_direct_io_;
   size_t logical_sector_size_;
   RDMA_Manager* rdma_mg_;
@@ -183,7 +183,7 @@ class PosixRandomAccessFile : public FSRandomAccessFile {
 #endif
 
  public:
-  PosixRandomAccessFile(SST_Metadata sst_meta, size_t logical_block_size,
+  PosixRandomAccessFile(SST_Metadata* sst_meta, size_t logical_block_size,
                         const EnvOptions& options, RDMA_Manager* rdma_mg);
   virtual ~PosixRandomAccessFile()=default;
 
@@ -211,12 +211,12 @@ class PosixRandomAccessFile : public FSRandomAccessFile {
 
 class PosixWritableFile : public FSWritableFile {
  protected:
-  const std::string filename_;
   const bool use_direct_io_;
-  int fd_;
   uint64_t filesize_;
   size_t logical_sector_size_;
+  SST_Metadata* sst_meta_;
   RDMA_Manager* rdma_mg_;
+
 #ifdef ROCKSDB_FALLOCATE_PRESENT
   bool allow_fallocate_;
   bool fallocate_with_keep_size_;
@@ -228,10 +228,8 @@ class PosixWritableFile : public FSWritableFile {
 #endif  // ROCKSDB_RANGESYNC_PRESENT
 
  public:
-  explicit PosixWritableFile(const std::string& fname, int fd,
-                             size_t logical_block_size,
-                             const EnvOptions& options,
-                             RDMA_Manager* rdma_mg);
+  explicit PosixWritableFile(SST_Metadata* sst_meta, size_t logical_block_size,
+                             const EnvOptions& options, RDMA_Manager* rdma_mg);
   virtual ~PosixWritableFile();
 
   // Need to implement this so the file is truncated correctly

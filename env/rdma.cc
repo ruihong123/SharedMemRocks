@@ -1,4 +1,6 @@
 #include <include/rocksdb/rdma.h>
+
+#include <memory>
 /******************************************************************************
 * Function: RDMA_Manager
 
@@ -1111,10 +1113,12 @@ void RDMA_Manager::Sever_thread(){
 
 }
 
-void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name, SST_Metadata &sst_meta){
+void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name,
+                                             SST_Metadata*& sst_meta){
   //If the Remote buffer is empty, register one from the remote memory.
   if(Remote_Mem_Bitmap->empty()){
     Remote_Memory_Register(1*1024*1024*1024);
+
   }
   auto ptr = Remote_Mem_Bitmap->begin();
 
@@ -1127,10 +1131,12 @@ void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name, SST_M
     if(it!= ptr->second->end()){
       *it = true;
       int sst_index = distance(ptr->second->begin(),it);
-      sst_meta.mr = new ibv_mr();
-      *(sst_meta.mr) = *(ptr->first);
-      sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
-      sst_meta.fname = file_name;
+
+//      sst_meta->mr = new ibv_mr();
+      *(sst_meta->mr) = *(ptr->first);
+      sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*4*1024*1024);
+      sst_meta->fname = file_name;
+      sst_meta->file_size = 0;
       return;
     }
     ptr++;
@@ -1144,14 +1150,15 @@ void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name, SST_M
   int sst_index = distance(ptr->second->begin(),it);
 
 
-  sst_meta.mr = new ibv_mr();
-  *(sst_meta.mr) = *(ptr->first);
-  sst_meta.mr->addr = static_cast<void*>(static_cast<char*>(sst_meta.mr->addr) + sst_index*4*1024*1024);
-  sst_meta.fname = file_name;
+//  sst_meta->mr = new ibv_mr();
+  *(sst_meta->mr) = *(ptr->first);
+  sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*4*1024*1024);
+  sst_meta->fname = file_name;
   return;
 }
 // A function try to allocat
-void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr* &mr_input){
+void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr*& mr_input,
+                                             ibv_mr*& map_pointer) {
   if(Local_Mem_Bitmap->empty()){
     ibv_mr* mr = new ibv_mr();
     char* buff = new char[Block_Size*1024];
@@ -1163,12 +1170,14 @@ void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr* &mr_input){
     auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
     if(it!= ptr->second->end()){
       *it = true;
-      int sst_index = distance(ptr->second->begin(),it);
+      int block_index = distance(ptr->second->begin(),it);
+      // offset of blocks from the start of the memory region
 
 
       mr_input = new ibv_mr();
+      map_pointer = ptr->first;
       *(mr_input) = *(ptr->first);
-      mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + sst_index*Block_Size);
+      mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + block_index*Block_Size);
       return;
     }
     ptr++;
@@ -1184,6 +1193,7 @@ void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr* &mr_input){
 
 
   mr_input = new ibv_mr();
+  map_pointer = mr;
   *(mr_input) = *(ptr->first);
   mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + sst_index*4*1024);
 //  mr_input.fname = file_name;
@@ -1192,4 +1202,6 @@ void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr* &mr_input){
 
 
 }
+void RDMA_Manager::Unref_Local_Buffer(ibv_mr* mr) {
 
+}

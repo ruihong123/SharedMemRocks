@@ -1,44 +1,25 @@
+#include <assert.h>
+#include "rocksdb/db.h"
+#include <string>
 #include <iostream>
-#include "rocksdb/rdma.h"
-
-
 int main()
 {
-  struct config_t config = {
-      NULL,  /* dev_name */
-      NULL,  /* server_name */
-      19875, /* tcp_port */
-      1,	 /* ib_port */
-      -1, /* gid_idx */
-4*10*1024*1024 /*initial local buffer size*/
-      };
-  RDMA_Manager rdma_manager(config);
-  rdma_manager.Set_Up_RDMA();
-  rdma_manager.Remote_Memory_Register(1024*1024*1024);
-  std::cout << rdma_manager.res->remote_mem_pool[0];
-  ibv_mr mem_pool_table[2];
-  mem_pool_table[0] = *(rdma_manager.res->local_mem_pool[0]);
-  mem_pool_table[1] = *(rdma_manager.res->local_mem_pool[0]);
-  mem_pool_table[1].addr = (void*)((char*)mem_pool_table[1].addr + sizeof("message from computing node"));// PROBLEM Could be here.
-
-  char *msg = static_cast<char *>(rdma_manager.res->local_mem_pool[0]->addr);
-  strcpy(msg, "message from computing node");
-  int msg_size = sizeof("message from computing node");
-  rdma_manager.RDMA_Write(rdma_manager.res->remote_mem_pool[0],&mem_pool_table[0], msg_size);
-
-  rdma_manager.RDMA_Read(rdma_manager.res->remote_mem_pool[0],&mem_pool_table[1], msg_size);
-  ibv_wc* wc = new ibv_wc();
-  while(wc->opcode != IBV_WC_RDMA_READ){
-    rdma_manager.poll_completion(wc);
-    if (wc->status != 0){
-      fprintf(stderr, "Work completion status is %d \n", wc->status);
-      fprintf(stderr, "Work completion opcode is %d \n", wc->opcode);
-    }
+  rocksdb::DB* db;
+  rocksdb::Options options;
+  options.create_if_missing = true;
+  rocksdb::Status status =
+      rocksdb::DB::Open(options, "/tmp/testdb", &db);
+  assert(status.ok());
+  std::string value;
+  std::string key;
+  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), "StartKey", "StartValue");
+  for (int i = 0; i<1000000; i++){
+    key = std::to_string(i);
+    value = std::to_string(i);
+    if (s.ok()) s = db->Put(rocksdb::WriteOptions(), key, value);
 
   }
-  std::cout << "write buffer: " << (char*)mem_pool_table[0].addr << std::endl;
-
-  std::cout << "read buffer: " << (char*)mem_pool_table[1].addr << std::endl;
-
+  s = db->Get(rocksdb::ReadOptions(), "50", &value);
+  if(s.ok()) std::cout<< value << std::endl;
   return 0;
 }

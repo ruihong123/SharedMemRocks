@@ -95,27 +95,27 @@ namespace {
 // cutting the buffer in 1GB chunks. We use this chunk size to be sure to keep
 // the writes aligned.
 
-bool PosixWrite(int fd, const char* buf, size_t nbyte) {
-  const size_t kLimit1Gb = 1UL << 30;
-
-  const char* src = buf;
-  size_t left = nbyte;
-
-  while (left != 0) {
-    size_t bytes_to_write = std::min(left, kLimit1Gb);
-
-    ssize_t done = write(fd, src, bytes_to_write);
-    if (done < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      return false;
-    }
-    left -= done;
-    src += done;
-  }
-  return true;
-}
+//bool PosixWrite(int fd, const char* buf, size_t nbyte) {
+//  const size_t kLimit1Gb = 1UL << 30;
+//
+//  const char* src = buf;
+//  size_t left = nbyte;
+//
+//  while (left != 0) {
+//    size_t bytes_to_write = std::min(left, kLimit1Gb);
+//
+//    ssize_t done = write(fd, src, bytes_to_write);
+//    if (done < 0) {
+//      if (errno == EINTR) {
+//        continue;
+//      }
+//      return false;
+//    }
+//    left -= done;
+//    src += done;
+//  }
+//  return true;
+//}
 
 bool PosixPositionedWrite(int fd, const char* buf, size_t nbyte, off_t offset) {
   const size_t kLimit1Gb = 1UL << 30;
@@ -149,36 +149,36 @@ bool PosixPositionedWrite(int fd, const char* buf, size_t nbyte, off_t offset) {
 #define ZFS_SUPER_MAGIC 0x2fc12fc1
 #endif
 
-bool IsSyncFileRangeSupported(int fd) {
-  // This function tracks and checks for cases where we know `sync_file_range`
-  // definitely will not work properly despite passing the compile-time check
-  // (`ROCKSDB_RANGESYNC_PRESENT`). If we are unsure, or if any of the checks
-  // fail in unexpected ways, we allow `sync_file_range` to be used. This way
-  // should minimize risk of impacting existing use cases.
-  struct statfs buf;
-  int ret = fstatfs(fd, &buf);
-  assert(ret == 0);
-  if (ret == 0 && buf.f_type == ZFS_SUPER_MAGIC) {
-    // Testing on ZFS showed the writeback did not happen asynchronously when
-    // `sync_file_range` was called, even though it returned success. Avoid it
-    // and use `fdatasync` instead to preserve the contract of `bytes_per_sync`,
-    // even though this'll incur extra I/O for metadata.
-    return false;
-  }
-
-  ret = sync_file_range(fd, 0 /* offset */, 0 /* nbytes */, 0 /* flags */);
-  assert(!(ret == -1 && errno != ENOSYS));
-  if (ret == -1 && errno == ENOSYS) {
-    // `sync_file_range` is not implemented on all platforms even if
-    // compile-time checks pass and a supported filesystem is in-use. For
-    // example, using ext4 on WSL (Windows Subsystem for Linux),
-    // `sync_file_range()` returns `ENOSYS`
-    // ("Function not implemented").
-    return false;
-  }
-  // None of the known cases matched, so allow `sync_file_range` use.
-  return true;
-}
+//bool IsSyncFileRangeSupported(int fd) {
+//  // This function tracks and checks for cases where we know `sync_file_range`
+//  // definitely will not work properly despite passing the compile-time check
+//  // (`ROCKSDB_RANGESYNC_PRESENT`). If we are unsure, or if any of the checks
+//  // fail in unexpected ways, we allow `sync_file_range` to be used. This way
+//  // should minimize risk of impacting existing use cases.
+//  struct statfs buf;
+//  int ret = fstatfs(fd, &buf);
+//  assert(ret == 0);
+//  if (ret == 0 && buf.f_type == ZFS_SUPER_MAGIC) {
+//    // Testing on ZFS showed the writeback did not happen asynchronously when
+//    // `sync_file_range` was called, even though it returned success. Avoid it
+//    // and use `fdatasync` instead to preserve the contract of `bytes_per_sync`,
+//    // even though this'll incur extra I/O for metadata.
+//    return false;
+//  }
+//
+//  ret = sync_file_range(fd, 0 /* offset */, 0 /* nbytes */, 0 /* flags */);
+//  assert(!(ret == -1 && errno != ENOSYS));
+//  if (ret == -1 && errno == ENOSYS) {
+//    // `sync_file_range` is not implemented on all platforms even if
+//    // compile-time checks pass and a supported filesystem is in-use. For
+//    // example, using ext4 on WSL (Windows Subsystem for Linux),
+//    // `sync_file_range()` returns `ENOSYS`
+//    // ("Function not implemented").
+//    return false;
+//  }
+//  // None of the known cases matched, so allow `sync_file_range` use.
+//  return true;
+//}
 
 #undef ZFS_SUPER_MAGIC
 
@@ -542,7 +542,7 @@ size_t PosixHelper::GetLogicalBlockSizeOfFd(int fd) {
  *
  * pread() based random-access
  */
-PosixRandomAccessFile::PosixRandomAccessFile(SST_Metadata sst_meta,
+PosixRandomAccessFile::PosixRandomAccessFile(SST_Metadata* sst_meta,
                                              size_t logical_block_size,
                                              const EnvOptions& options,
                                              RDMA_Manager* rdma_mg)
@@ -560,23 +560,29 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
 
   IOStatus s;
   assert(n <= kDefaultPageSize);
+  ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {};
-  remote_mr = *(sst_meta_.mr);
+  remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
 
-  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer);
+  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer, map_pointer);
   int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
   if (flag!=0){
 
     s = IOError(
         "While RDMA Read offset " + ToString(offset) + " len " + ToString(n),
-        sst_meta_.fname, flag);
+        sst_meta_->fname, flag);
 
 
   }
+  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
+  int buff_offset = static_cast<char*>(local_mr_pointer->addr) - static_cast<char*>(map_pointer->addr);
+  assert(buff_offset%kDefaultPageSize == 0);
+  std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(map_pointer);
+  (*vec)[buff_offset/kDefaultPageSize] = false;
   *result = Slice(scratch, n);
-
+  delete local_mr_pointer;
 
   return s;
 }
@@ -785,6 +791,7 @@ IOStatus PosixMmapReadableFile::Read(uint64_t offset, size_t n,
   } else if (offset + n > length_) {
     n = static_cast<size_t>(length_ - offset);
   }
+
   *result = Slice(reinterpret_cast<char*>(mmapped_region_) + offset, n);
   return s;
 }
@@ -1053,136 +1060,76 @@ IOStatus PosixMmapFile::Allocate(uint64_t offset, uint64_t len,
  *
  * Use posix write to write data to a file.
  */
-PosixWritableFile::PosixWritableFile(const std::string& fname, int fd,
+PosixWritableFile::PosixWritableFile(SST_Metadata* sst_meta,
                                      size_t logical_block_size,
                                      const EnvOptions& options,
                                      RDMA_Manager* rdma_mg)
     : FSWritableFile(options),
-      filename_(fname),
       use_direct_io_(options.use_direct_writes),
-      fd_(fd),
       filesize_(0),
       logical_sector_size_(logical_block_size),
+      sst_meta_(sst_meta),
       rdma_mg_(rdma_mg){
 #ifdef ROCKSDB_FALLOCATE_PRESENT
   allow_fallocate_ = options.allow_fallocate;
   fallocate_with_keep_size_ = options.fallocate_with_keep_size;
 #endif
-#ifdef ROCKSDB_RANGESYNC_PRESENT
-  sync_file_range_supported_ = IsSyncFileRangeSupported(fd_);
-#endif  // ROCKSDB_RANGESYNC_PRESENT
+
   assert(!options.use_mmap_writes);
 }
 
 PosixWritableFile::~PosixWritableFile() {
-  if (fd_ >= 0) {
-    IOStatus s = PosixWritableFile::Close(IOOptions(), nullptr);
-    s.PermitUncheckedError();
-  }
+
 }
 
 IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-  if (use_direct_io()) {
-    assert(IsSectorAligned(data.size(), GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(data.data(), GetRequiredBufferAlignment()));
-  }
+  const std::lock_guard<std::mutex> lock(sst_meta_->file_lock);
   const char* src = data.data();
   size_t nbytes = data.size();
+  IOStatus s;
+  assert(nbytes <= kDefaultPageSize);
+  ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
+  ibv_mr* local_mr_pointer = nullptr;
+  ibv_mr remote_mr = {};
+  remote_mr = *(sst_meta_->mr);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
+  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer, map_pointer);
+  memcpy(local_mr_pointer->addr, src, nbytes);
 
-  if (!PosixWrite(fd_, src, nbytes)) {
-    return IOError("While appending to file", filename_, errno);
+  int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, nbytes);
+  if (flag!=0){
+
+    return IOError("While appending to file", sst_meta_->fname, flag);
+
+
   }
-
+//  sst_meta_->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
   filesize_ += nbytes;
+  int buff_offset = static_cast<char*>(local_mr_pointer->addr) - static_cast<char*>(map_pointer->addr);
+  assert(buff_offset%kDefaultPageSize == 0);
+  std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(map_pointer);
+  (*vec)[buff_offset/kDefaultPageSize] = false;
+  delete local_mr_pointer;
   return IOStatus::OK();
 }
 
 IOStatus PosixWritableFile::PositionedAppend(const Slice& data, uint64_t offset,
                                              const IOOptions& /*opts*/,
                                              IODebugContext* /*dbg*/) {
-  if (use_direct_io()) {
-    assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(data.size(), GetRequiredBufferAlignment()));
-    assert(IsSectorAligned(data.data(), GetRequiredBufferAlignment()));
-  }
-  assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  const char* src = data.data();
-  size_t nbytes = data.size();
-  if (!PosixPositionedWrite(fd_, src, nbytes, static_cast<off_t>(offset))) {
-    return IOError("While pwrite to file at offset " + ToString(offset),
-                   filename_, errno);
-  }
-  filesize_ = offset + nbytes;
-  return IOStatus::OK();
+  return IOStatus::NotSupported();
 }
 
 IOStatus PosixWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
-  IOStatus s;
-  int r = ftruncate(fd_, size);
-  if (r < 0) {
-    s = IOError("While ftruncate file to size " + ToString(size), filename_,
-                errno);
-  } else {
-    filesize_ = size;
-  }
-  return s;
+  //The original function will truncate the file to a spicific size, not
+  //Quite understand why we need this.
+  return IOStatus::NotSupported();
 }
 
 IOStatus PosixWritableFile::Close(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  IOStatus s;
-
-  size_t block_size;
-  size_t last_allocated_block;
-  GetPreallocationStatus(&block_size, &last_allocated_block);
-  if (last_allocated_block > 0) {
-    // trim the extra space preallocated at the end of the file
-    // NOTE(ljin): we probably don't want to surface failure as an IOError,
-    // but it will be nice to log these errors.
-    int dummy __attribute__((__unused__));
-    dummy = ftruncate(fd_, filesize_);
-#if defined(ROCKSDB_FALLOCATE_PRESENT) && defined(FALLOC_FL_PUNCH_HOLE) && \
-    !defined(TRAVIS)
-    // in some file systems, ftruncate only trims trailing space if the
-    // new file size is smaller than the current size. Calling fallocate
-    // with FALLOC_FL_PUNCH_HOLE flag to explicitly release these unused
-    // blocks. FALLOC_FL_PUNCH_HOLE is supported on at least the following
-    // filesystems:
-    //   XFS (since Linux 2.6.38)
-    //   ext4 (since Linux 3.0)
-    //   Btrfs (since Linux 3.7)
-    //   tmpfs (since Linux 3.5)
-    // We ignore error since failure of this operation does not affect
-    // correctness.
-    // TRAVIS - this code does not work on TRAVIS filesystems.
-    // the FALLOC_FL_KEEP_SIZE option is expected to not change the size
-    // of the file, but it does. Simple strace report will show that.
-    // While we work with Travis-CI team to figure out if this is a
-    // quirk of Docker/AUFS, we will comment this out.
-    struct stat file_stats;
-    int result = fstat(fd_, &file_stats);
-    // After ftruncate, we check whether ftruncate has the correct behavior.
-    // If not, we should hack it with FALLOC_FL_PUNCH_HOLE
-    if (result == 0 &&
-        (file_stats.st_size + file_stats.st_blksize - 1) /
-                file_stats.st_blksize !=
-            file_stats.st_blocks / (file_stats.st_blksize / 512)) {
-      IOSTATS_TIMER_GUARD(allocate_nanos);
-      if (allow_fallocate_) {
-        fallocate(fd_, FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE, filesize_,
-                  block_size * last_allocated_block - filesize_);
-      }
-    }
-#endif
-  }
-
-  if (close(fd_) < 0) {
-    s = IOError("While closing file after writing", filename_, errno);
-  }
-  fd_ = -1;
-  return s;
+  return IOStatus::NotSupported();
 }
 
 // write out the cached data to the OS cache
@@ -1193,17 +1140,12 @@ IOStatus PosixWritableFile::Flush(const IOOptions& /*opts*/,
 
 IOStatus PosixWritableFile::Sync(const IOOptions& /*opts*/,
                                  IODebugContext* /*dbg*/) {
-  if (fdatasync(fd_) < 0) {
-    return IOError("While fdatasync", filename_, errno);
-  }
+
   return IOStatus::OK();
 }
 
 IOStatus PosixWritableFile::Fsync(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
-  if (fsync(fd_) < 0) {
-    return IOError("While fsync", filename_, errno);
-  }
   return IOStatus::OK();
 }
 
@@ -1211,101 +1153,34 @@ bool PosixWritableFile::IsSyncThreadSafe() const { return true; }
 
 uint64_t PosixWritableFile::GetFileSize(const IOOptions& /*opts*/,
                                         IODebugContext* /*dbg*/) {
-  return filesize_;
+  return sst_meta_->file_size;
 }
 
 void PosixWritableFile::SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {
-#ifdef OS_LINUX
-// Suppress Valgrind "Unimplemented functionality" error.
-#ifndef ROCKSDB_VALGRIND_RUN
-  if (hint == write_hint_) {
-    return;
-  }
-  if (fcntl(fd_, F_SET_RW_HINT, &hint) == 0) {
-    write_hint_ = hint;
-  }
-#else
-  (void)hint;
-#endif  // ROCKSDB_VALGRIND_RUN
-#else
-  (void)hint;
-#endif  // OS_LINUX
+  std::cout << "This function setWriteLifeTimeHint is not supported" << std::endl;
 }
 
 IOStatus PosixWritableFile::InvalidateCache(size_t offset, size_t length) {
-  if (use_direct_io()) {
-    return IOStatus::OK();
-  }
-#ifndef OS_LINUX
-  (void)offset;
-  (void)length;
-  return IOStatus::OK();
-#else
-  // free OS pages
-  int ret = Fadvise(fd_, offset, length, POSIX_FADV_DONTNEED);
-  if (ret == 0) {
-    return IOStatus::OK();
-  }
-  return IOError("While fadvise NotNeeded", filename_, errno);
-#endif
+  return IOStatus::NotSupported();
 }
 
 #ifdef ROCKSDB_FALLOCATE_PRESENT
 IOStatus PosixWritableFile::Allocate(uint64_t offset, uint64_t len,
                                      const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
-  assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  assert(len <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  TEST_KILL_RANDOM("PosixWritableFile::Allocate:0", rocksdb_kill_odds);
-  IOSTATS_TIMER_GUARD(allocate_nanos);
-  int alloc_status = 0;
-  if (allow_fallocate_) {
-    alloc_status =
-        fallocate(fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0,
-                  static_cast<off_t>(offset), static_cast<off_t>(len));
-  }
-  if (alloc_status == 0) {
-    return IOStatus::OK();
-  } else {
-    return IOError(
-        "While fallocate offset " + ToString(offset) + " len " + ToString(len),
-        filename_, errno);
-  }
+  return IOStatus::NotSupported();
 }
 #endif
 
 IOStatus PosixWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
                                       const IOOptions& opts,
                                       IODebugContext* dbg) {
-#ifdef ROCKSDB_RANGESYNC_PRESENT
-  assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  assert(nbytes <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  if (sync_file_range_supported_) {
-    int ret;
-    if (strict_bytes_per_sync_) {
-      // Specifying `SYNC_FILE_RANGE_WAIT_BEFORE` together with an offset/length
-      // that spans all bytes written so far tells `sync_file_range` to wait for
-      // any outstanding writeback requests to finish before issuing a new one.
-      ret =
-          sync_file_range(fd_, 0, static_cast<off_t>(offset + nbytes),
-                          SYNC_FILE_RANGE_WAIT_BEFORE | SYNC_FILE_RANGE_WRITE);
-    } else {
-      ret = sync_file_range(fd_, static_cast<off_t>(offset),
-                            static_cast<off_t>(nbytes), SYNC_FILE_RANGE_WRITE);
-    }
-    if (ret != 0) {
-      return IOError("While sync_file_range returned " + ToString(ret),
-                     filename_, errno);
-    }
-    return IOStatus::OK();
-  }
-#endif  // ROCKSDB_RANGESYNC_PRESENT
-  return FSWritableFile::RangeSync(offset, nbytes, opts, dbg);
+  return IOStatus::NotSupported();
 }
 
 #ifdef OS_LINUX
 size_t PosixWritableFile::GetUniqueId(char* id, size_t max_size) const {
-  return PosixHelper::GetUniqueIdFromFile(fd_, id, max_size);
+  return 0;
 }
 #endif
 
