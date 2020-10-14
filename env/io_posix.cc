@@ -561,12 +561,13 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
   IOStatus s;
   assert(n <= kDefaultPageSize);
   ibv_mr* map_pointer;
-  ibv_mr* local_mr_pointer = nullptr;
+  ibv_mr* local_mr_pointer;
+  local_mr_pointer = nullptr;
   ibv_mr remote_mr = {};
   remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
 
-  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer, map_pointer);
+  rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
   if (flag!=0){
 
@@ -577,13 +578,13 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
 
   }
   memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
-  int buff_offset = static_cast<char*>(local_mr_pointer->addr) - static_cast<char*>(map_pointer->addr);
-  assert(buff_offset%kDefaultPageSize == 0);
-  std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(map_pointer);
-  (*vec)[buff_offset/kDefaultPageSize] = false;
   *result = Slice(scratch, n);
-  delete local_mr_pointer;
-
+  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
+    delete local_mr_pointer;
+  else
+    s = IOError(
+        "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
+        sst_meta_->fname, flag);
   return s;
 }
 
@@ -1087,14 +1088,14 @@ IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   const std::lock_guard<std::mutex> lock(sst_meta_->file_lock);
   const char* src = data.data();
   size_t nbytes = data.size();
-  IOStatus s;
+  IOStatus s = IOStatus::OK();
   assert(nbytes <= kDefaultPageSize);
   ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {};
   remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
-  rdma_mg_->Find_empty_LM_Placeholder(local_mr_pointer, map_pointer);
+  rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   memcpy(local_mr_pointer->addr, src, nbytes);
 
   int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, nbytes);
@@ -1106,12 +1107,13 @@ IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   }
 //  sst_meta_->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
   filesize_ += nbytes;
-  int buff_offset = static_cast<char*>(local_mr_pointer->addr) - static_cast<char*>(map_pointer->addr);
-  assert(buff_offset%kDefaultPageSize == 0);
-  std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(map_pointer);
-  (*vec)[buff_offset/kDefaultPageSize] = false;
-  delete local_mr_pointer;
-  return IOStatus::OK();
+  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
+    delete local_mr_pointer;
+  else
+    s = IOError(
+        "While RDMA Local Buffer Deallocate failed ",
+        sst_meta_->fname, flag);
+  return s;
 }
 
 IOStatus PosixWritableFile::PositionedAppend(const Slice& data, uint64_t offset,

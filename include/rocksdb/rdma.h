@@ -18,12 +18,14 @@
 #include <mutex>
 //#include <options.h>
 
-#include <sys/time.h>
 #include <arpa/inet.h>
 #include <infiniband/verbs.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -74,6 +76,57 @@ struct SST_Metadata{
   size_t file_size;
   std::mutex file_lock;
 };
+template <typename T>
+struct atomwrapper
+{
+  std::atomic<T> _a;
+
+  atomwrapper()
+      :_a()
+  {}
+
+  atomwrapper(const std::atomic<T> &a)
+      :_a(a.load())
+  {}
+
+  atomwrapper(const atomwrapper &other)
+      :_a(other._a.load())
+  {}
+
+  atomwrapper &operator=(const atomwrapper &other)
+  {
+    _a.store(other._a.load());
+  }
+};
+class In_Use_Array{
+ public:
+  In_Use_Array(size_t size){
+    in_use = new std::atomic<bool>;
+    for (size_t i = 0; i < size; ++i){
+      in_use[i] = false;
+    }
+  }
+  int allocate_memory_slot(){
+    for (int i = 0; i < static_cast<int>(size); ++i){
+      bool temp = in_use[i];
+      if (temp == false) {
+        in_use[i].compare_exchange_strong(temp, true);
+        return i; // find the empty slot then return the index for the slot
+      }
+
+    }
+    return -1; //Not find the empty memory chunk.
+  }
+  bool deallocate_memory_slot(int index) {
+    bool temp = true;
+
+    return in_use[index].compare_exchange_strong(temp, false);
+
+  }
+ private:
+  size_t size;
+  std::atomic<bool>* in_use;
+};
 /* structure of system resources */
 struct resources
 {
@@ -101,8 +154,8 @@ struct resources
 class RDMA_Manager{
  public:
   RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
-               std::vector<bool>*>* Remote_Bitmap,
-               std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap);
+               In_Use_Array>* Remote_Bitmap,
+               std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap);
   RDMA_Manager(config_t config) : rdma_config(config){
     res = new resources();
     res->sock = -1;
@@ -123,17 +176,17 @@ class RDMA_Manager{
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
   int poll_completion(ibv_wc* &wc);
-  void Unref_Local_Buffer(ibv_mr* mr);
+  bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const;
   //find an empty remote SST
-  void Find_empty_RM_Placeholder(const std::string &file_name,
+  void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
-  void Find_empty_LM_Placeholder(ibv_mr*& mr_input, ibv_mr*& map_pointer);
+  void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, ibv_mr*& map_pointer);
 
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Mem_Bitmap = nullptr;
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Mem_Bitmap = nullptr;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
   int Block_Size = 4*1024;
   int Table_Size = 4*1024*1024;
  private:
@@ -156,6 +209,7 @@ class RDMA_Manager{
   void print_config(void);
   void usage(const char* argv0);
 
+  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const;
 };
 
 //#ifdef __cplusplus

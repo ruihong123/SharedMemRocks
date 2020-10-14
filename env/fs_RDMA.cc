@@ -168,24 +168,33 @@ class RDMAFileSystem : public FileSystem {
     // other file name link to the same file. If it is the last one, unpin the region in the
     // remote buffer pool.
     SST_Metadata* file_meta = file_to_sst_meta.at(fname);
-    int erasenum = file_to_sst_meta.erase(fname);
-    if (erasenum==0) return 1;
+    int erasenum = file_to_sst_meta.erase(fname);// delete this file name
+    if (erasenum==0) return 1; // the file name should only have one entry
     else if (erasenum>1) return 2;
     auto ptr = file_to_sst_meta.begin();
     while(ptr != file_to_sst_meta.end())
+    // check whether there is other filename link to the same file
     {
       // Check if value of this entry matches with given value
       if(ptr->second == file_meta)
-        return 1;
+        return 0;// if find then return.
       // Go to next entry in map
       ptr++;
     }
+    //if not find other filename, then make the memory slot not in use (delete the file)
     int buff_offset = static_cast<char*>(file_meta->mr->addr) - static_cast<char*>(file_meta->map_pointer->addr);
     assert(buff_offset%kDefaultPageSize == 0);
-    std::vector<bool>* vec = rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer);
-    (*vec)[buff_offset/kDefaultPageSize] = false;
-    delete file_meta;
-    return 0;
+    if (rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer).deallocate_memory_slot(buff_offset)) {
+      // delete remove the flage sucessfully
+      delete file_meta;
+      return 0;
+    }
+    else{
+      std::cout << "clear the flag in in_use_table failed" << std::endl;
+      return 3;
+    }
+
+
 
   }
 
@@ -199,7 +208,7 @@ class RDMAFileSystem : public FileSystem {
     if(type == write_new){
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        rdma_mg_->Find_empty_RM_Placeholder(file_name, sst_meta);
+        rdma_mg_->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
         return IOStatus::OK();
       } else {
@@ -210,7 +219,7 @@ class RDMAFileSystem : public FileSystem {
     if(type == rwtype) {
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        rdma_mg_->Find_empty_RM_Placeholder(file_name, sst_meta);
+        rdma_mg_->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
         return IOStatus::OK();
       } else {
@@ -777,8 +786,8 @@ class RDMAFileSystem : public FileSystem {
 //  bool forceMmapOff_;  // do we override Env options?
   RDMA_Manager* rdma_mg_;
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Remote_Bitmap;
-  std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -870,8 +879,8 @@ RDMAFileSystem::RDMAFileSystem()
       -1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
   };
-  Remote_Bitmap = new std::unordered_map<ibv_mr*, std::vector<bool>*>;
-  Local_Bitmap = new std::unordered_map<ibv_mr*, std::vector<bool>*>;
+  Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
+  Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   rdma_mg_ = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
   rdma_mg_->Set_Up_RDMA();
 #if defined(ROCKSDB_IOURING_PRESENT)

@@ -13,8 +13,8 @@
 * Initialize the resource for RDMA.
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
-                          std::vector<bool>*>* Remote_Bitmap,
-                          std::unordered_map<ibv_mr*, std::vector<bool>*>* Local_Bitmap)
+                          In_Use_Array>* Remote_Bitmap,
+                          std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap)
     : rdma_config(config){
   res = new resources();
   res->sock = -1;
@@ -215,8 +215,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
   else{
     local_mem_pool.push_back(*p2mrpointer);
     int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
-    std::vector<bool>* vect = new std::vector<bool>(placeholder_num, false);
-    Local_Mem_Bitmap->insert({ *p2mrpointer, vect });
+    In_Use_Array in_use_array(placeholder_num);
+    Local_Mem_Bitmap->insert({ *p2mrpointer, in_use_array });
     return true;
   }
 
@@ -1051,8 +1051,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
 
     //push the bitmap of the new registed buffer to the bitmap vector in resource.
     int placeholder_num = temp_pointer->length/(Table_Size);// here we supposing the SSTables are 4 megabytes
-    std::vector<bool>* vect = new std::vector<bool>(placeholder_num, false);
-    Remote_Mem_Bitmap->insert({ temp_pointer, vect });
+    In_Use_Array in_use_array(placeholder_num);
+    Remote_Mem_Bitmap->insert({ temp_pointer, in_use_array });
     // NOTICE: Couold be problematic because the pushback may not an absolute
     //   value copy. it could raise a segment fault(Double check it)
 
@@ -1113,7 +1113,7 @@ void RDMA_Manager::Sever_thread(){
 
 }
 
-void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name,
+void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                              SST_Metadata*& sst_meta){
   //If the Remote buffer is empty, register one from the remote memory.
   if(Remote_Mem_Bitmap->empty()){
@@ -1127,37 +1127,33 @@ void RDMA_Manager::Find_empty_RM_Placeholder(const std::string &file_name,
     //find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr*
     // second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get
     //from the remote memory. The memory was divided into chunks with size == SSTable size.
-    auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
-    if(it!= ptr->second->end()){
-      *it = true;
-      int sst_index = distance(ptr->second->begin(),it);
-
-//      sst_meta->mr = new ibv_mr();
+    int sst_index = ptr->second.allocate_memory_slot();
+    if (sst_index > 0){
       *(sst_meta->mr) = *(ptr->first);
-      sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*4*1024*1024);
+      sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*Table_Size);
       sst_meta->fname = file_name;
+      sst_meta->map_pointer = ptr->first; // it could be confused that the map_pointer is for the memtadata deletion
+      // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
       sst_meta->file_size = 0;
       return;
-    }
-    ptr++;
+    } else ptr++;
   }
   // If not find remote buffers are all used, allocate another remote memory region.
   Remote_Memory_Register(1*1024*1024*1024);
-  ibv_mr* mr;
-  mr = remote_mem_pool.back();
-  auto it = std::find(Remote_Mem_Bitmap->at(mr)->begin(), Remote_Mem_Bitmap->at(mr)->end(), false);
-  *it = true;
-  int sst_index = distance(ptr->second->begin(),it);
+  ibv_mr* mr_last;
+  mr_last = remote_mem_pool.back();
+  int sst_index = Remote_Mem_Bitmap->at(mr_last).allocate_memory_slot();
 
 
 //  sst_meta->mr = new ibv_mr();
-  *(sst_meta->mr) = *(ptr->first);
+  *(sst_meta->mr) = *(mr_last);
   sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*4*1024*1024);
   sst_meta->fname = file_name;
+  sst_meta->map_pointer = ptr->first;
   return;
 }
 // A function try to allocat
-void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr*& mr_input,
+void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
                                              ibv_mr*& map_pointer) {
   if(Local_Mem_Bitmap->empty()){
     ibv_mr* mr = new ibv_mr();
@@ -1167,41 +1163,46 @@ void RDMA_Manager::Find_empty_LM_Placeholder(ibv_mr*& mr_input,
   auto ptr = Local_Mem_Bitmap->begin();
 
   while(ptr != Local_Mem_Bitmap->end()) {
-    auto it = std::find(ptr->second->begin(), ptr->second->end(), false);
-    if(it!= ptr->second->end()){
-      *it = true;
-      int block_index = distance(ptr->second->begin(),it);
-      // offset of blocks from the start of the memory region
-
-
+    int block_index = ptr->second.allocate_memory_slot();
+    if (block_index > 0){
       mr_input = new ibv_mr();
       map_pointer = ptr->first;
       *(mr_input) = *(ptr->first);
       mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + block_index*Block_Size);
       return;
-    }
-    ptr++;
+    } else ptr++;
   }
   // if not find available Local block buffer then allocate a new buffer. then
   //pick up one buffer from the new Local memory region.
-  ibv_mr* mr = new ibv_mr();
+  // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
+  // TODO:: Because there are two many thread going on at the same time.
+  ibv_mr* mr_to_allocate = new ibv_mr();
   char* buff = new char[Block_Size*1024];
-  Local_Memory_Register(&buff, &mr, Block_Size*1024);
-  auto it = std::find(Local_Mem_Bitmap->at(mr)->begin(), Local_Mem_Bitmap->at(mr)->end(), false);
-  *it = true;
-  int sst_index = distance(ptr->second->begin(),it);
-
-
-  mr_input = new ibv_mr();
-  map_pointer = mr;
-  *(mr_input) = *(ptr->first);
-  mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + sst_index*4*1024);
+  Local_Memory_Register(&buff, &mr_to_allocate, Block_Size*1024);
+  int block_index = ptr->second.allocate_memory_slot();
+  if (block_index > 0){
+    mr_input = new ibv_mr();
+    map_pointer = mr_to_allocate;
+    *(mr_input) = *(mr_to_allocate);
+    mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + block_index*Block_Size);
 //  mr_input.fname = file_name;
-  return;
-
-
-
+    return;
+  }
+#ifdef DEBUG
+  else {
+    std::out << "block registerration failed" << std::endl;
+  }
+#endif
 }
-void RDMA_Manager::Unref_Local_Buffer(ibv_mr* mr) {
-
+// Remeber to delete the mr because it was created be new, otherwise memory leak.
+bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const {
+  int buff_offset = static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
+  assert(buff_offset%Table_Size == 0);
+  return Local_Mem_Bitmap->at(map_pointer).deallocate_memory_slot(buff_offset);
 }
+bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const {
+  int buff_offset = static_cast<char*>(sst_meta->mr->addr) - static_cast<char*>(sst_meta->map_pointer->addr);
+  assert(buff_offset%Table_Size == 0);
+  return Remote_Mem_Bitmap->at(sst_meta->map_pointer).deallocate_memory_slot(buff_offset);
+}
+
