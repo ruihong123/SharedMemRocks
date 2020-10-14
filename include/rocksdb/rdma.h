@@ -156,10 +156,10 @@ class RDMA_Manager{
   RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
                In_Use_Array>* Remote_Bitmap,
                std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap);
-  RDMA_Manager(config_t config) : rdma_config(config){
-    res = new resources();
-    res->sock = -1;
-  }
+//  RDMA_Manager(config_t config) : rdma_config(config){
+//    res = new resources();
+//    res->sock = -1;
+//  }
   RDMA_Manager()=delete;
   ~RDMA_Manager();
 
