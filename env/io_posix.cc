@@ -557,7 +557,7 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-
+  const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
   assert(n <= kDefaultPageSize);
   ibv_mr* map_pointer;
@@ -1085,7 +1085,7 @@ PosixWritableFile::~PosixWritableFile() {
 
 IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-  const std::lock_guard<std::mutex> lock(sst_meta_->file_lock);
+  const std::unique_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   const char* src = data.data();
   size_t nbytes = data.size();
   IOStatus s = IOStatus::OK();
@@ -1099,6 +1099,7 @@ IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   memcpy(local_mr_pointer->addr, src, nbytes);
 
   int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, nbytes);
+
   if (flag!=0){
 
     return IOError("While appending to file", sst_meta_->fname, flag);

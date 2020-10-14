@@ -15,7 +15,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <algorithm>
-#include <mutex>
+#include <shared_mutex>
 //#include <options.h>
 
 #include <arpa/inet.h>
@@ -74,7 +74,7 @@ struct SST_Metadata{
   ibv_mr* mr;
   ibv_mr* map_pointer;
   size_t file_size;
-  std::mutex file_lock;
+  std::shared_mutex file_lock;
 };
 template <typename T>
 struct atomwrapper
@@ -100,14 +100,14 @@ struct atomwrapper
 };
 class In_Use_Array{
  public:
-  In_Use_Array(size_t size){
-    in_use = new std::atomic<bool>;
-    for (size_t i = 0; i < size; ++i){
+  In_Use_Array(size_t size) : size_(size){
+    in_use = new std::atomic<bool>[size_];
+    for (size_t i = 0; i < size_; ++i){
       in_use[i] = false;
     }
   }
   int allocate_memory_slot(){
-    for (int i = 0; i < static_cast<int>(size); ++i){
+    for (int i = 0; i < static_cast<int>(size_); ++i){
       bool temp = in_use[i];
       if (temp == false) {
         in_use[i].compare_exchange_strong(temp, true);
@@ -124,7 +124,7 @@ class In_Use_Array{
 
   }
  private:
-  size_t size;
+  size_t size_;
   std::atomic<bool>* in_use;
 };
 /* structure of system resources */
@@ -175,9 +175,11 @@ class RDMA_Manager{
   int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
-  int poll_completion(ibv_wc* &wc);
+  int poll_completion(ibv_wc* wc_p, int num_entries);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const;
-  //find an empty remote SST
+  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const;
+
+  //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
   void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, ibv_mr*& map_pointer);
@@ -209,7 +211,6 @@ class RDMA_Manager{
   void print_config(void);
   void usage(const char* argv0);
 
-  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const;
 };
 
 //#ifdef __cplusplus
