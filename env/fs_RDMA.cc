@@ -615,10 +615,12 @@ class RDMAFileSystem : public FileSystem {
   IOStatus RenameFile(const std::string& src, const std::string& target,
                       const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    if (!RDMA_Rename(target.c_str(), src.c_str())) {
+    if (rename(src.c_str(), target.c_str()) != 0 || !RDMA_Rename(target.c_str(), src.c_str())) {
+
       return IOError("While renaming a file to " + target, src, errno);
     }
     return IOStatus::OK();
+
   }
 
   IOStatus LinkFile(const std::string& src, const std::string& target,
