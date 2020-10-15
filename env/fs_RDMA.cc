@@ -141,7 +141,10 @@ class RDMAFileSystem : public FileSystem {
 
   const char* Name() const override { return "Posix File System"; }
 
-  ~RDMAFileSystem();
+  ~RDMAFileSystem() {
+    delete Remote_Bitmap;
+    delete Local_Bitmap;
+    delete rdma_mg_;}
   enum Open_Type {readtype, write_reopen, write_new, rwtype};
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
