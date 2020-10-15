@@ -1131,7 +1131,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                              SST_Metadata*& sst_meta){
   //If the Remote buffer is empty, register one from the remote memory.
   if(Remote_Mem_Bitmap->empty()){
-    std::mutex create_mutex;
+
     create_mutex.lock();
     if(Remote_Mem_Bitmap->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024);

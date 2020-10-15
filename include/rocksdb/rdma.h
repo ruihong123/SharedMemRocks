@@ -191,6 +191,7 @@ class RDMA_Manager{
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
   int Block_Size = 4*1024;
   int Table_Size = 4*1024*1024;
+  std::mutex create_mutex;
  private:
 
   config_t rdma_config;
