@@ -186,6 +186,7 @@ class RDMAFileSystem : public FileSystem {
     assert(buff_offset%kDefaultPageSize == 0);
     if (rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer).deallocate_memory_slot(buff_offset)) {
       // delete remove the flage sucessfully
+      delete file_meta->mr;
       delete file_meta;
       return 0;
     }
