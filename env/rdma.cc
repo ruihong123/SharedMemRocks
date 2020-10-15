@@ -1146,7 +1146,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
     // second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get
     //from the remote memory. The memory was divided into chunks with size == SSTable size.
     int sst_index = ptr->second.allocate_memory_slot();
-    if (sst_index > 0){
+    if (sst_index >= 0){
       *(sst_meta->mr) = *(ptr->first);
       sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*Table_Size);
       sst_meta->fname = file_name;
