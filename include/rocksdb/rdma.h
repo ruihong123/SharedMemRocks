@@ -110,8 +110,8 @@ class In_Use_Array{
     for (int i = 0; i < static_cast<int>(size_); ++i){
       bool temp = in_use[i];
       if (temp == false) {
-        in_use[i].compare_exchange_strong(temp, true);
-        return i; // find the empty slot then return the index for the slot
+        if(in_use[i].compare_exchange_strong(temp, true))
+          return i; // find the empty slot then return the index for the slot
       }
 
     }

@@ -1184,7 +1184,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
 
   while(ptr != Local_Mem_Bitmap->end()) {
     int block_index = ptr->second.allocate_memory_slot();
-    if (block_index > 0){
+    if (block_index >= 0){
       mr_input = new ibv_mr();
       map_pointer = ptr->first;
       *(mr_input) = *(ptr->first);
