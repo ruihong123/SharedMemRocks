@@ -1105,7 +1105,7 @@ void RDMA_Manager::Sever_thread(){
       if(!Local_Memory_Register(&buff, &mr, receive_pointer->mem_size)){
         fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(receive_pointer->mem_size));
       }
-      local_mem_pool.push_back(mr);
+//      local_mem_pool.push_back(mr);
 
       *send_pointer = *mr;
 
