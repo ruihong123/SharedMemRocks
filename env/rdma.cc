@@ -1208,9 +1208,9 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
 //  mr_input.fname = file_name;
     return;
   }
-#ifdef DEBUG
+#ifndef NDEBUG
   else {
-    std::out << "block registerration failed" << std::endl;
+    std::cout << "block registerration failed" << std::endl;
   }
 #endif
 }

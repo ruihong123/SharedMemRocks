@@ -1474,11 +1474,18 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
                     const bool seq_per_batch, const bool batch_per_txn) {
   Status s = ValidateOptionsByTable(db_options, column_families);
   if (!s.ok()) {
+#ifndef NDEBUG
+    std::cout << "ValidateOptionsByTable Problem" << std::endl;
+#endif
     return s;
+
   }
 
   s = ValidateOptions(db_options, column_families);
   if (!s.ok()) {
+#ifndef NDEBUG
+    std::cout << "ValidateOptions Problem" << std::endl;
+#endif
     return s;
   }
 
@@ -1493,6 +1500,11 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
 
   DBImpl* impl = new DBImpl(db_options, dbname, seq_per_batch, batch_per_txn);
   s = impl->env_->CreateDirIfMissing(impl->immutable_db_options_.wal_dir);
+#ifndef NDEBUG
+  if (!s.ok()) {
+    std::cout << "CreateDIR if missing Problem" << std::endl;
+  }
+#endif
   if (s.ok()) {
     std::vector<std::string> paths;
     for (auto& db_path : impl->immutable_db_options_.db_paths) {
