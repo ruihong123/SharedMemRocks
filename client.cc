@@ -9,7 +9,7 @@ int main()
   options.create_if_missing = true;
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
-  assert(status.ok());
+//  assert(status.ok());
   std::string value;
   std::string key;
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), "StartKey", "StartValue");
