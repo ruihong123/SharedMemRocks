@@ -10,6 +10,8 @@ int main()
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
+  if (!status.ok()) std::cerr << status.ToString() << std::endl;
+
   std::string value;
   std::string key;
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), "StartKey", "StartValue");

@@ -1532,6 +1532,9 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
     s = impl->CreateArchivalDirectory();
   }
   if (!s.ok()) {
+#ifndef NDEBUG
+    std::cout << "CreateArchivalDirectory Problem" << std::endl;
+#endif
     delete impl;
     return s;
   }
