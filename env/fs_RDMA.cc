@@ -231,7 +231,7 @@ class RDMAFileSystem : public FileSystem {
     if(type == write_reopen || type == readtype){
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        errno = ENOENT;
+//        errno = ENOENT;
         return IOError("While open a file for random read", file_name, errno);
       } else {
         sst_meta = file_to_sst_meta[file_name];
@@ -616,7 +616,7 @@ class RDMAFileSystem : public FileSystem {
   IOStatus RenameFile(const std::string& src, const std::string& target,
                       const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    if (rename(src.c_str(), target.c_str()) != 0 || !RDMA_Rename(target.c_str(), src.c_str())) {
+    if (rename(src.c_str(), target.c_str()) != 0 && !RDMA_Rename(target.c_str(), src.c_str())) {
 
       return IOError("While renaming a file to " + target, src, errno);
     }
