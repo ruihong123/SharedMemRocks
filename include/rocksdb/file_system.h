@@ -215,6 +215,10 @@ class FileSystem {
   //
   // The returned file will only be accessed by one thread at a time.
   virtual IOStatus NewSequentialFile(const std::string& fname,
+                                          const FileOptions& file_opts,
+                                          std::unique_ptr<FSSequentialFile>* result,
+                                          IODebugContext* dbg) {return IOStatus::OK();}
+  virtual IOStatus NewSequentialFile_RDMA(const std::string& fname,
                                      const FileOptions& file_opts,
                                      std::unique_ptr<FSSequentialFile>* result,
                                      IODebugContext* dbg) = 0;
@@ -1059,11 +1063,11 @@ class FileSystemWrapper : public FileSystem {
   FileSystem* target() const { return target_.get(); }
 
   // The following text is boilerplate that forwards all methods to target()
-  IOStatus NewSequentialFile(const std::string& f,
+  IOStatus NewSequentialFile_RDMA(const std::string& f,
                              const FileOptions& file_opts,
                              std::unique_ptr<FSSequentialFile>* r,
                              IODebugContext* dbg) override {
-    return target_->NewSequentialFile(f, file_opts, r, dbg);
+    return target_->NewSequentialFile_RDMA(f, file_opts, r, dbg);
   }
   IOStatus NewRandomAccessFile(const std::string& f,
                                const FileOptions& file_opts,

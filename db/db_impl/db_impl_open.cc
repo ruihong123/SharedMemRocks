@@ -847,9 +847,8 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& log_numbers,
     std::unique_ptr<SequentialFileReader> file_reader;
     {
       std::unique_ptr<FSSequentialFile> file;
-      status = fs_->NewSequentialFile(fname,
-                                      fs_->OptimizeForLogRead(file_options_),
-                                      &file, nullptr);
+      status = fs_->NewSequentialFile_RDMA(
+          fname, fs_->OptimizeForLogRead(file_options_), &file, nullptr);
       if (!status.ok()) {
         MaybeIgnoreError(&status);
         if (!status.ok()) {

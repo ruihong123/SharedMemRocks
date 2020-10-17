@@ -107,7 +107,7 @@ IOStatus ReadFileToString(FileSystem* fs, const std::string& fname,
   data->clear();
   std::unique_ptr<FSSequentialFile> file;
   IOStatus s = status_to_io_status(
-      fs->NewSequentialFile(fname, soptions, &file, nullptr));
+      fs->NewSequentialFile_RDMA(fname, soptions, &file, nullptr));
   if (!s.ok()) {
     return s;
   }

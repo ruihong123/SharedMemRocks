@@ -123,6 +123,32 @@ class LogicalBlockSizeCache {
 };
 #endif
 
+class RDMASequentialFile : public FSSequentialFile {
+ private:
+  SST_Metadata* sst_meta_;
+  bool use_direct_io_;
+  size_t logical_sector_size_;
+  RDMA_Manager* rdma_mg_;
+  size_t position_;
+
+ public:
+  RDMASequentialFile(SST_Metadata* sst_meta, size_t logical_block_size,
+                     const EnvOptions& options, RDMA_Manager* rdma_mg);
+  virtual ~RDMASequentialFile();
+
+  virtual IOStatus Read(size_t n, const IOOptions& opts, Slice* result,
+                        char* scratch, IODebugContext* dbg) override;
+  virtual IOStatus PositionedRead(uint64_t offset, size_t n,
+                                  const IOOptions& opts, Slice* result,
+                                  char* scratch, IODebugContext* dbg) override;
+  virtual IOStatus Skip(uint64_t n) override;
+  virtual IOStatus InvalidateCache(size_t offset, size_t length) override;
+  virtual bool use_direct_io() const override { return use_direct_io_; }
+  virtual size_t GetRequiredBufferAlignment() const override {
+    return logical_sector_size_;
+  }
+};
+
 class PosixSequentialFile : public FSSequentialFile {
  private:
   std::string filename_;
@@ -152,35 +178,6 @@ class PosixSequentialFile : public FSSequentialFile {
   }
 };
 
-//class RDMASequentialFile : public FSSequentialFile {
-// private:
-//  std::string filename_;
-//  FILE* file_;
-//  int fd_;
-//  bool use_direct_io_;
-//  size_t logical_sector_size_;
-//  RDMA_Manager* rdma_mg_;
-//
-// public:
-//  PosixSequentialFile(const std::string& fname, FILE* file,
-//                      int fd, size_t logical_block_size,
-//                      const EnvOptions& options,
-//                      RDMA_Manager* rdma_mg);
-//  virtual ~PosixSequentialFile();
-//
-//  virtual IOStatus Read(size_t n, const IOOptions& opts, Slice* result,
-//                        char* scratch, IODebugContext* dbg) override;
-//  virtual IOStatus PositionedRead(uint64_t offset, size_t n,
-//                                  const IOOptions& opts, Slice* result,
-//                                  char* scratch, IODebugContext* dbg) override;
-//  virtual IOStatus Skip(uint64_t n) override;
-//  virtual IOStatus InvalidateCache(size_t offset, size_t length) override;
-//  virtual bool use_direct_io() const override { return use_direct_io_; }
-//  virtual size_t GetRequiredBufferAlignment() const override {
-//    return logical_sector_size_;
-//  }
-//};
-
 #if defined(ROCKSDB_IOURING_PRESENT)
 // io_uring instance queue depth
 const unsigned int kIoUringDepth = 256;
@@ -201,7 +198,7 @@ inline struct io_uring* CreateIOUring() {
 }
 #endif  // defined(ROCKSDB_IOURING_PRESENT)
 
-class PosixRandomAccessFile : public FSRandomAccessFile {
+class RDMARandomAccessFile : public FSRandomAccessFile {
  protected:
   SST_Metadata* sst_meta_;
   bool use_direct_io_;
@@ -212,9 +209,9 @@ class PosixRandomAccessFile : public FSRandomAccessFile {
 #endif
 
  public:
-  PosixRandomAccessFile(SST_Metadata* sst_meta, size_t logical_block_size,
+  RDMARandomAccessFile(SST_Metadata* sst_meta, size_t logical_block_size,
                         const EnvOptions& options, RDMA_Manager* rdma_mg);
-  virtual ~PosixRandomAccessFile()=default;
+  virtual ~RDMARandomAccessFile()=default;
 
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,
@@ -238,7 +235,7 @@ class PosixRandomAccessFile : public FSRandomAccessFile {
   }
 };
 
-class PosixWritableFile : public FSWritableFile {
+class RDMAWritableFile : public FSWritableFile {
  protected:
   const bool use_direct_io_;
   uint64_t filesize_;
@@ -257,9 +254,9 @@ class PosixWritableFile : public FSWritableFile {
 #endif  // ROCKSDB_RANGESYNC_PRESENT
 
  public:
-  explicit PosixWritableFile(SST_Metadata* sst_meta, size_t logical_block_size,
+  explicit RDMAWritableFile(SST_Metadata* sst_meta, size_t logical_block_size,
                              const EnvOptions& options, RDMA_Manager* rdma_mg);
-  virtual ~PosixWritableFile();
+  virtual ~RDMAWritableFile();
 
   // Need to implement this so the file is truncated correctly
   // with direct I/O

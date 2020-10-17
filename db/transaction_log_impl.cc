@@ -50,16 +50,18 @@ Status TransactionLogIteratorImpl::OpenLogFile(
   EnvOptions optimized_env_options = fs->OptimizeForLogRead(soptions_);
   if (log_file->Type() == kArchivedLogFile) {
     fname = ArchivedLogFileName(dir_, log_file->LogNumber());
-    s = fs->NewSequentialFile(fname, optimized_env_options, &file, nullptr);
+    s = fs->NewSequentialFile_RDMA(fname, optimized_env_options, &file,
+                                   nullptr);
   } else {
     fname = LogFileName(dir_, log_file->LogNumber());
-    s = fs->NewSequentialFile(fname, optimized_env_options, &file, nullptr);
+    s = fs->NewSequentialFile_RDMA(fname, optimized_env_options, &file,
+                                   nullptr);
     if (!s.ok()) {
       //  If cannot open file in DB directory.
       //  Try the archive dir, as it could have moved in the meanwhile.
       fname = ArchivedLogFileName(dir_, log_file->LogNumber());
-      s = fs->NewSequentialFile(fname, optimized_env_options,
-                                &file, nullptr);
+      s = fs->NewSequentialFile_RDMA(fname, optimized_env_options, &file,
+                                     nullptr);
     }
   }
   if (s.ok()) {

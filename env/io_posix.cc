@@ -203,127 +203,9 @@ bool IsSectorAligned(const void* ptr, size_t sector_size) {
 #endif
 }  // namespace
 
-/*
- * PosixSequentialFile
- */
-PosixSequentialFile::PosixSequentialFile(const std::string& fname, FILE* file,
-                                         int fd, size_t logical_block_size,
-                                         const EnvOptions& options,
-                                         RDMA_Manager* rdma_mg)
-    : filename_(fname),
-      file_(file),
-      fd_(fd),
-      use_direct_io_(options.use_direct_reads),
-      logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg) {
-  assert(!options.use_direct_reads || !options.use_mmap_reads);
-}
 
-PosixSequentialFile::~PosixSequentialFile() {
-  if (!use_direct_io()) {
-    assert(file_);
-    fclose(file_);
-  } else {
-    assert(fd_);
-    close(fd_);
-  }
-}
 
-IOStatus PosixSequentialFile::Read(size_t n, const IOOptions& /*opts*/,
-                                   Slice* result, char* scratch,
-                                   IODebugContext* /*dbg*/) {
-  assert(result != nullptr && !use_direct_io());
-  IOStatus s;
-  size_t r = 0;
-  do {
-    clearerr(file_);
-      r = fread_unlocked(scratch, 1, n, file_);
-  } while (r == 0 && ferror(file_) && errno == EINTR);
-  *result = Slice(scratch, r);
-  if (r < n) {
-    if (feof(file_)) {
-      // We leave status as ok if we hit the end of the file
-      // We also clear the error so that the reads can continue
-      // if a new data is written to the file
-      clearerr(file_);
-    } else {
-      // A partial read with an error: return a non-ok status
-      s = IOError("While reading file sequentially", filename_, errno);
-    }
-  }
-  return s;
-}
 
-IOStatus PosixSequentialFile::PositionedRead(uint64_t offset, size_t n,
-                                             const IOOptions& /*opts*/,
-                                             Slice* result, char* scratch,
-                                             IODebugContext* /*dbg*/) {
-  assert(use_direct_io());
-  assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
-  assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
-  assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
-
-  IOStatus s;
-  ssize_t r = -1;
-  size_t left = n;
-  char* ptr = scratch;
-  while (left > 0) {
-    r = pread(fd_, ptr, left, static_cast<off_t>(offset));
-    if (r <= 0) {
-      if (r == -1 && errno == EINTR) {
-        continue;
-      }
-      break;
-    }
-    ptr += r;
-    offset += r;
-    left -= r;
-    if (!IsSectorAligned(r, GetRequiredBufferAlignment())) {
-      // Bytes reads don't fill sectors. Should only happen at the end
-      // of the file.
-      break;
-    }
-  }
-  if (r < 0) {
-    // An error: return a non-ok status
-    s = IOError(
-        "While pread " + ToString(n) + " bytes from offset " + ToString(offset),
-        filename_, errno);
-  }
-  *result = Slice(scratch, (r < 0) ? 0 : n - left);
-  return s;
-}
-
-IOStatus PosixSequentialFile::Skip(uint64_t n) {
-  if (fseek(file_, static_cast<long int>(n), SEEK_CUR)) {
-    return IOError("While fseek to skip " + ToString(n) + " bytes", filename_,
-                   errno);
-  }
-  return IOStatus::OK();
-}
-
-IOStatus PosixSequentialFile::InvalidateCache(size_t offset, size_t length) {
-#ifndef OS_LINUX
-  (void)offset;
-  (void)length;
-  return IOStatus::OK();
-#else
-  if (!use_direct_io()) {
-    // free OS pages
-    int ret = Fadvise(fd_, offset, length, POSIX_FADV_DONTNEED);
-    if (ret != 0) {
-      return IOError("While fadvise NotNeeded offset " + ToString(offset) +
-                         " len " + ToString(length),
-                     filename_, errno);
-    }
-  }
-  return IOStatus::OK();
-#endif
-}
-
-/*
- * PosixRandomAccessFile
- */
 #if defined(OS_LINUX)
 size_t PosixHelper::GetUniqueIdFromFile(int fd, char* id, size_t max_size) {
   if (max_size < kMaxVarint64Length * 3) {
@@ -536,6 +418,195 @@ size_t PosixHelper::GetLogicalBlockSizeOfFd(int fd) {
   (void)fd;
   return kDefaultPageSize;
 }
+/*
+ * RDMASequentialFile
+ */
+RDMASequentialFile::RDMASequentialFile(SST_Metadata* sst_meta,
+                                       size_t logical_block_size,
+                                       const EnvOptions& options,
+                                       RDMA_Manager* rdma_mg)
+    : sst_meta_(sst_meta),
+      use_direct_io_(options.use_direct_reads),
+      logical_sector_size_(logical_block_size),
+      rdma_mg_(rdma_mg) {
+  assert(!options.use_direct_reads || !options.use_mmap_reads);
+}
+
+RDMASequentialFile::~RDMASequentialFile() {
+
+}
+
+IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
+                                  Slice* result, char* scratch,
+                                  IODebugContext* /*dbg*/) {
+  const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
+  IOStatus s;
+  assert((position_+ n) <= kDefaultPageSize);
+  ibv_mr* map_pointer;
+  ibv_mr* local_mr_pointer;
+  local_mr_pointer = nullptr;
+  ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
+  remote_mr = *(sst_meta_->mr);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + position_);
+
+  rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
+  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
+  if (flag!=0){// fail if return not 0
+
+    s = IOError(
+        "While RDMA Read sequetial " + ToString(position_) + " len " + ToString(n),
+        sst_meta_->fname, flag);
+
+
+  }
+  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
+  *result = Slice(scratch, n);
+  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
+    delete local_mr_pointer;
+  else
+    s = IOError(
+        "While RDMA Local Buffer Deallocate failed " + ToString(position_) + " len " + ToString(n),
+        sst_meta_->fname, flag);
+  return s;
+}
+
+IOStatus RDMASequentialFile::PositionedRead(uint64_t offset, size_t n,
+                                            const IOOptions& /*opts*/,
+                                            Slice* result, char* scratch,
+                                            IODebugContext* /*dbg*/) {
+
+ return IOStatus::NotSupported();
+}
+
+IOStatus RDMASequentialFile::Skip(uint64_t n) {
+  position_ = n;
+  return IOStatus::OK();
+}
+
+IOStatus RDMASequentialFile::InvalidateCache(size_t offset, size_t length) {
+
+  return IOStatus::OK();
+}
+/*
+ * PosixSequentialFile
+ */
+PosixSequentialFile::PosixSequentialFile(const std::string& fname, FILE* file,
+                                         int fd, size_t logical_block_size,
+                                         const EnvOptions& options,
+                                         RDMA_Manager* rdma_mg)
+    : filename_(fname),
+      file_(file),
+      fd_(fd),
+      use_direct_io_(options.use_direct_reads),
+      logical_sector_size_(logical_block_size),
+      rdma_mg_(rdma_mg) {
+  assert(!options.use_direct_reads || !options.use_mmap_reads);
+}
+
+PosixSequentialFile::~PosixSequentialFile() {
+  if (!use_direct_io()) {
+    assert(file_);
+    fclose(file_);
+  } else {
+    assert(fd_);
+    close(fd_);
+  }
+}
+
+IOStatus PosixSequentialFile::Read(size_t n, const IOOptions& /*opts*/,
+                                   Slice* result, char* scratch,
+                                   IODebugContext* /*dbg*/) {
+  assert(result != nullptr && !use_direct_io());
+  IOStatus s;
+  size_t r = 0;
+  do {
+    clearerr(file_);
+    r = fread_unlocked(scratch, 1, n, file_);
+  } while (r == 0 && ferror(file_) && errno == EINTR);
+  *result = Slice(scratch, r);
+  if (r < n) {
+    if (feof(file_)) {
+      // We leave status as ok if we hit the end of the file
+      // We also clear the error so that the reads can continue
+      // if a new data is written to the file
+      clearerr(file_);
+    } else {
+      // A partial read with an error: return a non-ok status
+      s = IOError("While reading file sequentially", filename_, errno);
+    }
+  }
+  return s;
+}
+
+IOStatus PosixSequentialFile::PositionedRead(uint64_t offset, size_t n,
+                                             const IOOptions& /*opts*/,
+                                             Slice* result, char* scratch,
+                                             IODebugContext* /*dbg*/) {
+  assert(use_direct_io());
+  assert(IsSectorAligned(offset, GetRequiredBufferAlignment()));
+  assert(IsSectorAligned(n, GetRequiredBufferAlignment()));
+  assert(IsSectorAligned(scratch, GetRequiredBufferAlignment()));
+
+  IOStatus s;
+  ssize_t r = -1;
+  size_t left = n;
+  char* ptr = scratch;
+  while (left > 0) {
+    r = pread(fd_, ptr, left, static_cast<off_t>(offset));
+    if (r <= 0) {
+      if (r == -1 && errno == EINTR) {
+        continue;
+      }
+      break;
+    }
+    ptr += r;
+    offset += r;
+    left -= r;
+    if (!IsSectorAligned(r, GetRequiredBufferAlignment())) {
+      // Bytes reads don't fill sectors. Should only happen at the end
+      // of the file.
+      break;
+    }
+  }
+  if (r < 0) {
+    // An error: return a non-ok status
+    s = IOError(
+        "While pread " + ToString(n) + " bytes from offset " + ToString(offset),
+        filename_, errno);
+  }
+  *result = Slice(scratch, (r < 0) ? 0 : n - left);
+  return s;
+}
+
+IOStatus PosixSequentialFile::Skip(uint64_t n) {
+  if (fseek(file_, static_cast<long int>(n), SEEK_CUR)) {
+    return IOError("While fseek to skip " + ToString(n) + " bytes", filename_,
+                   errno);
+  }
+  return IOStatus::OK();
+}
+
+IOStatus PosixSequentialFile::InvalidateCache(size_t offset, size_t length) {
+#ifndef OS_LINUX
+  (void)offset;
+  (void)length;
+  return IOStatus::OK();
+#else
+  if (!use_direct_io()) {
+    // free OS pages
+    int ret = Fadvise(fd_, offset, length, POSIX_FADV_DONTNEED);
+    if (ret != 0) {
+      return IOError("While fadvise NotNeeded offset " + ToString(offset) +
+                     " len " + ToString(length),
+                     filename_, errno);
+    }
+  }
+  return IOStatus::OK();
+#endif
+}
+/*
+ * PosixWritefile Old
+ */
 PosixWritableFile_old::PosixWritableFile_old(const std::string& fname, int fd,
                                      size_t logical_block_size,
                                      const EnvOptions& options)
@@ -737,7 +808,7 @@ IOStatus PosixWritableFile_old::Allocate(uint64_t offset, uint64_t len,
                                      IODebugContext* /*dbg*/) {
   assert(offset <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
   assert(len <= static_cast<uint64_t>(std::numeric_limits<off_t>::max()));
-  TEST_KILL_RANDOM("PosixWritableFile::Allocate:0", rocksdb_kill_odds);
+  TEST_KILL_RANDOM("RDMAWritableFile::Allocate:0", rocksdb_kill_odds);
   IOSTATS_TIMER_GUARD(allocate_nanos);
   int alloc_status = 0;
   if (allow_fallocate_) {
@@ -791,11 +862,11 @@ size_t PosixWritableFile_old::GetUniqueId(char* id, size_t max_size) const {
 #endif
 
 /*
- * PosixRandomAccessFile
+ * RDMARandomAccessFile
  *
  * pread() based random-access
  */
-PosixRandomAccessFile::PosixRandomAccessFile(SST_Metadata* sst_meta,
+RDMARandomAccessFile::RDMARandomAccessFile(SST_Metadata* sst_meta,
                                              size_t logical_block_size,
                                              const EnvOptions& options,
                                              RDMA_Manager* rdma_mg)
@@ -804,9 +875,9 @@ PosixRandomAccessFile::PosixRandomAccessFile(SST_Metadata* sst_meta,
       logical_sector_size_(logical_block_size),
       rdma_mg_(rdma_mg){}
 
-//PosixRandomAccessFile::~PosixRandomAccessFile(){}
+//RDMARandomAccessFile::RDMARandomAccessFile){}
 
-IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
+IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
@@ -816,7 +887,7 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
-  ibv_mr remote_mr = {};
+  ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
 
@@ -841,7 +912,7 @@ IOStatus PosixRandomAccessFile::Read(uint64_t offset, size_t n,
   return s;
 }
 
-IOStatus PosixRandomAccessFile::MultiRead(FSReadRequest* reqs,
+IOStatus RDMARandomAccessFile::MultiRead(FSReadRequest* reqs,
                                           size_t num_reqs,
                                           const IOOptions& options,
                                           IODebugContext* dbg) {
@@ -939,7 +1010,7 @@ IOStatus PosixRandomAccessFile::MultiRead(FSReadRequest* reqs,
       } else {
         size_t bytes_read = static_cast<size_t>(cqe->res);
         TEST_SYNC_POINT_CALLBACK(
-            "PosixRandomAccessFile::MultiRead:io_uring_result", &bytes_read);
+            "RDMARandomAccessFile::MultiRead:io_uring_result", &bytes_read);
         if (bytes_read == req_wrap->iov.iov_len) {
           req->result = Slice(req->scratch, req->len);
           req->status = IOStatus::OK();
@@ -984,24 +1055,24 @@ IOStatus PosixRandomAccessFile::MultiRead(FSReadRequest* reqs,
 #endif
 }
 
-IOStatus PosixRandomAccessFile::Prefetch(uint64_t offset, size_t n,
+IOStatus RDMARandomAccessFile::Prefetch(uint64_t offset, size_t n,
                                          const IOOptions& /*opts*/,
                                          IODebugContext* /*dbg*/) {
-  return IOStatus::NotSupported();
+  return IOStatus::OK();
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
-size_t PosixRandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
+size_t RDMARandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
   return 0;
 }
 #endif
 
-void PosixRandomAccessFile::Hint(AccessPattern pattern) {
+void RDMARandomAccessFile::Hint(AccessPattern pattern) {
 
 }
 
-IOStatus PosixRandomAccessFile::InvalidateCache(size_t offset, size_t length) {
-  return IOStatus::NotSupported("InvalidateCache not supported.");
+IOStatus RDMARandomAccessFile::InvalidateCache(size_t offset, size_t length) {
+  return IOStatus::OK();
 }
 
 /*
@@ -1310,11 +1381,11 @@ IOStatus PosixMmapFile::Allocate(uint64_t offset, uint64_t len,
 #endif
 
 /*
- * PosixWritableFile
+ * RDMAWritableFile
  *
  * Use posix write to write data to a file.
  */
-PosixWritableFile::PosixWritableFile(SST_Metadata* sst_meta,
+RDMAWritableFile::RDMAWritableFile(SST_Metadata* sst_meta,
                                      size_t logical_block_size,
                                      const EnvOptions& options,
                                      RDMA_Manager* rdma_mg)
@@ -1332,22 +1403,22 @@ PosixWritableFile::PosixWritableFile(SST_Metadata* sst_meta,
   assert(!options.use_mmap_writes);
 }
 
-PosixWritableFile::~PosixWritableFile() {
+RDMAWritableFile::~RDMAWritableFile() {
 
 }
 
-IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
+IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-  const std::unique_lock<std::shared_mutex> lock(sst_meta_->file_lock);
+  const std::unique_lock<std::shared_mutex> lock(sst_meta_->file_lock);// write lock
   const char* src = data.data();
   size_t nbytes = data.size();
   IOStatus s = IOStatus::OK();
   assert(nbytes <= kDefaultPageSize);
   ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
   ibv_mr* local_mr_pointer = nullptr;
-  ibv_mr remote_mr = {};
+  ibv_mr remote_mr = {}; //
   remote_mr = *(sst_meta_->mr);
-  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   memcpy(local_mr_pointer->addr, src, nbytes);
 
@@ -1361,6 +1432,7 @@ IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   }
 //  sst_meta_->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
   filesize_ += nbytes;
+  sst_meta_->file_size += nbytes;
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
@@ -1370,72 +1442,72 @@ IOStatus PosixWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   return s;
 }
 
-IOStatus PosixWritableFile::PositionedAppend(const Slice& data, uint64_t offset,
+IOStatus RDMAWritableFile::PositionedAppend(const Slice& data, uint64_t offset,
                                              const IOOptions& /*opts*/,
                                              IODebugContext* /*dbg*/) {
-  return IOStatus::NotSupported();
+  return IOStatus::OK();
 }
 
-IOStatus PosixWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
+IOStatus RDMAWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
   //The original function will truncate the file to a spicific size, not
   //Quite understand why we need this.
-  return IOStatus::NotSupported();
+  return IOStatus::OK();
 }
 
-IOStatus PosixWritableFile::Close(const IOOptions& /*opts*/,
-                                  IODebugContext* /*dbg*/) {
-  return IOStatus::NotSupported();
-}
-
-// write out the cached data to the OS cache
-IOStatus PosixWritableFile::Flush(const IOOptions& /*opts*/,
+IOStatus RDMAWritableFile::Close(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   return IOStatus::OK();
 }
 
-IOStatus PosixWritableFile::Sync(const IOOptions& /*opts*/,
+// write out the cached data to the OS cache
+IOStatus RDMAWritableFile::Flush(const IOOptions& /*opts*/,
+                                  IODebugContext* /*dbg*/) {
+  return IOStatus::OK();
+}
+
+IOStatus RDMAWritableFile::Sync(const IOOptions& /*opts*/,
                                  IODebugContext* /*dbg*/) {
 
   return IOStatus::OK();
 }
 
-IOStatus PosixWritableFile::Fsync(const IOOptions& /*opts*/,
+IOStatus RDMAWritableFile::Fsync(const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   return IOStatus::OK();
 }
 
-bool PosixWritableFile::IsSyncThreadSafe() const { return true; }
+bool RDMAWritableFile::IsSyncThreadSafe() const { return true; }
 
-uint64_t PosixWritableFile::GetFileSize(const IOOptions& /*opts*/,
+uint64_t RDMAWritableFile::GetFileSize(const IOOptions& /*opts*/,
                                         IODebugContext* /*dbg*/) {
   return sst_meta_->file_size;
 }
 
-void PosixWritableFile::SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {
+void RDMAWritableFile::SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {
   std::cout << "This function setWriteLifeTimeHint is not supported" << std::endl;
 }
 
-IOStatus PosixWritableFile::InvalidateCache(size_t offset, size_t length) {
-  return IOStatus::NotSupported();
+IOStatus RDMAWritableFile::InvalidateCache(size_t offset, size_t length) {
+  return IOStatus::OK();
 }
 
 #ifdef ROCKSDB_FALLOCATE_PRESENT
-IOStatus PosixWritableFile::Allocate(uint64_t offset, uint64_t len,
+IOStatus RDMAWritableFile::Allocate(uint64_t offset, uint64_t len,
                                      const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
-  return IOStatus::NotSupported();
+  return IOStatus::OK();
 }
 #endif
 
-IOStatus PosixWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
+IOStatus RDMAWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
                                       const IOOptions& opts,
                                       IODebugContext* dbg) {
-  return IOStatus::NotSupported();
+  return IOStatus::OK();
 }
 
 #ifdef OS_LINUX
-size_t PosixWritableFile::GetUniqueId(char* id, size_t max_size) const {
+size_t RDMAWritableFile::GetUniqueId(char* id, size_t max_size) const {
   return 0;
 }
 #endif

@@ -145,9 +145,8 @@ Status DBImplSecondary::MaybeInitLogReader(
     std::unique_ptr<SequentialFileReader> file_reader;
     {
       std::unique_ptr<FSSequentialFile> file;
-      Status status = fs_->NewSequentialFile(
-          fname, fs_->OptimizeForLogRead(file_options_), &file,
-          nullptr);
+      Status status = fs_->NewSequentialFile_RDMA(
+          fname, fs_->OptimizeForLogRead(file_options_), &file, nullptr);
       if (!status.ok()) {
         *log_reader = nullptr;
         return status;

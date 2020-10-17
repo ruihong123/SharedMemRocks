@@ -103,9 +103,9 @@ Status GetFileChecksumsFromManifest(Env* src_env, const std::string& abs_path,
   {
     std::unique_ptr<FSSequentialFile> file;
     const std::shared_ptr<FileSystem>& fs = src_env->GetFileSystem();
-    s = fs->NewSequentialFile(abs_path,
-                              fs->OptimizeForManifestRead(FileOptions()), &file,
-                              nullptr /* dbg */);
+    s = fs->NewSequentialFile_RDMA(abs_path,
+                                   fs->OptimizeForManifestRead(FileOptions()),
+                                   &file, nullptr /* dbg */);
     if (!s.ok()) {
       return s;
     }

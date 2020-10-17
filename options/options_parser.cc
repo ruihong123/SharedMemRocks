@@ -257,8 +257,8 @@ Status RocksDBOptionsParser::Parse(const ConfigOptions& config_options_in,
   ConfigOptions config_options = config_options_in;
 
   std::unique_ptr<FSSequentialFile> seq_file;
-  Status s = fs->NewSequentialFile(file_name, FileOptions(), &seq_file,
-                                   nullptr);
+  Status s =
+      fs->NewSequentialFile_RDMA(file_name, FileOptions(), &seq_file, nullptr);
   if (!s.ok()) {
     return s;
   }

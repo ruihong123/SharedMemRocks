@@ -25,7 +25,7 @@ category: blog
 ### Bug Fixes
 * Fix WriteBatchWithIndex address use after scope error.
 * Fix WritableFile buffer size in direct IO.
-* Add prefetch to PosixRandomAccessFile in buffered io.
+* Add prefetch to RDMARandomAccessFile in buffered io.
 * Fix PinnableSlice access invalid address when row cache is enabled.
 * Fix huge fallocate calls fail and make XFS unhappy.
 * Fix memory alignment with logical sector size.

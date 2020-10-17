@@ -27,7 +27,7 @@ IOStatus CopyFile(FileSystem* fs, const std::string& source,
 
   {
     std::unique_ptr<FSSequentialFile> srcfile;
-    io_s = fs->NewSequentialFile(source, soptions, &srcfile, nullptr);
+    io_s = fs->NewSequentialFile_RDMA(source, soptions, &srcfile, nullptr);
     if (!io_s.ok()) {
       return io_s;
     }

@@ -296,8 +296,8 @@ class CompositeEnvWrapper : public Env {
     IODebugContext dbg;
     std::unique_ptr<FSSequentialFile> file;
     Status status;
-    status =
-        file_system_->NewSequentialFile(f, FileOptions(options), &file, &dbg);
+    status = file_system_->NewSequentialFile_RDMA(f, FileOptions(options),
+                                                  &file, &dbg);
     if (status.ok()) {
       r->reset(new CompositeSequentialFileWrapper(file));
     }
@@ -892,7 +892,7 @@ class LegacyFileSystemWrapper : public FileSystem {
   Env* target() const { return target_; }
 
   // The following text is boilerplate that forwards all methods to target()
-  IOStatus NewSequentialFile(const std::string& f,
+  IOStatus NewSequentialFile_RDMA(const std::string& f,
                              const FileOptions& file_opts,
                              std::unique_ptr<FSSequentialFile>* r,
                              IODebugContext* /*dbg*/) override {

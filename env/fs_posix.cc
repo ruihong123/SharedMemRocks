@@ -146,7 +146,7 @@ class PosixFileSystem : public FileSystem {
     }
   }
 
-  IOStatus NewSequentialFile(const std::string& fname,
+  IOStatus NewSequentialFile_RDMA(const std::string& fname,
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
                              IODebugContext* /*dbg*/) override {

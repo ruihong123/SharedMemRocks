@@ -4567,9 +4567,9 @@ Status VersionSet::Recover(
   std::unique_ptr<SequentialFileReader> manifest_file_reader;
   {
     std::unique_ptr<FSSequentialFile> manifest_file;
-    s = fs_->NewSequentialFile(manifest_path,
-                               fs_->OptimizeForManifestRead(file_options_),
-                               &manifest_file, nullptr);
+    s = fs_->NewSequentialFile_RDMA(manifest_path,
+                                    fs_->OptimizeForManifestRead(file_options_),
+                                    &manifest_file, nullptr);
     if (!s.ok()) {
       return s;
     }
@@ -4849,9 +4849,9 @@ Status VersionSet::TryRecoverFromOneManifest(
   Status s;
   {
     std::unique_ptr<FSSequentialFile> manifest_file;
-    s = fs_->NewSequentialFile(manifest_path,
-                               fs_->OptimizeForManifestRead(file_options_),
-                               &manifest_file, nullptr);
+    s = fs_->NewSequentialFile_RDMA(manifest_path,
+                                    fs_->OptimizeForManifestRead(file_options_),
+                                    &manifest_file, nullptr);
     if (!s.ok()) {
       return s;
     }
@@ -4894,7 +4894,7 @@ Status VersionSet::ListColumnFamilies(std::vector<std::string>* column_families,
   std::unique_ptr<SequentialFileReader> file_reader;
   {
     std::unique_ptr<FSSequentialFile> file;
-    s = fs->NewSequentialFile(manifest_path, soptions, &file, nullptr);
+    s = fs->NewSequentialFile_RDMA(manifest_path, soptions, &file, nullptr);
     if (!s.ok()) {
       return s;
   }
@@ -5080,10 +5080,8 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
   {
     std::unique_ptr<FSSequentialFile> file;
     const std::shared_ptr<FileSystem>& fs = options.env->GetFileSystem();
-    s = fs->NewSequentialFile(
-        dscname,
-        fs->OptimizeForManifestRead(file_options_), &file,
-        nullptr);
+    s = fs->NewSequentialFile_RDMA(
+        dscname, fs->OptimizeForManifestRead(file_options_), &file, nullptr);
     if (!s.ok()) {
       return s;
     }
@@ -6376,9 +6374,9 @@ Status ReactiveVersionSet::MaybeSwitchManifest(
         TEST_SYNC_POINT(
             "ReactiveVersionSet::MaybeSwitchManifest:"
             "AfterGetCurrentManifestPath:1");
-        s = fs_->NewSequentialFile(manifest_path,
-                                   env_->OptimizeForManifestRead(file_options_),
-                                   &manifest_file, nullptr);
+        s = fs_->NewSequentialFile_RDMA(
+            manifest_path, env_->OptimizeForManifestRead(file_options_),
+            &manifest_file, nullptr);
       } else {
         // No need to switch manifest.
         break;

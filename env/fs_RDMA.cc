@@ -241,10 +241,27 @@ class RDMAFileSystem : public FileSystem {
     return IOStatus::OK();
   }
 
-  IOStatus NewSequentialFile(const std::string& fname,
+  IOStatus NewSequentialFile_RDMA(const std::string& fname,
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
                              IODebugContext* /*dbg*/) override {
+    IOStatus s = IOStatus::OK();
+    result->reset();
+    SST_Metadata* meta_data = nullptr;
+    RDMA_open(fname, meta_data, readtype);
+    if (!options.use_mmap_reads) { //Notice: check here when debugging.
+      result->reset(new RDMASequentialFile(meta_data, kDefaultPageSize,
+                                             options, rdma_mg_));
+    }
+    else{
+      std::cout << "Please turn off MMAP option"<< std::endl;
+    }
+    return s;
+  }
+  IOStatus NewSequentialFile(const std::string& fname,
+                                  const FileOptions& options,
+                                  std::unique_ptr<FSSequentialFile>* result,
+                                  IODebugContext* /*dbg*/) override {
     result->reset();
     int fd = -1;
     int flags = cloexec_flags(O_RDONLY, &options);
@@ -290,8 +307,8 @@ class RDMAFileSystem : public FileSystem {
                        errno);
       }
     }
-    result->reset(new PosixSequentialFile(
-        fname, file, fd, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
+    result->reset(new RDMASequentialFile(
+        nullptr, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
         options, rdma_mg_));
     return IOStatus::OK();
   }
@@ -305,7 +322,7 @@ class RDMAFileSystem : public FileSystem {
     SST_Metadata* meta_data = nullptr;
     RDMA_open(fname, meta_data, readtype);
     if (!options.use_mmap_reads) { //Notice: check here when debugging.
-      result->reset(new PosixRandomAccessFile(meta_data, kDefaultPageSize,
+      result->reset(new RDMARandomAccessFile(meta_data, kDefaultPageSize,
                                               options, rdma_mg_));
     }
     else{
@@ -326,7 +343,7 @@ class RDMAFileSystem : public FileSystem {
     SST_Metadata* meta_data = nullptr;
     RDMA_open(fname, meta_data, type);
     if (!options.use_mmap_reads){
-      result->reset(new PosixWritableFile(meta_data, kDefaultPageSize, options,
+      result->reset(new RDMAWritableFile(meta_data, kDefaultPageSize, options,
                                           rdma_mg_));
     }else{
       std::cout << "Please turn off Mmap option" << std::endl;
@@ -361,7 +378,7 @@ class RDMAFileSystem : public FileSystem {
       SST_Metadata* meta_data = nullptr;
       RDMA_open(fname, meta_data, type);
       if (!options.use_mmap_reads){
-        result->reset(new PosixWritableFile(meta_data, kDefaultPageSize, options,
+        result->reset(new RDMAWritableFile(meta_data, kDefaultPageSize, options,
                                             rdma_mg_));
       }else{
         std::cout << "Please turn off Mmap option" << std::endl;
@@ -437,14 +454,14 @@ class RDMAFileSystem : public FileSystem {
   IOStatus NewWritableFile_old(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSWritableFile>* result,
                            IODebugContext* dbg)  {
-    return OpenWritableFile(fname, options, false, result, dbg);
+    return OpenWritableFile_old(fname, options, false, result, dbg);
   }
 
   IOStatus ReopenWritableFile_old(const std::string& fname,
                               const FileOptions& options,
                               std::unique_ptr<FSWritableFile>* result,
                               IODebugContext* dbg)  {
-    return OpenWritableFile(fname, options, true, result, dbg);
+    return OpenWritableFile_old(fname, options, true, result, dbg);
   }
 
   IOStatus ReuseWritableFile_old(const std::string& fname,
@@ -622,7 +639,7 @@ class RDMAFileSystem : public FileSystem {
       return IOStatus::OK();
     }
   }
-
+//TODO: Modify this function.
   IOStatus FileExists(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
     int result = access(fname.c_str(), F_OK);
