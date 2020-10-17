@@ -150,32 +150,30 @@ class RDMASequentialFile : public FSSequentialFile {
 };
 
 class PosixSequentialFile : public FSSequentialFile {
- private:
-  std::string filename_;
-  FILE* file_;
-  int fd_;
-  bool use_direct_io_;
-  size_t logical_sector_size_;
-  RDMA_Manager* rdma_mg_;
+private:
+    std::string filename_;
+    FILE* file_;
+    int fd_;
+    bool use_direct_io_;
+    size_t logical_sector_size_;
 
- public:
-  PosixSequentialFile(const std::string& fname, FILE* file,
-                      int fd, size_t logical_block_size,
-                      const EnvOptions& options,
-                      RDMA_Manager* rdma_mg);
-  virtual ~PosixSequentialFile();
+public:
+    PosixSequentialFile(const std::string& fname, FILE* file, int fd,
+                        size_t logical_block_size,
+                        const EnvOptions& options);
+    virtual ~PosixSequentialFile();
 
-  virtual IOStatus Read(size_t n, const IOOptions& opts, Slice* result,
-                        char* scratch, IODebugContext* dbg) override;
-  virtual IOStatus PositionedRead(uint64_t offset, size_t n,
-                                  const IOOptions& opts, Slice* result,
-                                  char* scratch, IODebugContext* dbg) override;
-  virtual IOStatus Skip(uint64_t n) override;
-  virtual IOStatus InvalidateCache(size_t offset, size_t length) override;
-  virtual bool use_direct_io() const override { return use_direct_io_; }
-  virtual size_t GetRequiredBufferAlignment() const override {
-    return logical_sector_size_;
-  }
+    virtual IOStatus Read(size_t n, const IOOptions& opts, Slice* result,
+                          char* scratch, IODebugContext* dbg) override;
+    virtual IOStatus PositionedRead(uint64_t offset, size_t n,
+                                    const IOOptions& opts, Slice* result,
+                                    char* scratch, IODebugContext* dbg) override;
+    virtual IOStatus Skip(uint64_t n) override;
+    virtual IOStatus InvalidateCache(size_t offset, size_t length) override;
+    virtual bool use_direct_io() const override { return use_direct_io_; }
+    virtual size_t GetRequiredBufferAlignment() const override {
+        return logical_sector_size_;
+    }
 };
 
 #if defined(ROCKSDB_IOURING_PRESENT)

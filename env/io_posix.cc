@@ -492,14 +492,13 @@ IOStatus RDMASequentialFile::InvalidateCache(size_t offset, size_t length) {
  */
 PosixSequentialFile::PosixSequentialFile(const std::string& fname, FILE* file,
                                          int fd, size_t logical_block_size,
-                                         const EnvOptions& options,
-                                         RDMA_Manager* rdma_mg)
+                                         const EnvOptions& options
+                                         )
     : filename_(fname),
       file_(file),
       fd_(fd),
       use_direct_io_(options.use_direct_reads),
-      logical_sector_size_(logical_block_size),
-      rdma_mg_(rdma_mg) {
+      logical_sector_size_(logical_block_size){
   assert(!options.use_direct_reads || !options.use_mmap_reads);
 }
 

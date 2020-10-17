@@ -70,11 +70,12 @@ struct registered_qp_config {
 } __attribute__((packed));
 // Structure for the file handle in RDMA file system.
 struct SST_Metadata{
+  std::shared_mutex file_lock;
   std::string fname;
   ibv_mr* mr;
   ibv_mr* map_pointer;
   size_t file_size;
-  std::shared_mutex file_lock;
+
 };
 template <typename T>
 struct atomwrapper

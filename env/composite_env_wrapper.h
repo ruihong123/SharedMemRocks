@@ -49,35 +49,6 @@ class CompositeSequentialFileWrapper : public SequentialFile {
  private:
   std::unique_ptr<FSSequentialFile> target_;
 };
-class CompositeSequentialFileWrapper_RDMA : public SequentialFile {
- public:
-  explicit CompositeSequentialFileWrapper_RDMA(
-      std::unique_ptr<FSSequentialFile>& target)
-      : target_(std::move(target)) {}
-
-  Status Read(size_t n, Slice* result, char* scratch) override {
-    IOOptions io_opts;
-    IODebugContext dbg;
-    return target_->Read(n, io_opts, result, scratch, &dbg);
-  }
-  Status Skip(uint64_t n) override { return target_->Skip(n); }
-  bool use_direct_io() const override { return target_->use_direct_io(); }
-  size_t GetRequiredBufferAlignment() const override {
-    return target_->GetRequiredBufferAlignment();
-  }
-  Status InvalidateCache(size_t offset, size_t length) override {
-    return target_->InvalidateCache(offset, length);
-  }
-  Status PositionedRead(uint64_t offset, size_t n, Slice* result,
-                        char* scratch) override {
-    IOOptions io_opts;
-    IODebugContext dbg;
-    return target_->PositionedRead(offset, n, io_opts, result, scratch, &dbg);
-  }
-
- private:
-  std::unique_ptr<FSSequentialFile> target_;
-};
 
 
 class CompositeRandomAccessFileWrapper : public RandomAccessFile {
@@ -335,14 +306,14 @@ class CompositeEnvWrapper : public Env {
   }
   Status NewSequentialFile_RDMA(const std::string& f,
                            std::unique_ptr<SequentialFile>* r,
-                           const EnvOptions& options)  {
+                           const EnvOptions& options) override  {
     IODebugContext dbg;
     std::unique_ptr<FSSequentialFile> file;
     Status status;
     status = file_system_->NewSequentialFile_RDMA(f, FileOptions(options),
                                                   &file, &dbg);
     if (status.ok()) {
-      r->reset(new CompositeSequentialFileWrapper_RDMA(file));
+      r->reset(new CompositeSequentialFileWrapper(file));
     }
     return status;
   }

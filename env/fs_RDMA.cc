@@ -307,9 +307,9 @@ class RDMAFileSystem : public FileSystem {
                        errno);
       }
     }
-    result->reset(new RDMASequentialFile(
-        nullptr, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
-        options, rdma_mg_));
+    result->reset(new PosixSequentialFile(
+        fname, file, fd, GetLogicalBlockSizeForReadIfNeeded(options, fname, fd),
+        options));
     return IOStatus::OK();
   }
 
