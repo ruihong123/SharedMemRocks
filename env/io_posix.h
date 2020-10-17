@@ -129,7 +129,7 @@ class RDMASequentialFile : public FSSequentialFile {
   bool use_direct_io_;
   size_t logical_sector_size_;
   RDMA_Manager* rdma_mg_;
-  size_t position_;
+  size_t position_ = 0;
 
  public:
   RDMASequentialFile(SST_Metadata* sst_meta, size_t logical_block_size,

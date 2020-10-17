@@ -74,7 +74,7 @@ struct SST_Metadata{
   std::string fname;
   ibv_mr* mr;
   ibv_mr* map_pointer;
-  size_t file_size;
+  size_t file_size = 0;
 
 };
 template <typename T>

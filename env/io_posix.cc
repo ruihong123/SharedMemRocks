@@ -441,18 +441,27 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
-  assert((position_+ n) <= kDefaultPageSize);
+//  assert((position_+ n) <= kDefaultPageSize);
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + position_);
-
+  int flag;
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
-  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
-  if (flag!=0){// fail if return not 0
+  if (position_ == sst_meta_->file_size)
+    return IOStatus::OK();
+  if (position_ + n >= sst_meta_->file_size){
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, sst_meta_->file_size - position_);
+    position_ +=  sst_meta_->file_size - position_;
+  }
+  else{
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
+    position_ +=  n;
+  }
 
+  if (flag!=0){// fail if return not 0
     s = IOError(
         "While RDMA Read sequetial " + ToString(position_) + " len " + ToString(n),
         sst_meta_->fname, flag);
