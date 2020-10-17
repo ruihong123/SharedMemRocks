@@ -191,6 +191,10 @@ class Env {
   virtual Status NewSequentialFile(const std::string& fname,
                                    std::unique_ptr<SequentialFile>* result,
                                    const EnvOptions& options) = 0;
+  virtual Status NewSequentialFile_RDMA(const std::string& fname,
+                                   std::unique_ptr<SequentialFile>* result,
+                                   const EnvOptions& options) {return Status::OK();}
+
 
   // Create a brand new random access read-only file with the
   // specified name.  On success, stores a pointer to the new file in

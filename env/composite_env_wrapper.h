@@ -941,6 +941,17 @@ class LegacyFileSystemWrapper : public FileSystem {
                              std::unique_ptr<FSSequentialFile>* r,
                              IODebugContext* /*dbg*/) override {
     std::unique_ptr<SequentialFile> file;
+    Status s = target_->NewSequentialFile_RDMA(f, &file, file_opts);
+    if (s.ok()) {
+      r->reset(new LegacySequentialFileWrapper(std::move(file)));
+    }
+    return status_to_io_status(std::move(s));
+  }
+  IOStatus NewSequentialFile(const std::string& f,
+                                  const FileOptions& file_opts,
+                                  std::unique_ptr<FSSequentialFile>* r,
+                                  IODebugContext* /*dbg*/) override {
+    std::unique_ptr<SequentialFile> file;
     Status s = target_->NewSequentialFile(f, &file, file_opts);
     if (s.ok()) {
       r->reset(new LegacySequentialFileWrapper(std::move(file)));

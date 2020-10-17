@@ -453,7 +453,7 @@ class FileManager : public EnvWrapper {
 
   Status CorruptFile(const std::string& fname, uint64_t bytes_to_corrupt) {
     std::string file_contents;
-    Status s = ReadFileToString(this, fname, &file_contents);
+    Status s = ReadFileToString_RDMA(this, fname, &file_contents);
     if (!s.ok()) {
       return s;
     }
@@ -472,7 +472,7 @@ class FileManager : public EnvWrapper {
   Status CorruptFileStart(const std::string& fname) {
     std::string to_xor = "blah";
     std::string file_contents;
-    Status s = ReadFileToString(this, fname, &file_contents);
+    Status s = ReadFileToString_RDMA(this, fname, &file_contents);
     if (!s.ok()) {
       return s;
     }
@@ -488,7 +488,7 @@ class FileManager : public EnvWrapper {
 
   Status CorruptChecksum(const std::string& fname, bool appear_valid) {
     std::string metadata;
-    Status s = ReadFileToString(this, fname, &metadata);
+    Status s = ReadFileToString_RDMA(this, fname, &metadata);
     if (!s.ok()) {
       return s;
     }
@@ -789,7 +789,7 @@ class BackupableDBTest : public testing::Test {
     }
 
     std::string file_contents;
-    s = ReadFileToString(test_db_env_.get(), fname, &file_contents);
+    s = ReadFileToString_RDMA(test_db_env_.get(), fname, &file_contents);
     if (!s.ok()) {
       return s;
     }
@@ -799,7 +799,7 @@ class BackupableDBTest : public testing::Test {
     }
 
     file_contents[0] = (file_contents[0] + 257) % 256;
-    return WriteStringToFile(test_db_env_.get(), file_contents, fname);
+    return WriteStringToFile_RDMA(test_db_env_.get(), file_contents, fname);
   }
 
   void AssertDirectoryFilesMatchRegex(const std::string& dir,
@@ -2510,8 +2510,8 @@ TEST_F(BackupableDBTest, GarbageCollectionBeforeBackup) {
   ASSERT_TRUE(backup_engine_->CreateNewBackup(db_.get(), true).ok());
 
   std::string new_file_five_contents;
-  ASSERT_OK(ReadFileToString(backup_chroot_env_.get(), file_five,
-                             &new_file_five_contents));
+  ASSERT_OK(ReadFileToString_RDMA(backup_chroot_env_.get(), file_five,
+                                  &new_file_five_contents));
   // file 000007.sst was overwritten
   ASSERT_TRUE(new_file_five_contents != file_five_contents);
 
