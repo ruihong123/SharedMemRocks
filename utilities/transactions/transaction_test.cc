@@ -6170,11 +6170,11 @@ TEST_P(TransactionTest, DoubleCrashInRecovery) {
       // Corrupt the last log file in the middle, so that it is not corrupted
       // in the tail.
       std::string file_content;
-      ASSERT_OK(ReadFileToString(env, fname, &file_content));
+      ASSERT_OK(ReadFileToString_RDMA(env, fname, &file_content));
       file_content[400] = 'h';
       file_content[401] = 'a';
       ASSERT_OK(env->DeleteFile(fname));
-      ASSERT_OK(WriteStringToFile(env, file_content, fname, true));
+      ASSERT_OK(WriteStringToFile_RDMA(env, file_content, fname, true));
 
       // Recover from corruption
       std::vector<ColumnFamilyHandle*> handles;

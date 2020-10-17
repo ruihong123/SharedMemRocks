@@ -4572,10 +4572,10 @@ TEST_F(DBTest2, CrashInRecoveryMultipleCF) {
       if (ParseFileName(f, &number, &type) && type == FileType::kLogFile) {
         std::string fname = dbname_ + "/" + f;
         std::string file_content;
-        ASSERT_OK(ReadFileToString(env_, fname, &file_content));
+        ASSERT_OK(ReadFileToString_RDMA(env_, fname, &file_content));
         file_content[400] = 'h';
         file_content[401] = 'a';
-        ASSERT_OK(WriteStringToFile(env_, file_content, fname));
+        ASSERT_OK(WriteStringToFile_RDMA(env_, file_content, fname));
         break;
       }
     }

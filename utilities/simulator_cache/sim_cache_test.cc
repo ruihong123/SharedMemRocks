@@ -172,7 +172,7 @@ TEST_F(SimCacheTest, SimCacheLogging) {
   ASSERT_OK(sim_cache->GetActivityLoggingStatus());
 
   std::string file_contents = "";
-  ASSERT_OK(ReadFileToString(env_, log_file, &file_contents));
+  ASSERT_OK(ReadFileToString_RDMA(env_, log_file, &file_contents));
 
   int lookup_num = 0;
   int add_num = 0;

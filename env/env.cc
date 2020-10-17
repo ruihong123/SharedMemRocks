@@ -367,12 +367,21 @@ void Log(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
   va_end(ap);
 }
 
-Status WriteStringToFile(Env* env, const Slice& data, const std::string& fname,
+Status WriteStringToFile_RDMA(Env* env, const Slice& data, const std::string& fname,
                          bool should_sync) {
+  LegacyFileSystemWrapper lfsw(env);
+  return WriteStringToFile_RDMA(&lfsw, data, fname, should_sync);
+}
+Status WriteStringToFile(Env* env, const Slice& data, const std::string& fname,
+                              bool should_sync) {
   LegacyFileSystemWrapper lfsw(env);
   return WriteStringToFile(&lfsw, data, fname, should_sync);
 }
 
+Status ReadFileToString_RDMA(Env* env, const std::string& fname, std::string* data) {
+  LegacyFileSystemWrapper lfsw(env);
+  return ReadFileToString_RDMA(&lfsw, fname, data);
+}
 Status ReadFileToString(Env* env, const std::string& fname, std::string* data) {
   LegacyFileSystemWrapper lfsw(env);
   return ReadFileToString(&lfsw, fname, data);

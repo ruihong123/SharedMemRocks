@@ -3721,7 +3721,7 @@ Status DBImpl::GetDbIdentityFromIdentityFile(std::string* identity) const {
   std::string idfilename = IdentityFileName(dbname_);
   const FileOptions soptions;
 
-  Status s = ReadFileToString(fs_.get(), idfilename, identity);
+  Status s = ReadFileToString_RDMA(fs_.get(), idfilename, identity);
   if (!s.ok()) {
     return s;
   }

@@ -503,12 +503,12 @@ void CorruptFile(const std::string& fname, int offset, int bytes_to_corrupt) {
 
   // Do it
   std::string contents;
-  Status s = ReadFileToString(Env::Default(), fname, &contents);
+  Status s = ReadFileToString_RDMA(Env::Default(), fname, &contents);
   assert(s.ok());
   for (int i = 0; i < bytes_to_corrupt; i++) {
     contents[i + offset] ^= 0x80;
   }
-  s = WriteStringToFile(Env::Default(), contents, fname);
+  s = WriteStringToFile_RDMA(Env::Default(), contents, fname);
   assert(s.ok());
   Options options;
   EnvOptions env_options;

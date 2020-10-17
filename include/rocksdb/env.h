@@ -1155,13 +1155,18 @@ extern void Fatal(Logger* info_log, const char* format, ...)
     ROCKSDB_PRINTF_FORMAT_ATTR(2, 3);
 
 // A utility routine: write "data" to the named file.
-extern Status WriteStringToFile(Env* env, const Slice& data,
+extern Status WriteStringToFile_RDMA(Env* env, const Slice& data,
                                 const std::string& fname,
                                 bool should_sync = false);
+extern Status WriteStringToFile(Env* env, const Slice& data,
+                                     const std::string& fname,
+                                     bool should_sync = false);
 
 // A utility routine: read contents of named file into *data
-extern Status ReadFileToString(Env* env, const std::string& fname,
+extern Status ReadFileToString_RDMA(Env* env, const std::string& fname,
                                std::string* data);
+extern Status ReadFileToString(Env* env, const std::string& fname,
+                                    std::string* data);
 
 // Below are helpers for wrapping most of the classes in this file.
 // They forward all calls to another instance of the class.

@@ -83,7 +83,7 @@ FileOptions FileSystem::OptimizeForCompactionTableRead(
   return optimized_file_options;
 }
 
-IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
+IOStatus WriteStringToFile_RDMA(FileSystem* fs, const Slice& data,
                            const std::string& fname, bool should_sync) {
   std::unique_ptr<FSWritableFile> file;
   EnvOptions soptions;
@@ -100,14 +100,58 @@ IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
   }
   return s;
 }
+IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
+                                const std::string& fname, bool should_sync) {
+  std::unique_ptr<FSWritableFile> file;
+  EnvOptions soptions;
+  IOStatus s = fs->NewWritableFile(fname, soptions, &file, nullptr);
+  if (!s.ok()) {
+    return s;
+  }
+  s = file->Append(data, IOOptions(), nullptr);
+  if (s.ok() && should_sync) {
+    s = file->Sync(IOOptions(), nullptr);
+  }
+  if (!s.ok()) {
+    fs->DeleteFile(fname, IOOptions(), nullptr);
+  }
+  return s;
+}
 
-IOStatus ReadFileToString(FileSystem* fs, const std::string& fname,
+IOStatus ReadFileToString_RDMA(FileSystem* fs, const std::string& fname,
                           std::string* data) {
   FileOptions soptions;
   data->clear();
   std::unique_ptr<FSSequentialFile> file;
   IOStatus s = status_to_io_status(
       fs->NewSequentialFile_RDMA(fname, soptions, &file, nullptr));
+  if (!s.ok()) {
+    return s;
+  }
+  static const int kBufferSize = 4096;
+  char* space = new char[kBufferSize];
+  while (true) {
+    Slice fragment;
+    s = file->Read(kBufferSize, IOOptions(), &fragment, space,
+                   nullptr);
+    if (!s.ok()) {
+      break;
+    }
+    data->append(fragment.data(), fragment.size());
+    if (fragment.empty()) {
+      break;
+    }
+  }
+  delete[] space;
+  return s;
+}
+IOStatus ReadFileToString(FileSystem* fs, const std::string& fname,
+                               std::string* data) {
+  FileOptions soptions;
+  data->clear();
+  std::unique_ptr<FSSequentialFile> file;
+  IOStatus s = status_to_io_status(
+      fs->NewSequentialFile(fname, soptions, &file, nullptr));
   if (!s.ok()) {
     return s;
   }

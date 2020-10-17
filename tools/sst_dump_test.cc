@@ -335,9 +335,9 @@ TEST_F(SSTDumpToolTest, ValidSSTPath) {
   std::string sst_file = MakeFilePath("rocksdb_sst_test.sst");
   createSST(opts, sst_file);
   std::string text_file = MakeFilePath("text_file");
-  ASSERT_OK(WriteStringToFile(opts.env, "Hello World!", text_file));
+  ASSERT_OK(WriteStringToFile_RDMA(opts.env, "Hello World!", text_file));
   std::string fake_sst = MakeFilePath("fake_sst.sst");
-  ASSERT_OK(WriteStringToFile(opts.env, "Not an SST file!", fake_sst));
+  ASSERT_OK(WriteStringToFile_RDMA(opts.env, "Not an SST file!", fake_sst));
 
   for (const auto& command_arg : {"--command=verify", "--command=identify"}) {
     snprintf(usage[1], kOptLength, "%s", command_arg);

@@ -4448,7 +4448,7 @@ Status VersionSet::GetCurrentManifestPath(const std::string& dbname,
   assert(manifest_file_number != nullptr);
 
   std::string fname;
-  Status s = ReadFileToString(fs, CurrentFileName(dbname), &fname);
+  Status s = ReadFileToString_RDMA(fs, CurrentFileName(dbname), &fname);
   if (!s.ok()) {
     return s;
   }

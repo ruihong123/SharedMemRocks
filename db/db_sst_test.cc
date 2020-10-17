@@ -600,9 +600,12 @@ TEST_F(DBSSTTest, OpenDBWithExistingTrash) {
 
   // Add some trash files to the db directory so the DB can clean them up
   env_->CreateDirIfMissing(dbname_);
-  ASSERT_OK(WriteStringToFile(env_, "abc", dbname_ + "/" + "001.sst.trash"));
-  ASSERT_OK(WriteStringToFile(env_, "abc", dbname_ + "/" + "002.sst.trash"));
-  ASSERT_OK(WriteStringToFile(env_, "abc", dbname_ + "/" + "003.sst.trash"));
+  ASSERT_OK(
+      WriteStringToFile_RDMA(env_, "abc", dbname_ + "/" + "001.sst.trash"));
+  ASSERT_OK(
+      WriteStringToFile_RDMA(env_, "abc", dbname_ + "/" + "002.sst.trash"));
+  ASSERT_OK(
+      WriteStringToFile_RDMA(env_, "abc", dbname_ + "/" + "003.sst.trash"));
 
   // Reopen the DB and verify that it deletes existing trash files
   ASSERT_OK(TryReopen(options));
