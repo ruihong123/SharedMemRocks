@@ -375,6 +375,137 @@ class RDMAFileSystem : public FileSystem {
 
     return s;
   }
+  virtual IOStatus OpenWritableFile_old(const std::string& fname,
+                                    const FileOptions& options,
+                                    bool reopen,
+                                    std::unique_ptr<FSWritableFile>* result,
+                                    IODebugContext* /*dbg*/) {
+    result->reset();
+    IOStatus s;
+    int fd = -1;
+    int flags = (reopen) ? (O_CREAT | O_APPEND) : (O_CREAT | O_TRUNC);
+    // Direct IO mode with O_DIRECT flag or F_NOCAHCE (MAC OSX)
+    if (options.use_direct_writes && !options.use_mmap_writes) {
+      // Note: we should avoid O_APPEND here due to ta the following bug:
+      // POSIX requires that opening a file with the O_APPEND flag should
+      // have no affect on the location at which pwrite() writes data.
+      // However, on Linux, if a file is opened with O_APPEND, pwrite()
+      // appends data to the end of the file, regardless of the value of
+      // offset.
+      // More info here: https://linux.die.net/man/2/pwrite
+#ifdef ROCKSDB_LITE
+      return IOStatus::IOError(fname,
+                               "Direct I/O not supported in RocksDB lite");
+#endif  // ROCKSDB_LITE
+      flags |= O_WRONLY;
+#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
+      flags |= O_DIRECT;
+#endif
+      TEST_SYNC_POINT_CALLBACK("NewWritableFile:O_DIRECT", &flags);
+    } else if (options.use_mmap_writes) {
+      // non-direct I/O
+      flags |= O_RDWR;
+    } else {
+      flags |= O_WRONLY;
+    }
+
+    flags = cloexec_flags(flags, &options);
+
+    do {
+      IOSTATS_TIMER_GUARD(open_nanos);
+      fd = open(fname.c_str(), flags, GetDBFileMode(allow_non_owner_access_));
+    } while (fd < 0 && errno == EINTR);
+
+    if (fd < 0) {
+      s = IOError("While open a file for appending", fname, errno);
+      return s;
+    }
+    SetFD_CLOEXEC(fd, &options);
+
+
+    EnvOptions no_mmap_writes_options = options;
+    no_mmap_writes_options.use_mmap_writes = false;
+    result->reset(
+        new PosixWritableFile_old(fname, fd,
+                              GetLogicalBlockSizeForWriteIfNeeded(
+                                  no_mmap_writes_options, fname, fd),
+                              no_mmap_writes_options));
+
+    return s;
+  }
+
+  IOStatus NewWritableFile_old(const std::string& fname, const FileOptions& options,
+                           std::unique_ptr<FSWritableFile>* result,
+                           IODebugContext* dbg)  {
+    return OpenWritableFile(fname, options, false, result, dbg);
+  }
+
+  IOStatus ReopenWritableFile_old(const std::string& fname,
+                              const FileOptions& options,
+                              std::unique_ptr<FSWritableFile>* result,
+                              IODebugContext* dbg)  {
+    return OpenWritableFile(fname, options, true, result, dbg);
+  }
+
+  IOStatus ReuseWritableFile_old(const std::string& fname,
+                             const std::string& old_fname,
+                             const FileOptions& options,
+                             std::unique_ptr<FSWritableFile>* result,
+                             IODebugContext* /*dbg*/)  {
+    result->reset();
+    IOStatus s;
+    int fd = -1;
+
+    int flags = 0;
+    // Direct IO mode with O_DIRECT flag or F_NOCAHCE (MAC OSX)
+    if (options.use_direct_writes && !options.use_mmap_writes) {
+#ifdef ROCKSDB_LITE
+      return IOStatus::IOError(fname,
+                               "Direct I/O not supported in RocksDB lite");
+#endif  // !ROCKSDB_LITE
+      flags |= O_WRONLY;
+#if !defined(OS_MACOSX) && !defined(OS_OPENBSD) && !defined(OS_SOLARIS)
+      flags |= O_DIRECT;
+#endif
+      TEST_SYNC_POINT_CALLBACK("NewWritableFile:O_DIRECT", &flags);
+    } else if (options.use_mmap_writes) {
+      // mmap needs O_RDWR mode
+      flags |= O_RDWR;
+    } else {
+      flags |= O_WRONLY;
+    }
+
+    flags = cloexec_flags(flags, &options);
+
+    do {
+      IOSTATS_TIMER_GUARD(open_nanos);
+      fd = open(old_fname.c_str(), flags,
+                GetDBFileMode(allow_non_owner_access_));
+    } while (fd < 0 && errno == EINTR);
+    if (fd < 0) {
+      s = IOError("while reopen file for write", fname, errno);
+      return s;
+    }
+
+    SetFD_CLOEXEC(fd, &options);
+    // rename into place
+    if (rename(old_fname.c_str(), fname.c_str()) != 0) {
+      s = IOError("while rename file to " + fname, old_fname, errno);
+      close(fd);
+      return s;
+    }
+
+
+    FileOptions no_mmap_writes_options = options;
+    no_mmap_writes_options.use_mmap_writes = false;
+    result->reset(
+        new PosixWritableFile_old(fname, fd,
+                              GetLogicalBlockSizeForWriteIfNeeded(
+                                  no_mmap_writes_options, fname, fd),
+                              no_mmap_writes_options));
+
+    return s;
+  }
 
   IOStatus NewRandomRWFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSRandomRWFile>* result,
@@ -837,7 +968,7 @@ class RDMAFileSystem : public FileSystem {
 #ifdef OS_LINUX
   static LogicalBlockSizeCache logical_block_size_cache_;
 #endif
-  static size_t GetLogicalBlockSize(const std::string& fname, int fd);
+//  static size_t GetLogicalBlockSize(const std::string& fname, int fd);
   // In non-direct IO mode, this directly returns kDefaultPageSize.
   // Otherwise call GetLogicalBlockSize.
   static size_t GetLogicalBlockSizeForReadIfNeeded(const EnvOptions& options,
@@ -866,10 +997,10 @@ size_t RDMAFileSystem::GetLogicalBlockSizeForReadIfNeeded(
   return kDefaultPageSize;
 }
 
-//size_t RDMAFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
-//    const EnvOptions& options, const std::string& fname, int fd) {
-//  return kDefaultPageSize;
-//}
+size_t RDMAFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
+    const EnvOptions& options, const std::string& fname, int fd) {
+  return kDefaultPageSize;
+}
 
 RDMAFileSystem::RDMAFileSystem()
     :
