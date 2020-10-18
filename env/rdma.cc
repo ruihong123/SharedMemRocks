@@ -1217,7 +1217,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
 // Remeber to delete the mr because it was created be new, otherwise memory leak.
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const {
   int buff_offset = static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
-  assert(buff_offset%Table_Size == 0);
+  assert(buff_offset%Block_Size == 0);
   return Local_Mem_Bitmap->at(map_pointer).deallocate_memory_slot(buff_offset);
 }
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const {
