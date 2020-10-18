@@ -263,6 +263,8 @@ class RDMAWritableFile : public FSWritableFile {
   virtual IOStatus Close(const IOOptions& opts, IODebugContext* dbg) override;
   virtual IOStatus Append(const Slice& data, const IOOptions& opts,
                           IODebugContext* dbg) override;
+  IOStatus Append_chunk(char* buff_ptr, size_t size, ibv_mr* local_mr_pointer,
+                        ibv_mr& remote_mr);
   virtual IOStatus Append(const Slice& data, const IOOptions& opts,
                           const DataVerificationInfo& /* verification_info */,
                           IODebugContext* dbg) override {

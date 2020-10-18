@@ -1426,16 +1426,38 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   const char* src = data.data();
   size_t nbytes = data.size();
   IOStatus s = IOStatus::OK();
-  assert(nbytes <= kDefaultPageSize);
   ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; //
-  remote_mr = *(sst_meta_->mr);
-  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
-  memcpy(local_mr_pointer->addr, src, nbytes);
+  remote_mr = *(sst_meta_->mr);
+  char* chunk_src = const_cast<char*>(src);
+  while (nbytes > kDefaultPageSize){
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
+    Append_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
+    chunk_src += kDefaultPageSize;
+    nbytes -= kDefaultPageSize;
+  }
+  Append_chunk(chunk_src,nbytes, local_mr_pointer, remote_mr);
 
-  int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, nbytes);
+  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
+    delete local_mr_pointer;
+  else
+    s = IOError(
+        "While RDMA Local Buffer Deallocate failed ",
+        sst_meta_->fname, 1);
+  return s;
+}
+// make sure the local buffer can hold the transferred data if not then send it by multiple times.
+IOStatus RDMAWritableFile::Append_chunk(char* buff_ptr, size_t size,
+                                        ibv_mr* local_mr_pointer,
+                                        ibv_mr& remote_mr) {
+  IOStatus s = IOStatus::OK();
+  assert(size <= kDefaultPageSize);
+
+  memcpy(local_mr_pointer->addr, buff_ptr, size);
+
+  int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size);
 
   if (flag!=0){
 
@@ -1444,14 +1466,10 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 
   }
 //  sst_meta_->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
-  filesize_ += nbytes;
-  sst_meta_->file_size += nbytes;
-  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
-    delete local_mr_pointer;
-  else
-    s = IOError(
-        "While RDMA Local Buffer Deallocate failed ",
-        sst_meta_->fname, flag);
+  filesize_ += size;
+  sst_meta_->file_size += size;
+  assert(sst_meta_->file_size <= rdma_mg_->Table_Size);
+
   return s;
 }
 
@@ -1523,6 +1541,7 @@ IOStatus RDMAWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
 size_t RDMAWritableFile::GetUniqueId(char* id, size_t max_size) const {
   return 0;
 }
+
 #endif
 
 /*

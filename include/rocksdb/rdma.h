@@ -74,6 +74,8 @@ struct SST_Metadata{
   std::string fname;
   ibv_mr* mr;
   ibv_mr* map_pointer;
+  ibv_mr* last_ptr;
+  ibv_mr* next_ptr;
   size_t file_size = 0;
 
 };
@@ -190,8 +192,8 @@ class RDMA_Manager{
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
-  int Block_Size = 4*1024;
-  int Table_Size = 4*1024*1024;
+  size_t Block_Size = 4*1024;
+  size_t Table_Size = 4*1024*1024;
   std::mutex create_mutex;
  private:
 
