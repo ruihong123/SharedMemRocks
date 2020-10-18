@@ -1167,7 +1167,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
 
 //  sst_meta->mr = new ibv_mr();
   *(sst_meta->mr) = *(mr_last);
-  sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*4*1024*1024);
+  sst_meta->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta->mr->addr) + sst_index*Table_Size);
   sst_meta->fname = file_name;
   sst_meta->map_pointer = ptr->first;
   return;
