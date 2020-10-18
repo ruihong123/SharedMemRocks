@@ -28,12 +28,12 @@ int main()
       if (s.ok()) s = db->Put(option_wr, key, value);
 //      std::cout << "iteration number " << i << std::endl;
     }
-   for (int i = 1000*dislocation; i<1000*(dislocation+1); i++){
-     key = std::to_string(i);
-//     value = std::to_string(i + dislocation);
-     if (s.ok()) s = db->Delete(option_wr, key);
-//     std::cout << "iteration number " << i << std::endl;
-   }
+//   for (int i = 1000*dislocation; i<1000*(dislocation+1); i++){
+//     key = std::to_string(i);
+////     value = std::to_string(i + dislocation);
+//     if (s.ok()) s = db->Delete(option_wr, key);
+////     std::cout << "iteration number " << i << std::endl;
+//   }
     s = db->Get(rocksdb::ReadOptions(), "50", &value);
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << status.ToString() << std::endl;
