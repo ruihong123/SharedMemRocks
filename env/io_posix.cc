@@ -1076,7 +1076,16 @@ IOStatus RDMARandomAccessFile::Prefetch(uint64_t offset, size_t n,
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
 size_t RDMARandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
-  return 0;
+  if (sst_meta_->fname.size() > max_size){
+    std::string substr = sst_meta_->fname.substr(sst_meta_->fname.size()-max_size);
+    memcpy(id, substr.c_str(), max_size);
+    return max_size;
+  }else{
+
+    memcpy(id, sst_meta_->fname.c_str(), max_size);
+    return max_size;
+  }
+
 }
 #endif
 
