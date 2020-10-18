@@ -453,12 +453,17 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   if (position_ == sst_meta_->file_size)
     return IOStatus::OK();
   if (position_ + n >= sst_meta_->file_size){
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, sst_meta_->file_size - position_);
+    int n_real = sst_meta_->file_size - position_;
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real);
     position_ +=  sst_meta_->file_size - position_;
+    memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
+    *result = Slice(scratch, n_real);
   }
   else{
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
     position_ +=  n;
+    memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
+    *result = Slice(scratch, n);
   }
 
   if (flag!=0){// fail if return not 0
@@ -468,8 +473,8 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
 
 
   }
-  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
-  *result = Slice(scratch, n);
+
+
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
