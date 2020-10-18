@@ -50,23 +50,12 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to deregister MR\n");
     }
-//  if (res->receive_buf)
-//    delete res->receive_buf;
-//  if (res->send_buf)
-//    delete res->send_buf;
-//  if (res->SST_buf)
-//    delete res->SST_buf;
-  if (res->cq)
-    if (ibv_destroy_cq(res->cq))
-    {
-      fprintf(stderr, "failed to destroy CQ\n");
-    }
   if (!local_mem_pool.empty())
   {
     for (auto p : local_mem_pool)
     {
       ibv_dereg_mr(p); //local buffer is registered on this machine need deregistering.
-//      delete (char*)p->addr;
+      delete (char*)p->addr;
     }
     local_mem_pool.clear();
   }
@@ -79,6 +68,19 @@ RDMA_Manager::~RDMA_Manager()
     }
     remote_mem_pool.clear();
   }
+//  if (res->receive_buf)
+//    delete res->receive_buf;
+//  if (res->send_buf)
+//    delete res->send_buf;
+//  if (res->SST_buf)
+//    delete res->SST_buf;
+  if (res->cq)
+    if (ibv_destroy_cq(res->cq))
+    {
+      fprintf(stderr, "failed to destroy CQ\n");
+    }
+
+
   if (res->pd)
     if (ibv_dealloc_pd(res->pd))
     {

@@ -23,8 +23,8 @@ int main()
     rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     s = db->Delete(option_wr, "NewKey");
     for (int i = 0; i<1000000; i++){
-      key = std::to_string(rand());
-      value = std::to_string(rand());
+      key = std::to_string(i);
+      value = std::to_string(i+dislocation);
       if (s.ok()) s = db->Put(option_wr, key, value);
 //      std::cout << "iteration number " << i << std::endl;
     }
