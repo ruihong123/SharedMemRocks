@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
-
+#include <stdlib.h>
 #include "rocksdb/db.h"
 int main()
 {
@@ -23,8 +23,8 @@ int main()
     rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     s = db->Delete(option_wr, "NewKey");
     for (int i = 0; i<1000000; i++){
-      key = std::to_string(i);
-      value = std::to_string(i + dislocation);
+      key = std::to_string(rand());
+      value = std::to_string(rand());
       if (s.ok()) s = db->Put(option_wr, key, value);
 //      std::cout << "iteration number " << i << std::endl;
     }
@@ -53,11 +53,12 @@ int main()
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << status.ToString() << std::endl;
   };
+  std::thread t5(f, 4);
   std::thread t1(f, 0);
   std::thread t2(f, 1);
   std::thread t3(f, 2);
   std::thread t4(f, 3);
-  std::thread t5(f, 4);
+
 
   // Wait for t1 to finish
   t1.join();

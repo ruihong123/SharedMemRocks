@@ -66,7 +66,7 @@ RDMA_Manager::~RDMA_Manager()
     for (auto p : local_mem_pool)
     {
       ibv_dereg_mr(p); //local buffer is registered on this machine need deregistering.
-      delete (char*)p->addr;
+//      delete (char*)p->addr;
     }
     local_mem_pool.clear();
   }
