@@ -10,7 +10,7 @@ int main()
   rocksdb::DB* db;
   rocksdb::Options options;
   options.create_if_missing = true;
-//  options.write_buffer_size = 4*1024*1024;
+  options.write_buffer_size = 4*1024*1024;
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());

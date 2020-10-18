@@ -54,8 +54,8 @@ RDMA_Manager::~RDMA_Manager()
 //    delete res->receive_buf;
 //  if (res->send_buf)
 //    delete res->send_buf;
-  if (res->SST_buf)
-    delete res->SST_buf;
+//  if (res->SST_buf)
+//    delete res->SST_buf;
   if (res->cq)
     if (ibv_destroy_cq(res->cq))
     {
