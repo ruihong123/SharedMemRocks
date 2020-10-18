@@ -184,6 +184,7 @@ class RDMAFileSystem : public FileSystem {
     //if not find other filename, then make the memory slot not in use (delete the file)
     int buff_offset = static_cast<char*>(file_meta->mr->addr) - static_cast<char*>(file_meta->map_pointer->addr);
     assert(buff_offset%kDefaultPageSize == 0);
+    std::cout << buff_offset<< std::endl;
     if (rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer).deallocate_memory_slot(buff_offset)) {
       // delete remove the flage sucessfully
       delete file_meta->mr;
