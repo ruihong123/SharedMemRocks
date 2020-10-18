@@ -50,10 +50,10 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to deregister MR\n");
     }
-  if (res->receive_buf)
-    delete res->receive_buf;
-  if (res->send_buf)
-    delete res->send_buf;
+//  if (res->receive_buf)
+//    delete res->receive_buf;
+//  if (res->send_buf)
+//    delete res->send_buf;
   if (res->SST_buf)
     delete res->SST_buf;
   if (res->cq)
@@ -66,7 +66,7 @@ RDMA_Manager::~RDMA_Manager()
     for (auto p : local_mem_pool)
     {
       ibv_dereg_mr(p); //local buffer is registered on this machine need deregistering.
-
+      delete (char*)p->addr;
     }
     local_mem_pool.clear();
   }
