@@ -52,7 +52,7 @@ int main()
     s = db->Get(rocksdb::ReadOptions(), "800", &value);
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "2100", &value);
+    s = db->Get(rocksdb::ReadOptions(), "1100", &value);
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << s.ToString() << std::endl;
     s = db->Get(rocksdb::ReadOptions(), "8000", &value);

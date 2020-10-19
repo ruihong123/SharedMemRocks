@@ -14,6 +14,8 @@
 
 #include <atomic>
 #include <cstddef>
+#include <iostream>
+
 #include "rocksdb/cache.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -49,6 +51,8 @@ class WriteBufferManager {
   bool ShouldFlush() const {
     if (enabled()) {
       if (mutable_memtable_memory_usage() > mutable_limit_) {
+        std::cout << mutable_memtable_memory_usage() <<std::endl;
+        std::cout << mutable_limit_ <<std::endl;
         return true;
       }
       if (memory_usage() >= buffer_size_ &&
