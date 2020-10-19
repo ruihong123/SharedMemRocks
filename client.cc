@@ -11,7 +11,7 @@ int main()
   rocksdb::Options options;
   options.create_if_missing = true;
   options.write_buffer_size = 512*1024;
-  options.use_direct_reads = true;
+//  options.use_direct_reads = true;
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
