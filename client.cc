@@ -25,19 +25,29 @@ int main()
     for (int i = 0; i<1000; i++){
       key = std::to_string(i);
       value = std::to_string(i+dislocation);
-      if (s.ok()) s = db->Put(option_wr, key, value);
+      if (s.ok())
+        s = db->Put(option_wr, key, value);
+      else
+        std::cerr << s.ToString() << std::endl;
       std::cout << "iteration number " << i << std::endl;
+
     }
    for (int i = 0; i<1000; i++){
      key = std::to_string(i);
 //     value = std::to_string(i+dislocation);
-     if (s.ok()) s = db->Delete(option_wr, key);
+     if (s.ok())
+       s = db->Delete(option_wr, key);
+     else
+       std::cerr << s.ToString() << std::endl;
      std::cout << "Delete iteration number " << i << std::endl;
    }
    for (int i = 1001; i<1000000; i++){
      key = std::to_string(i);
      value = std::to_string(i+dislocation);
-     if (s.ok()) s = db->Put(option_wr, key, value);
+     if (s.ok())
+       s = db->Put(option_wr, key, value);
+     else
+       std::cerr << s.ToString() << std::endl;
      std::cout << "iteration number " << i << std::endl;
    }
    for (int i = 1000+1000*dislocation; i<1000+1000*(dislocation+1); i++){
