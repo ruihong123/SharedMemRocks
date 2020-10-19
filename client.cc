@@ -22,7 +22,7 @@ int main()
     option_wr.disableWAL = true;
     rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     s = db->Delete(option_wr, "NewKey");
-    for (int i = 0; i<1000; i++){
+    for (int i = 0; i<10000; i++){
       key = std::to_string(i);
       value = std::to_string(i+dislocation);
       if (s.ok()) s = db->Put(option_wr, key, value);
@@ -46,12 +46,15 @@ int main()
     s = db->Get(rocksdb::ReadOptions(), "8000", &value);
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << s.ToString() << std::endl;
-     s = db->Get(rocksdb::ReadOptions(), "100000", &value);
+     s = db->Get(rocksdb::ReadOptions(), "20000", &value);
      if(s.ok()) std::cout<< value << std::endl;
      else std::cerr << s.ToString() << std::endl;
-     s = db->Get(rocksdb::ReadOptions(), "300000", &value);
-     if(s.ok()) std::cout<< value << std::endl;
-     else std::cerr << s.ToString() << std::endl;
+    s = db->Get(rocksdb::ReadOptions(), "100000", &value);
+    if(s.ok()) std::cout<< value << std::endl;
+    else std::cerr << s.ToString() << std::endl;
+    s = db->Get(rocksdb::ReadOptions(), "300000", &value);
+    if(s.ok()) std::cout<< value << std::endl;
+    else std::cerr << s.ToString() << std::endl;
     s = db->Get(rocksdb::ReadOptions(), "700000", &value);
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << s.ToString() << std::endl;
