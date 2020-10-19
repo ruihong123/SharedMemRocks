@@ -896,35 +896,56 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      IODebugContext* /*dbg*/) const {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
-  assert(n <= kDefaultPageSize);
+  assert(offset + n <= rdma_mg_->Table_Size);
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
-
+  char* chunk_src = scratch;
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
-  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
-  if (flag!=0){
 
-    s = IOError(
-        "While RDMA Read offset " + ToString(offset) + " len " + ToString(n),
-        sst_meta_->fname, flag);
-
+  while (n > kDefaultPageSize){
+    Read_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
+    chunk_src += kDefaultPageSize;
+    n -= kDefaultPageSize;
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
-  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
+  Read_chunk(chunk_src, n, local_mr_pointer, remote_mr);
+
+//  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
   *result = Slice(scratch, n);
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
     s = IOError(
         "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
-        sst_meta_->fname, flag);
+        sst_meta_->fname, 1);
   return s;
 }
 
+IOStatus RDMARandomAccessFile::Read_chunk(char* buff_ptr, size_t size,
+                                        ibv_mr* local_mr_pointer,
+                                        ibv_mr& remote_mr) const {
+  IOStatus s = IOStatus::OK();
+  assert(size <= kDefaultPageSize);
+  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size);
+  memcpy(buff_ptr, local_mr_pointer->addr, size);
+
+
+
+  if (flag!=0){
+
+    return IOError("While reading to file", sst_meta_->fname, flag);
+
+
+  }
+
+
+  return s;
+}
 IOStatus RDMARandomAccessFile::MultiRead(FSReadRequest* reqs,
                                           size_t num_reqs,
                                           const IOOptions& options,
@@ -1439,13 +1460,16 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; //
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
+
   remote_mr = *(sst_meta_->mr);
   char* chunk_src = const_cast<char*>(src);
   while (nbytes > kDefaultPageSize){
-    remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
     Append_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
     chunk_src += kDefaultPageSize;
     nbytes -= kDefaultPageSize;
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
+
   }
   Append_chunk(chunk_src,nbytes, local_mr_pointer, remote_mr);
 

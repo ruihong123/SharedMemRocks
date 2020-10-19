@@ -214,6 +214,8 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,
                         IODebugContext* dbg) const override;
+  IOStatus Read_chunk(char* buff_ptr, size_t size, ibv_mr* local_mr_pointer,
+                      ibv_mr& remote_mr) const;
 
   virtual IOStatus MultiRead(FSReadRequest* reqs, size_t num_reqs,
                              const IOOptions& options,
@@ -302,6 +304,7 @@ class RDMAWritableFile : public FSWritableFile {
 #ifdef OS_LINUX
   virtual size_t GetUniqueId(char* id, size_t max_size) const override;
 #endif
+
 };
 class PosixWritableFile_old : public FSWritableFile {
  protected:
