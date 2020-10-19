@@ -741,12 +741,16 @@ class RDMAFileSystem : public FileSystem {
   IOStatus GetFileSize(const std::string& fname, const IOOptions& /*opts*/,
                        uint64_t* size, IODebugContext* /*dbg*/) override {
     struct stat sbuf;
-    if (stat(fname.c_str(), &sbuf) != 0) {
-      *size = 0;
-      return IOError("while stat a file for size", fname, errno);
-    } else {
+    // Keep the Get File size from traditional file system.
+    if (stat(fname.c_str(), &sbuf) == 0) {
       *size = sbuf.st_size;
     }
+    else if (file_to_sst_meta.find(fname) != file_to_sst_meta.end()){
+      SST_Metadata* meta = file_to_sst_meta[fname];
+      *size = meta->file_size;
+    }
+    else
+      return IOError("while stat a file for size", fname, errno);
     return IOStatus::OK();
   }
 
