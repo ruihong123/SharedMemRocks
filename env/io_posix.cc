@@ -441,7 +441,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
-//  assert((position_+ n) <= kDefaultPageSize);
+  assert((position_+ n) <= rdma_mg_->Table_Size);
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
@@ -1460,9 +1460,9 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; //
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
+  remote_mr = *(sst_meta_->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
 
-  remote_mr = *(sst_meta_->mr);
   char* chunk_src = const_cast<char*>(src);
   while (nbytes > kDefaultPageSize){
     Append_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
