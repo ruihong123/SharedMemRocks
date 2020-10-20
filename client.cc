@@ -30,7 +30,7 @@ int main()
         s = db->Put(option_wr, key, value);
       else
         std::cerr << s.ToString() << std::endl;
-      std::cout << "iteration number " << i << std::endl;
+//      std::cout << "iteration number " << i << std::endl;
 
     }
    for (int i = 0; i<1000; i++){
@@ -40,7 +40,7 @@ int main()
        s = db->Delete(option_wr, key);
      else
        std::cerr << s.ToString() << std::endl;
-     std::cout << "Delete iteration number " << i << std::endl;
+//     std::cout << "Delete iteration number " << i << std::endl;
    }
    for (int i = 1001; i<1000000; i++){
      key = std::to_string(i);
