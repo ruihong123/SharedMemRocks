@@ -897,6 +897,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
   assert(offset + n <= rdma_mg_->Table_Size);
+  size_t n_original = n;
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
@@ -916,7 +917,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr);
 
 //  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
-  *result = Slice(scratch, n);
+  *result = Slice(scratch, n_original);// debug n has been changed, so we need record the original n.
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
