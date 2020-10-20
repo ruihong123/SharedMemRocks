@@ -1517,7 +1517,7 @@ IOStatus RDMAWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
   //The original function will truncate the file to a spicific size, not
   //Quite understand why we need this.
-  return IOStatus::OK();
+  return IOError("File Truncate not supported", sst_meta_->fname, 1);
 }
 
 IOStatus RDMAWritableFile::Close(const IOOptions& /*opts*/,
