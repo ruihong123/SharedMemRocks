@@ -49,7 +49,7 @@ int main()
        s = db->Put(option_wr, key, value);
      else
        std::cerr << s.ToString() << std::endl;
-     std::cout << "iteration number " << i << std::endl;
+//     std::cout << "iteration number " << i << std::endl;
    }
    for (int i = 1000+1000*dislocation; i<1000+1000*(dislocation+1); i++){
      key = std::to_string(i);
