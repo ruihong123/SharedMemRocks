@@ -919,7 +919,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                chunk_offset, sst_meta_current);
     chunk_src += kDefaultPageSize;
     n -= kDefaultPageSize;
-    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
+//    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
