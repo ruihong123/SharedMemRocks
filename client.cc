@@ -30,7 +30,7 @@ int main()
         s = db->Put(option_wr, key, value);
       if (!s.ok()){
         std::cerr << s.ToString() << std::endl;
-        exit(0);
+        return;
       }
 
 //      std::cout << "iteration number " << i << std::endl;
@@ -42,7 +42,7 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       exit(0);
+       return;
      }
 
 //     std::cout << "Delete iteration number " << i << std::endl;
@@ -53,7 +53,7 @@ int main()
      s = db->Put(option_wr, key, value);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       exit (0);
+       return;
      }
 
 //     std::cout << "iteration number " << i << std::endl;
@@ -64,7 +64,7 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       exit (0);
+       return;
      }
 //     std::cout << "iteration number " << i << std::endl;
    }
@@ -96,7 +96,7 @@ int main()
     if(s.ok()) std::cout<< value << std::endl;
     else std::cerr << s.ToString() << std::endl;
   };
-  std::thread t5(f, 0);
+  std::thread t5(f, 5);
 //  std::thread t1(f, 0);
 //  std::thread t2(f, 1);
 //  std::thread t3(f, 2);
