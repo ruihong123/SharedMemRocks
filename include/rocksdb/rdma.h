@@ -116,6 +116,8 @@ class In_Use_Array{
       if (temp == false) {
         if(in_use[i].compare_exchange_strong(temp, true))
           return i; // find the empty slot then return the index for the slot
+        else
+          std::cout << "Compare and swap fail" << std::endl;
       }
 
     }
