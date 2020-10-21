@@ -181,27 +181,21 @@ class RDMAFileSystem : public FileSystem {
       // Go to next entry in map
       ptr++;
     }
-    //if not find other filename, then make the memory slot not in use (delete the file)
-    int buff_offset = static_cast<char*>(file_meta->mr->addr) - static_cast<char*>(file_meta->map_pointer->addr);
-    assert(buff_offset%(rdma_mg_->Table_Size) == 0);
-//    std::cout << buff_offset<< std::endl;
-    if (rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer).deallocate_memory_slot(buff_offset/(rdma_mg_->Table_Size))) {
+    //if not find other filename, then make the all the remote memory slots
+    // related to that file not in use (delete the file)
+
       // delete remove the flage sucessfully
-      SST_Metadata* next_file_meta;
-      while (file_meta->next_ptr != nullptr){
-        next_file_meta = file_meta->next_ptr;
-        delete file_meta->mr;
-        delete file_meta;
-        file_meta = next_file_meta;
-      }
+    SST_Metadata* next_file_meta;
+    while (file_meta->next_ptr != nullptr){
+      next_file_meta = file_meta->next_ptr;
+      rdma_mg_->Deallocate_Remote_RDMA_Slot(file_meta);
       delete file_meta->mr;
       delete file_meta;
-      return 0;
+      file_meta = next_file_meta;
     }
-    else{
-      std::cout << "clear the flag in in_use_table failed" << std::endl;
-      return 3;
-    }
+    delete file_meta->mr;
+    delete file_meta;
+    return 0;
 
 
 
