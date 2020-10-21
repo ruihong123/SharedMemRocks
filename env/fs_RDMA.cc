@@ -187,6 +187,13 @@ class RDMAFileSystem : public FileSystem {
 //    std::cout << buff_offset<< std::endl;
     if (rdma_mg_->Remote_Mem_Bitmap->at(file_meta->map_pointer).deallocate_memory_slot(buff_offset/(rdma_mg_->Table_Size))) {
       // delete remove the flage sucessfully
+      SST_Metadata* next_file_meta;
+      while (file_meta->next_ptr != nullptr){
+        next_file_meta = file_meta->next_ptr;
+        delete file_meta->mr;
+        delete file_meta;
+        file_meta = next_file_meta;
+      }
       delete file_meta->mr;
       delete file_meta;
       return 0;

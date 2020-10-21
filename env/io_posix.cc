@@ -441,7 +441,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
-  assert((position_+ n) <= rdma_mg_->Table_Size);
+  assert((position_+ n) <= sst_meta_->file_size);
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
@@ -883,7 +883,7 @@ RDMARandomAccessFile::RDMARandomAccessFile(SST_Metadata* sst_meta,
                                              size_t logical_block_size,
                                              const EnvOptions& options,
                                              RDMA_Manager* rdma_mg)
-    : sst_meta_(sst_meta),
+    : sst_meta_head_(sst_meta),
       use_direct_io_(options.use_direct_reads),
       logical_sector_size_(logical_block_size),
       rdma_mg_(rdma_mg){}
@@ -894,57 +894,100 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-  const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
+  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
   IOStatus s;
-  assert(offset + n <= rdma_mg_->Table_Size);
+  assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
+  SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
+  //find the SST_Metadata for current chunk.
+  size_t chunk_offset = offset%(rdma_mg_->Table_Size);
+  while (offset > rdma_mg_->Table_Size){
+    sst_meta_current = sst_meta_current->next_ptr;
+    offset = offset- rdma_mg_->Table_Size;
+  }
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
-  remote_mr = *(sst_meta_->mr);
+  remote_mr = *(sst_meta_current->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
   char* chunk_src = scratch;
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
 
   while (n > kDefaultPageSize){
-    Read_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
+    Read_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
+               chunk_offset, sst_meta_current);
     chunk_src += kDefaultPageSize;
     n -= kDefaultPageSize;
     remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
-  Read_chunk(chunk_src, n, local_mr_pointer, remote_mr);
+  Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
+             sst_meta_current);
 
 //  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
-  *result = Slice(scratch, n_original);// debug n has been changed, so we need record the original n.
+  *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
     s = IOError(
         "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
-        sst_meta_->fname, 1);
+                sst_meta_head_->fname, 1);
   return s;
 }
 
 IOStatus RDMARandomAccessFile::Read_chunk(char* buff_ptr, size_t size,
-                                        ibv_mr* local_mr_pointer,
-                                        ibv_mr& remote_mr) const {
+                                          ibv_mr* local_mr_pointer,
+                                          ibv_mr& remote_mr,
+                                          size_t& chunk_offset,
+                                          SST_Metadata*& sst_meta_current) const {
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
-  int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size);
-  memcpy(buff_ptr, local_mr_pointer->addr, size);
+
+  if (size + chunk_offset > rdma_mg_->Table_Size ){
+    // if block write accross two SSTable chunks, seperate it into 2 steps.
+    //First step
+    size_t first_half = rdma_mg_->Table_Size - chunk_offset;
+    size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
+    int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, first_half);
+    memcpy(buff_ptr, local_mr_pointer->addr, first_half);// copy to the buffer
+
+    if (flag!=0){
+
+      return IOError("While appending to file", sst_meta_head_->fname, flag);
 
 
+    }
+    //move the buffer to the next part
+    buff_ptr += first_half;
+    sst_meta_current = sst_meta_current->next_ptr;
+    remote_mr = *(sst_meta_current->mr);
+    chunk_offset = 0;
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half);
+    memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
 
-  if (flag!=0){
+    if (flag!=0){
 
-    return IOError("While reading to file", sst_meta_->fname, flag);
+      return IOError("While appending to file", sst_meta_head_->fname, flag);
 
 
+    }
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_current->mr->addr) + second_half);
+    chunk_offset = second_half;
+
+  }else{
+    int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size);
+    memcpy(buff_ptr, local_mr_pointer->addr, size);// copy to the buffer
+
+    if (flag!=0){
+
+      return IOError("While appending to file", sst_meta_head_->fname, flag);
+
+
+    }
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
+    chunk_offset += size;
   }
-
-
   return s;
 }
 IOStatus RDMARandomAccessFile::MultiRead(FSReadRequest* reqs,
@@ -1098,13 +1141,14 @@ IOStatus RDMARandomAccessFile::Prefetch(uint64_t offset, size_t n,
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
 size_t RDMARandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
-  if (sst_meta_->fname.size() > max_size){
-    std::string substr = sst_meta_->fname.substr(sst_meta_->fname.size()-max_size);
+  if (sst_meta_head_->fname.size() > max_size){
+    std::string substr =
+        sst_meta_head_->fname.substr(sst_meta_head_->fname.size()-max_size);
     memcpy(id, substr.c_str(), max_size);
     return max_size;
   }else{
 
-    memcpy(id, sst_meta_->fname.c_str(), max_size);
+    memcpy(id, sst_meta_head_->fname.c_str(), max_size);
     return max_size;
   }
 
@@ -1435,15 +1479,19 @@ RDMAWritableFile::RDMAWritableFile(SST_Metadata* sst_meta,
                                      RDMA_Manager* rdma_mg)
     : FSWritableFile(options),
       use_direct_io_(options.use_direct_writes),
-      filesize_(0),
+      chunk_offset(0),
       logical_sector_size_(logical_block_size),
-      sst_meta_(sst_meta),
+      sst_meta_head(sst_meta),
       rdma_mg_(rdma_mg){
-#ifdef ROCKSDB_FALLOCATE_PRESENT
-  allow_fallocate_ = options.allow_fallocate;
-  fallocate_with_keep_size_ = options.fallocate_with_keep_size;
-#endif
+  chunk_offset = sst_meta->file_size;
+  sst_meta_current = sst_meta;
 
+  while (chunk_offset >= rdma_mg_->Table_Size){
+    chunk_offset -= rdma_mg_->Table_Size;
+    sst_meta_current = sst_meta_current->next_ptr;
+  }
+  assert(chunk_offset < rdma_mg_->Table_Size);
+//  assert(chunk_offset >= 0);
   assert(!options.use_mmap_writes);
 }
 
@@ -1453,7 +1501,8 @@ RDMAWritableFile::~RDMAWritableFile() {
 
 IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-  const std::unique_lock<std::shared_mutex> lock(sst_meta_->file_lock);// write lock
+  const std::unique_lock<std::shared_mutex> lock(
+      sst_meta_head->file_lock);// write lock
   const char* src = data.data();
   size_t nbytes = data.size();
   IOStatus s = IOStatus::OK();
@@ -1461,25 +1510,23 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   ibv_mr* local_mr_pointer = nullptr;
   ibv_mr remote_mr = {}; //
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
-  remote_mr = *(sst_meta_->mr);
-  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + sst_meta_->file_size);
+  remote_mr = *(sst_meta_current->mr);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_current->mr->addr) + chunk_offset);
 
   char* chunk_src = const_cast<char*>(src);
   while (nbytes > kDefaultPageSize){
     Append_chunk(chunk_src,kDefaultPageSize, local_mr_pointer, remote_mr);
     chunk_src += kDefaultPageSize;
     nbytes -= kDefaultPageSize;
-    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
   Append_chunk(chunk_src,nbytes, local_mr_pointer, remote_mr);
-
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
     s = IOError(
         "While RDMA Local Buffer Deallocate failed ",
-        sst_meta_->fname, 1);
+                sst_meta_head->fname, 1);
   return s;
 }
 // make sure the local buffer can hold the transferred data if not then send it by multiple times.
@@ -1488,21 +1535,60 @@ IOStatus RDMAWritableFile::Append_chunk(char* buff_ptr, size_t size,
                                         ibv_mr& remote_mr) {
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
+  int flag;
+  if (chunk_offset + size > rdma_mg_->Table_Size){
+    // if block write accross two SSTable chunks, seperate it into 2 steps.
+    //First step
+    size_t first_half = rdma_mg_->Table_Size - chunk_offset;
+    size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
+    memcpy(local_mr_pointer->addr, buff_ptr, first_half);
+    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half);
+    if (flag!=0){
 
-  memcpy(local_mr_pointer->addr, buff_ptr, size);
-
-  int flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size);
-
-  if (flag!=0){
-
-    return IOError("While appending to file", sst_meta_->fname, flag);
+      return IOError("While appending to file", sst_meta_head->fname, flag);
 
 
+    }
+    buff_ptr +=  (rdma_mg_->Table_Size - chunk_offset);
+    // move the buffer pointer.
+    // Second step, create a new SSTable chunk and new sst_metadata, append it to the file
+    // chunk list. then write the second part on it.
+    SST_Metadata* new_sst = new SST_Metadata();
+    rdma_mg_->Allocate_Remote_RDMA_Slot(sst_meta_head->fname, new_sst);
+    new_sst->last_ptr = sst_meta_current;
+    sst_meta_current->next_ptr = new_sst;
+    sst_meta_current = new_sst;
+    remote_mr = *(sst_meta_current->mr);
+    chunk_offset = 0;
+    memcpy(local_mr_pointer->addr, buff_ptr, second_half);
+    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, second_half);
+    if (flag!=0){
+
+      return IOError("While appending to file", sst_meta_head->fname, flag);
+
+
+    }
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_current->mr->addr) + second_half);
+    chunk_offset = second_half;
   }
+  else{
+    // append the whole size.
+    memcpy(local_mr_pointer->addr, buff_ptr, size);
+    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size);
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
+    chunk_offset += size;
+    if (flag!=0){
+
+      return IOError("While appending to file", sst_meta_head->fname, flag);
+
+
+    }
+  }
+
 //  sst_meta_->mr->addr = static_cast<void*>(static_cast<char*>(sst_meta_->mr->addr) + nbytes);
-  filesize_ += size;
-  sst_meta_->file_size += size;
-  assert(sst_meta_->file_size <= rdma_mg_->Table_Size);
+//
+  sst_meta_head->file_size += size;
+//  assert(sst_meta_head->file_size <= rdma_mg_->Table_Size);
 
   return s;
 }
@@ -1517,7 +1603,7 @@ IOStatus RDMAWritableFile::Truncate(uint64_t size, const IOOptions& /*opts*/,
                                      IODebugContext* /*dbg*/) {
   //The original function will truncate the file to a spicific size, not
   //Quite understand why we need this.
-  return IOError("File Truncate not supported", sst_meta_->fname, 1);
+  return IOError("File Truncate not supported", sst_meta_head->fname, 1);
 }
 
 IOStatus RDMAWritableFile::Close(const IOOptions& /*opts*/,
@@ -1546,7 +1632,7 @@ bool RDMAWritableFile::IsSyncThreadSafe() const { return true; }
 
 uint64_t RDMAWritableFile::GetFileSize(const IOOptions& /*opts*/,
                                         IODebugContext* /*dbg*/) {
-  return sst_meta_->file_size;
+  return sst_meta_head->file_size;
 }
 
 void RDMAWritableFile::SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {

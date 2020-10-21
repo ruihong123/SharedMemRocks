@@ -198,7 +198,8 @@ inline struct io_uring* CreateIOUring() {
 
 class RDMARandomAccessFile : public FSRandomAccessFile {
  protected:
-  SST_Metadata* sst_meta_;
+  SST_Metadata* sst_meta_head_;
+//  SST_Metadata* sst_meta_current_;
   bool use_direct_io_;
   size_t logical_sector_size_;
   RDMA_Manager* rdma_mg_;
@@ -215,7 +216,8 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
                         Slice* result, char* scratch,
                         IODebugContext* dbg) const override;
   IOStatus Read_chunk(char* buff_ptr, size_t size, ibv_mr* local_mr_pointer,
-                      ibv_mr& remote_mr) const;
+                      ibv_mr& remote_mr, size_t& chunk_offset,
+                      SST_Metadata*& sst_meta_current) const;
 
   virtual IOStatus MultiRead(FSReadRequest* reqs, size_t num_reqs,
                              const IOOptions& options,
@@ -238,9 +240,10 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
 class RDMAWritableFile : public FSWritableFile {
  protected:
   const bool use_direct_io_;
-  uint64_t filesize_;
+  uint64_t chunk_offset;
   size_t logical_sector_size_;
-  SST_Metadata* sst_meta_;
+  SST_Metadata* sst_meta_head;
+  SST_Metadata* sst_meta_current;
   RDMA_Manager* rdma_mg_;
 
 #ifdef ROCKSDB_FALLOCATE_PRESENT

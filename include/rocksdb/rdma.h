@@ -68,14 +68,15 @@ struct registered_qp_config {
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
-// Structure for the file handle in RDMA file system.
+// Structure for the file handle in RDMA file system. it could be a link list
+// for large files
 struct SST_Metadata{
   std::shared_mutex file_lock;
   std::string fname;
   ibv_mr* mr;
   ibv_mr* map_pointer;
-  ibv_mr* last_ptr;
-  ibv_mr* next_ptr;
+  SST_Metadata* last_ptr = nullptr;
+  SST_Metadata* next_ptr = nullptr;
   size_t file_size = 0;
 
 };
@@ -193,7 +194,7 @@ class RDMA_Manager{
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
   size_t Block_Size = 4*1024;
-  size_t Table_Size = 10*1024*1024;
+  uint64_t Table_Size = 10*1024*1024;
   std::mutex create_mutex;
  private:
 
