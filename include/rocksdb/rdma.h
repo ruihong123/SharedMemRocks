@@ -114,8 +114,11 @@ class In_Use_Array{
     for (int i = 0; i < static_cast<int>(size_); ++i){
       bool temp = in_use[i];
       if (temp == false) {
-        if(in_use[i].compare_exchange_strong(temp, true))
+        if(in_use[i].compare_exchange_strong(temp, true)){
+          std::cout << "chunk" <<i << "was changed to true" << std::endl;
           return i; // find the empty slot then return the index for the slot
+
+        }
         else
           std::cout << "Compare and swap fail" << std::endl;
       }
@@ -126,6 +129,8 @@ class In_Use_Array{
   bool deallocate_memory_slot(int index) {
     bool temp = true;
     assert(in_use[index] == true);
+    std::cout << "chunk" <<index << "was changed to false" << std::endl;
+
     return in_use[index].compare_exchange_strong(temp, false);
 
   }
