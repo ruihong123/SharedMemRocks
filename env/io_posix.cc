@@ -960,6 +960,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     }
     //move the buffer to the next part
     buff_ptr += first_half;
+    assert(sst_meta_current->next_ptr != nullptr);
     sst_meta_current = sst_meta_current->next_ptr;
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
@@ -1559,7 +1560,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     // move the buffer pointer.
     // Second step, create a new SSTable chunk and new sst_metadata, append it to the file
     // chunk list. then write the second part on it.
-    SST_Metadata* new_sst = new SST_Metadata();
+    SST_Metadata* new_sst;
     rdma_mg_->Allocate_Remote_RDMA_Slot(sst_meta_head->fname, new_sst);
     new_sst->last_ptr = sst_meta_current;
     std::cout << "write blocks cross Table chunk" << std::endl;
