@@ -1160,6 +1160,8 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
       sst_meta->map_pointer = ptr->first; // it could be confused that the map_pointer is for the memtadata deletion
       // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
       sst_meta->file_size = 0;
+      std::cout <<"Chunk allocate at" << sst_meta->mr->addr <<"index :" << sst_index << std::endl;
+
       return;
     } else ptr++;
   }
@@ -1194,6 +1196,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       map_pointer = ptr->first;
       *(mr_input) = *(ptr->first);
       mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) + block_index*Block_Size);
+
       return;
     } else ptr++;
   }
@@ -1228,6 +1231,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) c
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const {
   int buff_offset = static_cast<char*>(sst_meta->mr->addr) - static_cast<char*>(sst_meta->map_pointer->addr);
   assert(buff_offset%Table_Size == 0);
+  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
   return Remote_Mem_Bitmap->at(sst_meta->map_pointer).deallocate_memory_slot(buff_offset/Table_Size);
 }
 
