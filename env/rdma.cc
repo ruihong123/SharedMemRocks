@@ -40,16 +40,16 @@ RDMA_Manager::~RDMA_Manager()
       fprintf(stderr, "failed to destroy QP\n");
     }
 
-  if (res->mr_receive)
-    if (ibv_dereg_mr(res->mr_receive))
-    {
-      fprintf(stderr, "failed to deregister MR\n");
-    }
-  if (res->mr_send)
-    if (ibv_dereg_mr(res->mr_send))
-    {
-      fprintf(stderr, "failed to deregister MR\n");
-    }
+//  if (res->mr_receive)
+//    if (ibv_dereg_mr(res->mr_receive))
+//    {
+//      fprintf(stderr, "failed to deregister MR\n");
+//    }
+//  if (res->mr_send)
+//    if (ibv_dereg_mr(res->mr_send))
+//    {
+//      fprintf(stderr, "failed to deregister MR\n");
+//    }
   if (!local_mem_pool.empty())
   {
 //    ibv_dereg_mr(local_mem_pool.at(0));
