@@ -911,6 +911,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_current->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
+  assert(offset == chunk_offset);
   char* chunk_src = scratch;
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   while (n > kDefaultPageSize){
