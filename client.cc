@@ -47,7 +47,7 @@ int main()
 
 //     std::cout << "Delete iteration number " << i << std::endl;
    }
-   for (int i = 1001; i<4000000; i++){
+   for (int i = 1001; i<1000000; i++){
      key = std::to_string(i);
      value = std::to_string(i+dislocation);
      s = db->Put(option_wr, key, value);
