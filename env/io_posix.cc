@@ -1556,6 +1556,8 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     SST_Metadata* new_sst = new SST_Metadata();
     rdma_mg_->Allocate_Remote_RDMA_Slot(sst_meta_head->fname, new_sst);
     new_sst->last_ptr = sst_meta_current;
+    std::cout << "write blocks cross Table chunk" << std::endl;
+    assert(sst_meta_current->next_ptr == nullptr);
     sst_meta_current->next_ptr = new_sst;
     sst_meta_current = new_sst;
     remote_mr = *(sst_meta_current->mr);
