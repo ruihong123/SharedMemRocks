@@ -52,9 +52,10 @@ RDMA_Manager::~RDMA_Manager()
     }
   if (!local_mem_pool.empty())
   {
+    std::for_each(local_mem_pool.begin(), local_mem_pool.end(), ibv_dereg_mr);
     for (ibv_mr* p : local_mem_pool)
     {
-      ibv_dereg_mr(p); //local buffer is registered on this machine need deregistering.
+       //local buffer is registered on this machine need deregistering.
       delete (char*)p->addr;
     }
     local_mem_pool.clear();
