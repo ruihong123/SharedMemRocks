@@ -441,7 +441,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   IODebugContext* /*dbg*/) {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
   IOStatus s;
-  assert((position_+ n) <= sst_meta_->file_size);
+//  assert((position_+ n) <= sst_meta_->file_size);
   ibv_mr* map_pointer;
   ibv_mr* local_mr_pointer;
   local_mr_pointer = nullptr;
