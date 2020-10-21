@@ -185,16 +185,16 @@ class RDMAFileSystem : public FileSystem {
     // related to that file not in use (delete the file)
 
       // delete remove the flage sucessfully
-    SST_Metadata* next_file_meta;
-    while (file_meta->next_ptr != nullptr){
-      next_file_meta = file_meta->next_ptr;
-      rdma_mg_->Deallocate_Remote_RDMA_Slot(file_meta);
-      delete file_meta->mr;
-      delete file_meta;
-      file_meta = next_file_meta;
-    }
-    delete file_meta->mr;
-    delete file_meta;
+//    SST_Metadata* next_file_meta;
+//    while (file_meta->next_ptr != nullptr){
+//      next_file_meta = file_meta->next_ptr;
+//      rdma_mg_->Deallocate_Remote_RDMA_Slot(file_meta);
+//      delete file_meta->mr;
+//      delete file_meta;
+//      file_meta = next_file_meta;
+//    }
+//    delete file_meta->mr;
+//    delete file_meta;
     return 0;
 
 
