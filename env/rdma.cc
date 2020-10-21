@@ -1225,6 +1225,6 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) c
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const {
   int buff_offset = static_cast<char*>(sst_meta->mr->addr) - static_cast<char*>(sst_meta->map_pointer->addr);
   assert(buff_offset%Table_Size == 0);
-  return Remote_Mem_Bitmap->at(sst_meta->map_pointer).deallocate_memory_slot(buff_offset/Block_Size);
+  return Remote_Mem_Bitmap->at(sst_meta->map_pointer).deallocate_memory_slot(buff_offset/Table_Size);
 }
 
