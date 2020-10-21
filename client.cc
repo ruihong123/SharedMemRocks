@@ -97,14 +97,14 @@ int main()
     else std::cerr << s.ToString() << std::endl;
   };
   std::thread t5(f, 5);
-  std::thread t1(f, 0);
+//  std::thread t1(f, 0);
 //  std::thread t2(f, 1);
 //  std::thread t3(f, 2);
 //  std::thread t4(f, 3);
 
 
   // Wait for t1 to finish
-  t1.join();
+//  t1.join();
 //  t2.join();
 //  t3.join();
 //  t4.join();
