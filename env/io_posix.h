@@ -215,7 +215,7 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,
                         IODebugContext* dbg) const override;
-  IOStatus Read_chunk(char* buff_ptr, size_t size, ibv_mr* local_mr_pointer,
+  IOStatus Read_chunk(char*& buff_ptr, size_t size, ibv_mr* local_mr_pointer,
                       ibv_mr& remote_mr, size_t& chunk_offset,
                       SST_Metadata*& sst_meta_current) const;
 
@@ -268,7 +268,7 @@ class RDMAWritableFile : public FSWritableFile {
   virtual IOStatus Close(const IOOptions& opts, IODebugContext* dbg) override;
   virtual IOStatus Append(const Slice& data, const IOOptions& opts,
                           IODebugContext* dbg) override;
-  IOStatus Append_chunk(char* buff_ptr, size_t size, ibv_mr* local_mr_pointer,
+  IOStatus Append_chunk(char*& buff_ptr, size_t size, ibv_mr* local_mr_pointer,
                         ibv_mr& remote_mr);
   virtual IOStatus Append(const Slice& data, const IOOptions& opts,
                           const DataVerificationInfo& /* verification_info */,

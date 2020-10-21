@@ -123,7 +123,7 @@ class In_Use_Array{
   }
   bool deallocate_memory_slot(int index) {
     bool temp = true;
-
+    assert(in_use[index] == true);
     return in_use[index].compare_exchange_strong(temp, false);
 
   }
