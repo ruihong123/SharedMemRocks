@@ -895,7 +895,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
-  IOStatus s;
+
+    IOStatus s;
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
@@ -908,6 +909,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     sst_meta_current = sst_meta_current->next_ptr;
     offset = offset- rdma_mg_->Table_Size;
   }
+  std::cout << "Read data from " << sst_meta_head_->fname <<" " << sst_meta_current->mr->addr <<  " offset: "
+            << offset << "size: " << n << std::endl;
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_current->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
@@ -1507,6 +1510,8 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
       sst_meta_head->file_lock);// write lock
   const char* src = data.data();
   size_t nbytes = data.size();
+  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
+            << chunk_offset << "size: " << nbytes << std::endl;
   IOStatus s = IOStatus::OK();
   ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
   ibv_mr* local_mr_pointer = nullptr;
