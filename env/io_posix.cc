@@ -974,7 +974,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
   }else{
     int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size);
     memcpy(buff_ptr, local_mr_pointer->addr, size);// copy to the buffer
-    std::cout << "read blocks within Table chunk" << std::endl;
+//    std::cout << "read blocks within Table chunk" << std::endl;
 
     if (flag!=0){
 
@@ -1581,7 +1581,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
     chunk_offset += size;
     buff_ptr += size;
-    std::cout << "write blocks within Table chunk" << std::endl;
+//    std::cout << "write blocks within Table chunk" << std::endl;
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
