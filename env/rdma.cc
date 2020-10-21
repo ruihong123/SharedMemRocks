@@ -52,13 +52,15 @@ RDMA_Manager::~RDMA_Manager()
     }
   if (!local_mem_pool.empty())
   {
-    std::for_each(local_mem_pool.begin(), local_mem_pool.end(), ibv_dereg_mr);
+//    ibv_dereg_mr(local_mem_pool.at(0));
+//    std::for_each(local_mem_pool.begin(), local_mem_pool.end(), ibv_dereg_mr);
     for (ibv_mr* p : local_mem_pool)
     {
-       //local buffer is registered on this machine need deregistering.
+      ibv_dereg_mr(p);
+//       local buffer is registered on this machine need deregistering.
       delete (char*)p->addr;
     }
-    local_mem_pool.clear();
+//    local_mem_pool.clear();
   }
   if (!remote_mem_pool.empty())
   {
