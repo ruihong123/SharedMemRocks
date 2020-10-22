@@ -41,7 +41,7 @@ int main()
         s = db->Put(option_wr, key, value);
       if (!s.ok()){
         std::cerr << s.ToString() << std::endl;
-        return;
+//        return;
       }
 
 //      std::cout << "iteration number " << i << std::endl;
@@ -53,7 +53,7 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       return;
+//       return;
      }
 
 //     std::cout << "Delete iteration number " << i << std::endl;
@@ -64,7 +64,7 @@ int main()
      s = db->Put(option_wr, key, value);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       return;
+//       return;
      }
 
 //     std::cout << "iteration number " << i << std::endl;
@@ -75,7 +75,7 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-       return;
+//       return;
      }
 //     std::cout << "iteration number " << i << std::endl;
    }
