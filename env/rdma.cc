@@ -650,8 +650,6 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
   //*(start) = std::chrono::steady_clock::now();
   //start = std::chrono::steady_clock::now();
-  auto start = std::chrono::high_resolution_clock::now();
-  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size/5+2000));
   rc = ibv_post_send(res->qp, &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
@@ -660,6 +658,9 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 //    fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
 //  }
   ibv_wc wc = {};
+  auto start = std::chrono::high_resolution_clock::now();
+  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size/5+2000));
+//wait until the job complete.
   rc = poll_completion(&wc, 1);
   if (rc != 0)
     std::cout << "RDMA Read Failed" << std::endl;
