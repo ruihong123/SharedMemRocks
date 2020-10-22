@@ -15,7 +15,7 @@ int main()
   rocksdb::DB* db;
   rocksdb::Options options;
   options.create_if_missing = true;
-  options.write_buffer_size = 1*1024*1024;
+  options.write_buffer_size = 4*1024*1024;
   options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
   rocksdb::BlockBasedTableOptions table_options;
@@ -41,7 +41,7 @@ int main()
       s = db->Put(option_wr, key, value);
       if (!s.ok()){
         std::cerr << s.ToString() << std::endl;
-//        return;
+        return;
       }
 
 //      std::cout << "iteration number " << i << std::endl;
@@ -53,18 +53,18 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-//       return;
+       return;
      }
 
 //     std::cout << "Delete iteration number " << i << std::endl;
    }
-   for (int i = 1001; i<2000000; i++){
+   for (int i = 1001; i<8000000; i++){
      key = std::to_string(i);
      value = std::to_string(i+dislocation);
      s = db->Put(option_wr, key, value);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-//       return;
+       return;
      }
 
 //     std::cout << "iteration number " << i << std::endl;
@@ -75,7 +75,7 @@ int main()
      s = db->Delete(option_wr, key);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
-//       return;
+       return;
      }
 //     std::cout << "iteration number " << i << std::endl;
    }
