@@ -17,7 +17,7 @@ int main()
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
   rocksdb::BlockBasedTableOptions table_options;
-  table_options.checksum= rocksdb::kxxHash;
+  table_options.checksum= rocksdb::kNoChecksum;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
