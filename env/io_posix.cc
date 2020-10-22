@@ -906,7 +906,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
   //find the SST_Metadata for current chunk.
   size_t chunk_offset = offset%(rdma_mg_->Table_Size);
-  while (offset > rdma_mg_->Table_Size){
+  while (offset >= rdma_mg_->Table_Size){
     sst_meta_current = sst_meta_current->next_ptr;
     offset = offset- rdma_mg_->Table_Size;
   }
@@ -948,7 +948,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
 
-  if (size + chunk_offset > rdma_mg_->Table_Size ){
+  if (size + chunk_offset >= rdma_mg_->Table_Size ){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
     //First step
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
@@ -1546,7 +1546,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
   int flag;
-  if (chunk_offset + size > rdma_mg_->Table_Size){
+  if (chunk_offset + size >= rdma_mg_->Table_Size){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
     //First step
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
