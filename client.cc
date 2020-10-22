@@ -19,7 +19,7 @@ int main()
   options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
   rocksdb::BlockBasedTableOptions table_options;
-  table_options.checksum= rocksdb::kNoChecksum;
+  table_options.checksum= rocksdb::kCRC32c;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
