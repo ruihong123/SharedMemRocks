@@ -58,7 +58,7 @@ int main()
 
 //     std::cout << "Delete iteration number " << i << std::endl;
    }
-   for (int i = 1001; i<8000000; i++){
+   for (int i = 1001; i<5000000; i++){
      key = std::to_string(i);
      value = std::to_string(i+dislocation);
      s = db->Put(option_wr, key, value);
@@ -108,17 +108,17 @@ int main()
     else std::cerr << s.ToString() << std::endl;
   };
   std::thread t5(f, 5);
-//  std::thread t1(f, 0);
-//  std::thread t2(f, 1);
-//  std::thread t3(f, 2);
-//  std::thread t4(f, 3);
+  std::thread t1(f, 0);
+  std::thread t2(f, 1);
+  std::thread t3(f, 2);
+  std::thread t4(f, 3);
 
 
   // Wait for t1 to finish
-//  t1.join();
-//  t2.join();
-//  t3.join();
-//  t4.join();
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
   t5.join();
 
   return 0;
