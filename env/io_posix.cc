@@ -1652,7 +1652,7 @@ uint64_t RDMAWritableFile::GetFileSize(const IOOptions& /*opts*/,
 
 void RDMAWritableFile::SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {
 #ifndef NDEBUG
-  std::cout << "This function setWriteLifeTimeHint is not supported" << std::endl;
+//  std::cout << "This function setWriteLifeTimeHint is not supported" << std::endl;
 #endif
 }
 
