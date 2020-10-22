@@ -619,7 +619,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
 //  }
   ibv_wc wc = {};
   auto start = std::chrono::high_resolution_clock::now();
-  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+20000));
+  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
   rc = poll_completion(&wc, 1);
   if (rc != 0)
     std::cout << "RDMA Read Failed" << std::endl;
@@ -659,7 +659,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 //  }
   ibv_wc wc = {};
   auto start = std::chrono::high_resolution_clock::now();
-  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+20000));
+  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
 //wait until the job complete.
   rc = poll_completion(&wc, 1);
   if (rc != 0)
