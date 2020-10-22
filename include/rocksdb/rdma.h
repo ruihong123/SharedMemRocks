@@ -120,8 +120,8 @@ class In_Use_Array{
           return i; // find the empty slot then return the index for the slot
 
         }
-        else
-          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
+//        else
+//          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
       }
 
     }
