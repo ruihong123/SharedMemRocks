@@ -205,6 +205,7 @@ class RDMA_Manager{
   size_t Block_Size = 64*1024*1024;
   uint64_t Table_Size = 10*1024*1024;
   std::mutex create_mutex;
+  std::shared_mutex rw_mutex;
  private:
 
   config_t rdma_config;
