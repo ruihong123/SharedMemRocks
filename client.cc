@@ -1,16 +1,25 @@
 #include <assert.h>
+#include <include/rocksdb/table.h>
+#include <stdlib.h>
 
 #include <iostream>
 #include <string>
 #include <thread>
-#include <stdlib.h>
+
+#include "rocksdb/advanced_options.h"
 #include "rocksdb/db.h"
+#include "rocksdb/options.h"
+#include "include/rocksdb/table.h"
 int main()
 {
   rocksdb::DB* db;
   rocksdb::Options options;
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
+  rocksdb::BlockBasedTableOptions table_options;
+  table_options.checksum= rocksdb::kxxHash;
+  options.table_factory.reset(NewBlockBasedTableFactory(table_options));
+//  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
