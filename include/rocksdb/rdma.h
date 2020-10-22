@@ -200,7 +200,7 @@ class RDMA_Manager{
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
-  size_t Block_Size = 4*1024;
+  size_t Block_Size = 64*1024*1024;
   uint64_t Table_Size = 10*1024*1024;
   std::mutex create_mutex;
  private:

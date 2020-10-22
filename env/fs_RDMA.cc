@@ -1035,7 +1035,7 @@ RDMAFileSystem::RDMAFileSystem()
       19875, /* tcp_port */
       1,	 /* ib_port */
       -1, /* gid_idx */
-      4*10*1024*1024 /*initial local buffer size*/
+      1024*1024*1024 /*initial local buffer size*/
   };
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
