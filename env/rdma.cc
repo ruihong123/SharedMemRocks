@@ -220,7 +220,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
   else{
     local_mem_pool.push_back(*p2mrpointer);
     int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num);
+    In_Use_Array in_use_array(placeholder_num, 0);
     Local_Mem_Bitmap->insert({ *p2mrpointer, in_use_array });
     return true;
   }
@@ -1067,7 +1067,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
 
     //push the bitmap of the new registed buffer to the bitmap vector in resource.
     int placeholder_num = static_cast<int>(temp_pointer->length)/(Table_Size);// here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num);
+    In_Use_Array in_use_array(placeholder_num, 1);
     Remote_Mem_Bitmap->insert({ temp_pointer, in_use_array });
     // NOTICE: Couold be problematic because the pushback may not an absolute
     //   value copy. it could raise a segment fault(Double check it)

@@ -104,11 +104,12 @@ struct atomwrapper
 };
 class In_Use_Array{
  public:
-  In_Use_Array(size_t size) : size_(size){
+  In_Use_Array(size_t size, int type) :size_(size), type_(type){
     in_use = new std::atomic<bool>[size_];
     for (size_t i = 0; i < size_; ++i){
       in_use[i] = false;
     }
+
   }
   int allocate_memory_slot(){
     for (int i = 0; i < static_cast<int>(size_); ++i){
@@ -120,7 +121,7 @@ class In_Use_Array{
 
         }
         else
-          std::cout << "Compare and swap fail" << std::endl;
+          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
       }
 
     }
@@ -137,6 +138,7 @@ class In_Use_Array{
  private:
   size_t size_;
   std::atomic<bool>* in_use;
+  int type_;
 };
 /* structure of system resources */
 struct resources
