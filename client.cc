@@ -6,10 +6,11 @@
 #include <string>
 #include <thread>
 
-#include "rocksdb/advanced_options.h"
+#include <chrono>
+
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
-#include "include/rocksdb/table.h"
+
 int main()
 {
   rocksdb::DB* db;
@@ -27,7 +28,9 @@ int main()
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
- auto f = [=](int dislocation){
+  using namespace std::chrono;
+  auto start = high_resolution_clock::now();
+  auto f = [=](int dislocation){
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
@@ -120,6 +123,10 @@ int main()
   t3.join();
   t4.join();
   t5.join();
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << duration.count() << std::endl;
 
   return 0;
 }
