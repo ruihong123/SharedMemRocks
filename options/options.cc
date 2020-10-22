@@ -613,7 +613,7 @@ ReadOptions::ReadOptions()
       readahead_size(0),
       max_skippable_internal_keys(0),
       read_tier(kReadAllTier),
-      verify_checksums(true),
+      verify_checksums(false),
       fill_cache(true),
       tailing(false),
       managed(false),
