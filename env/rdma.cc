@@ -1160,7 +1160,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
       sst_meta->map_pointer = ptr->first; // it could be confused that the map_pointer is for the memtadata deletion
       // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
       sst_meta->file_size = 0;
-      std::cout <<"Chunk allocate at" << sst_meta->mr->addr <<"index :" << sst_index << std::endl;
+      std::cout <<"Chunk allocate at" << sst_meta->mr->addr <<"index :" << sst_index << "name: " << sst_meta->fname << std::endl;
 
       return;
     } else ptr++;
