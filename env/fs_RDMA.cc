@@ -1040,7 +1040,7 @@ RDMAFileSystem::RDMAFileSystem()
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   rdma_mg_ = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
-  rdma_mg_->Set_Up_RDMA();
+  rdma_mg_->Client_Set_Up_RDMA();
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local

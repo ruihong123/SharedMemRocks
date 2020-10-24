@@ -28,6 +28,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <map>
 #include <vector>
 //#ifdef __cplusplus
 //extern "C" { //only need to export C interface if
@@ -52,7 +53,7 @@ struct config_t
   const char* dev_name; /* IB device name */
   const char* server_name;	/* server host name */
   u_int32_t tcp_port;   /* server TCP port */
-  int ib_port;		  /* local IB port to work with */
+  int ib_port;		  /* local IB port to work with, or physically port number */
   int gid_idx;		  /* gid index to use */
   int init_local_buffer_size;   /*initial local SST buffer size*/
 };
@@ -104,7 +105,7 @@ struct atomwrapper
 };
 class In_Use_Array{
  public:
-  In_Use_Array(size_t size, int type) :size_(size), type_(type){
+  In_Use_Array(size_t size, int type) :size_(size){
     in_use = new std::atomic<bool>[size_];
     for (size_t i = 0; i < size_; ++i){
       in_use[i] = false;
@@ -138,7 +139,7 @@ class In_Use_Array{
  private:
   size_t size_;
   std::atomic<bool>* in_use;
-  int type_;
+//  int type_;
 };
 /* structure of system resources */
 struct resources
@@ -151,8 +152,8 @@ struct resources
 //  std::vector<registered_qp_config> remote_mem_regions; /* memory buffers for RDMA */
   struct ibv_context* ib_ctx = nullptr;		   /* device handle */
   struct ibv_pd* pd = nullptr;				   /* PD handle */
-  struct ibv_cq* cq = nullptr;				   /* CQ handle */
-  struct ibv_qp* qp = nullptr;				   /* QP handle */
+  std::map<std::string,ibv_cq*> cq_map;				   /* CQ Map */
+  std::map<std::string,ibv_qp*> qp_map;				   /* QP Map */
   struct ibv_mr* mr_receive = nullptr;              /* MR handle for receive_buf */
   struct ibv_mr* mr_send = nullptr;                 /* MR handle for send_buf */
 //  struct ibv_mr* mr_SST = nullptr;                        /* MR handle for SST_buf */
@@ -160,8 +161,7 @@ struct resources
   char* SST_buf = nullptr;			/* SSTable buffer pools pointer, it could contain multiple SSTbuffers */
   char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
   char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
-
-  int sock;						   /* TCP socket file descriptor */
+  std::map<std::string, int> sock_map;						   /* TCP socket file descriptor */
 };
 /* structure of test parameters */
 class RDMA_Manager{
@@ -175,8 +175,14 @@ class RDMA_Manager{
 //  }
   RDMA_Manager()=delete;
   ~RDMA_Manager();
+  // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
+  void Client_Set_Up_RDMA();
+  //Set up the socket connection to remote shared memory.
+  bool Client_Connect_to_Server();
 
-  void Set_Up_RDMA();
+
+  // this function is for the server.
+  void Server_to_Client_Communication_thread(int socketfd);
   // Local memory register need to first allocate memory outside them register it.
   // it also push the new block bit map to the Remote_Mem_Bitmap
   bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
@@ -184,7 +190,9 @@ class RDMA_Manager{
   // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
-  void Sever_thread();
+  // new query pair creation and connection to remote Memory by RDMA send and receive
+  bool Remote_Query_Pair_Connection();// Only called by client.
+
   int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
   int RDMA_Send();
@@ -221,7 +229,9 @@ class RDMA_Manager{
   int modify_qp_to_init(struct ibv_qp* qp);
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid, uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
-  int connect_qp();
+  bool create_qp(std::string& id);
+  int connect_qp(registered_qp_config remote_con_data, std::string& id,
+                 int socket_fd);
   int resources_destroy();
   void print_config(void);
   void usage(const char* argv0);
