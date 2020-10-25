@@ -339,6 +339,9 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   // Now is the communication through rdma.
   computing_to_memory_msg * receive_pointer;
   receive_pointer = (computing_to_memory_msg*)recv_buff;
+//  receive_pointer->command = ntohl(receive_pointer->command);
+//  receive_pointer->content.qp_config.qp_num = ntohl(receive_pointer->content.qp_config.qp_num);
+//  receive_pointer->content.qp_config.lid = ntohs(receive_pointer->content.qp_config.lid);
   ibv_wc wc[2] = {};
   while (true){
     poll_completion(wc, 1, client_ip);
@@ -377,8 +380,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       else
         memset(&my_gid, 0, sizeof my_gid);
       /* exchange using TCP sockets info required to connect QPs */
-      send_pointer->qp_num = htonl(res->qp_map[new_qp_id]->qp_num);
-      send_pointer->lid = htons(res->port_attr.lid);
+      send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
+      send_pointer->lid = res->port_attr.lid;
       memcpy(local_con_data.gid, &my_gid, 16);
       connect_qp(receive_pointer->content.qp_config, new_qp_id);
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
