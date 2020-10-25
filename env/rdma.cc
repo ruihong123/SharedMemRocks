@@ -211,7 +211,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
   int sockfd = -1;
   int listenfd = 0;
   struct sockaddr address;
-  socklen_t len;
+  socklen_t len = sizeof(struct sockaddr);
   struct addrinfo hints =
       {
           .ai_flags = AI_PASSIVE,
