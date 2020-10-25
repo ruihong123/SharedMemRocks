@@ -243,8 +243,8 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
             sockfd = accept(listenfd, &address, &len);
             std::cout << "connection built up from" <<address.sa_data << std::endl;
             std::cout << "connection family is " <<address.sa_family << std::endl;
-            std::thread([this](std::string client_ip,
-                               int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd);
+            thread_pool.push_back(std::thread([this](std::string client_ip,
+                               int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd));
           }
 
     }

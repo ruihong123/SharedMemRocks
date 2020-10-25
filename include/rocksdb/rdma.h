@@ -231,6 +231,7 @@ class RDMA_Manager{
   std::mutex create_mutex;
   std::shared_mutex rw_mutex;
   std::mutex send_recv_mutex;
+  std::vector<std::thread> thread_pool;
  private:
 
   config_t rdma_config;
