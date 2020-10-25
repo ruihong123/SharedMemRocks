@@ -345,6 +345,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
      //copy the pointer of receive buf to a new place because
     // it is the same with send buff pointer.
     if(receive_pointer->command == create_mr_){
+      std::cout << "create memory region command receive for" << client_ip << std::endl;
       ibv_mr * send_pointer = (ibv_mr*)send_buff;
       ibv_mr* mr;
       char* buff;
@@ -358,9 +359,10 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_send<ibv_mr>(send_mr, client_ip);// note here should be the mr point to the send buffer.
       poll_completion(wc, 1, client_ip);
     }
-    else if (receive_pointer->command == create_mr_){
+    else if (receive_pointer->command == create_qp_){
       std::string new_qp_id = std::to_string(receive_pointer->content.qp_config.lid)
                               + std::to_string(receive_pointer->content.qp_config.qp_num);
+      std::cout << "create query pair command receive for" << client_ip << std::endl;
       registered_qp_config * send_pointer = (registered_qp_config*)send_buff;
       create_qp(new_qp_id);
       if (rdma_config.gid_idx >= 0)
