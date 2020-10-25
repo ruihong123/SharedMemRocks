@@ -53,6 +53,7 @@ int main()
 //  RDMA_Manager rdma_manager(config, Remote_Bitmap, Local_Bitmap);
   rdma_manager->Client_Set_Up_Resources();
   std::thread thread_object(client_thread, rdma_manager);
+  while(1);
 
   return 0;
 }
