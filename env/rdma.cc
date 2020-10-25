@@ -349,6 +349,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     // it is the same with send buff pointer.
     if(receive_pointer->command == create_mr_){
       std::cout << "create memory region command receive for" << client_ip << std::endl;
+      fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->content.qp_config.qp_num);
+      fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->content.qp_config.lid);
       ibv_mr * send_pointer = (ibv_mr*)send_buff;
       ibv_mr* mr;
       char* buff;
@@ -732,7 +734,7 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
 		fprintf(stderr, "failed to modify QP state to RTS\n");
 		goto connect_qp_exit;
 	}
-	fprintf(stdout, "QP state was change to RTS\n");
+	fprintf(stdout, "QP %s state was change to RTS\n", qp_id.c_str());
 	/* sync to make sure that both sides are in states that they can connect to prevent packet loose */
 connect_qp_exit:
 	return rc;
@@ -1374,6 +1376,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
           wc, 2, std::string("main"))){
     //poll the receive for 2 entires
     registered_qp_config temp_buff = *receive_pointer;
+    fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->qp_num);
+    fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->lid);
     //te,p_buff will have the informatin for the remote query pair,
     // use this information for qp connection.
     connect_qp(temp_buff, qp_id);
