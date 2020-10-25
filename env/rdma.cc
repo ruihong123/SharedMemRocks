@@ -349,8 +349,6 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     // it is the same with send buff pointer.
     if(receive_pointer->command == create_mr_){
       std::cout << "create memory region command receive for" << client_ip << std::endl;
-      fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->content.qp_config.qp_num);
-      fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->content.qp_config.lid);
       ibv_mr * send_pointer = (ibv_mr*)send_buff;
       ibv_mr* mr;
       char* buff;
@@ -368,6 +366,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       std::string new_qp_id = std::to_string(receive_pointer->content.qp_config.lid)
                               + std::to_string(receive_pointer->content.qp_config.qp_num);
       std::cout << "create query pair command receive for" << client_ip << std::endl;
+      fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->content.qp_config.qp_num);
+      fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->content.qp_config.lid);
       registered_qp_config * send_pointer = (registered_qp_config*)send_buff;
       create_qp(new_qp_id);
       if (rdma_config.gid_idx >= 0)
