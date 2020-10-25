@@ -1356,6 +1356,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = res->qp_map[qp_id]->qp_num;
+  send_pointer->content.qp_config.lid = res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
   registered_qp_config * receive_pointer;
