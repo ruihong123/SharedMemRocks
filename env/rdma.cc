@@ -441,7 +441,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
 * set up the connection to shared memroy.
 ******************************************************************************/
 void RDMA_Manager::Client_Set_Up_RDMA(){
-  int rc = 1;
+//  int rc = 1;
   //int trans_times;
   char temp_char;
   std::string ip_add;
@@ -455,7 +455,7 @@ void RDMA_Manager::Client_Set_Up_RDMA(){
   {
     fprintf(stderr, "failed to establish TCP connection to server %s, port %d\n",
             rdma_config.server_name, rdma_config.tcp_port);
-    rc = -1;
+
 
   }
 
