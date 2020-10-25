@@ -7,7 +7,7 @@ void client_thread(RDMA_Manager* rdma_manager){
   std::stringstream ss;
   ss << myid;
   std::string thread_id = ss.str();
-  rdma_manager->Remote_Memory_Register(1024*1024*1024);
+  rdma_manager->Remote_Memory_Register(100*1024*1024);
   rdma_manager->Remote_Query_Pair_Connection(thread_id);
   std::cout << rdma_manager->remote_mem_pool[0];
   ibv_mr mem_pool_table[2];
