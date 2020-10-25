@@ -295,7 +295,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &my_gid, 16);
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
-  if (sock_sync_data(res->sock_map["main"], sizeof(struct registered_qp_config), (char*)&local_con_data, (char*)&tmp_con_data) < 0)
+  if (sock_sync_data(socket_fd, sizeof(struct registered_qp_config), (char*)&local_con_data, (char*)&tmp_con_data) < 0)
   {
     fprintf(stderr, "failed to exchange connection data between sides\n");
     rc = 1;
