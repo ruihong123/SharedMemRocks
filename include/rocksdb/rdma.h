@@ -188,9 +188,9 @@ class RDMA_Manager{
   RDMA_Manager()=delete;
   ~RDMA_Manager();
   // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
-  void Client_Set_Up_RDMA();
+  void Client_Set_Up_Resources();
   //Set up the socket connection to remote shared memory.
-  bool Client_Connect_to_Server();
+  bool Client_Connect_to_Server_RDMA();
 
 
   // this function is for the server.

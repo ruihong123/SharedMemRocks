@@ -51,7 +51,7 @@ int main()
   auto Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   RDMA_Manager* rdma_manager = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
 //  RDMA_Manager rdma_manager(config, Remote_Bitmap, Local_Bitmap);
-  rdma_manager->Client_Set_Up_RDMA();
+  rdma_manager->Client_Set_Up_Resources();
   std::thread thread_object(client_thread, rdma_manager);
 
   return 0;

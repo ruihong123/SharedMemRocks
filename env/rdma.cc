@@ -238,11 +238,15 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
           sockfd = -1;
           if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
             goto sock_connect_exit;
-          listen(listenfd, 1);
+          listen(listenfd, 20);
           while(1){
             sockfd = accept(listenfd, &address, &len);
             std::cout << "connection built up from" <<address.sa_data << std::endl;
             std::cout << "connection family is " <<address.sa_family << std::endl;
+            if (sockfd < 0 ){
+              fprintf(stderr, "Connection accept error, erron: %d\n", errno);
+              break;
+            }
             thread_pool.push_back(std::thread([this](std::string client_ip,
                                int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd));
           }
@@ -443,7 +447,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
 * Description
 * set up the connection to shared memroy.
 ******************************************************************************/
-void RDMA_Manager::Client_Set_Up_RDMA(){
+void RDMA_Manager::Client_Set_Up_Resources(){
 //  int rc = 1;
   //int trans_times;
   char temp_char;
@@ -467,7 +471,7 @@ void RDMA_Manager::Client_Set_Up_RDMA(){
     fprintf(stderr, "failed to create resources\n");
     return;
   }
-  Client_Connect_to_Server();
+  Client_Connect_to_Server_RDMA();
 
 }
 /******************************************************************************
@@ -592,7 +596,7 @@ int RDMA_Manager::resources_create()
 	return rc;
 }
 
-bool RDMA_Manager::Client_Connect_to_Server() {
+bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
 //  int iter = 1;
   char temp_receive[2];
   char temp_send[] = "Q";
