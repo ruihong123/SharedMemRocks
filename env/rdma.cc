@@ -395,7 +395,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
 
 }
-void RDMA_Manager::Server_to_Client_Communication_thread() {
+void RDMA_Manager::Server_to_Client_Communication() {
 
   if (resources_create())
   {
@@ -422,6 +422,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
   mr_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
 
   *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
+  local_mem_pool.push_back(*p2mrpointer);
+  fprintf(stdout, "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
+          (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey, mr_flags);
   if (!*p2mrpointer)
   {
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
@@ -429,12 +432,11 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
   }
   else if(rdma_config.server_name){ // for the send buffer and receive buffer they will not be
     // add to the local mem pool.
-    local_mem_pool.push_back(*p2mrpointer);
+
     int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, 0);
     Local_Mem_Bitmap->insert({ *p2mrpointer, in_use_array });
-    fprintf(stdout, "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
-            (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey, mr_flags);
+
     return true;
   }
   return true;
@@ -942,7 +944,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   if (rc != 0){
     std::cout << "RDMA Read Failed" << std::endl;
     std::cout << "q id is" << q_id << std::endl;
-    std::cout << "qp number is" << res->qp_map.at(q_id) << std::endl;
+    fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
   }
 
 
@@ -988,7 +990,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   {
     std::cout << "RDMA Read Failed" << std::endl;
     std::cout << "q id is" << q_id << std::endl;
-    std::cout << "qp number is" << res->qp_map.at(q_id) << std::endl;
+    fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
   }
 
 

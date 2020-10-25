@@ -23,15 +23,15 @@ void client_thread(RDMA_Manager* rdma_manager){
 
   rdma_manager->RDMA_Read(rdma_manager->remote_mem_pool[0], &mem_pool_table[1],
                           msg_size, thread_id);
-  ibv_wc* wc = new ibv_wc();
-  while(wc->opcode != IBV_WC_RDMA_READ){
-    rdma_manager->poll_completion(wc, 2, thread_id);
-    if (wc->status != 0){
-      fprintf(stderr, "Work completion status is %d \n", wc->status);
-      fprintf(stderr, "Work completion opcode is %d \n", wc->opcode);
-    }
+//  ibv_wc* wc = new ibv_wc();
+//
+//    rdma_manager->poll_completion(wc, 2, thread_id);
+//    if (wc->status != 0){
+//      fprintf(stderr, "Work completion status is %d \n", wc->status);
+//      fprintf(stderr, "Work completion opcode is %d \n", wc->opcode);
+//    }
 
-  }
+
   std::cout << "write buffer: " << (char*)mem_pool_table[0].addr << std::endl;
 
   std::cout << "read buffer: " << (char*)mem_pool_table[1].addr << std::endl;

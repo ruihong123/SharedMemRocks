@@ -194,7 +194,7 @@ class RDMA_Manager{
 
 
   // this function is for the server.
-  void Server_to_Client_Communication_thread();
+  void Server_to_Client_Communication();
   void server_communication_thread(std::string client_ip, int socket_fd);
   // Local memory register need to first allocate memory outside them register it.
   // it also push the new block bit map to the Remote_Mem_Bitmap

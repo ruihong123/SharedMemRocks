@@ -15,7 +15,7 @@ int main()
       -1, /* gid_idx */
   0};
   RDMA_Manager RDMA_manager(config, local, remote);
-  RDMA_manager.Server_to_Client_Communication_thread();
+  RDMA_manager.Server_to_Client_Communication();
 
 
     return 0;
