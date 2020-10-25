@@ -433,6 +433,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
     int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, 0);
     Local_Mem_Bitmap->insert({ *p2mrpointer, in_use_array });
+    fprintf(stdout, "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
+            (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey, mr_flags);
     return true;
   }
   return true;
@@ -937,8 +939,12 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
 //  auto start = std::chrono::high_resolution_clock::now();
 //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
   rc = poll_completion(&wc, 1, q_id);
-  if (rc != 0)
+  if (rc != 0){
     std::cout << "RDMA Read Failed" << std::endl;
+    std::cout << "q id is" << q_id << std::endl;
+    std::cout << "qp number is" << res->qp_map.at(q_id) << std::endl;
+  }
+
 
   return rc;
 }
@@ -979,7 +985,13 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
 //wait until the job complete.
   rc = poll_completion(&wc, 1, q_id);
   if (rc != 0)
+  {
     std::cout << "RDMA Read Failed" << std::endl;
+    std::cout << "q id is" << q_id << std::endl;
+    std::cout << "qp number is" << res->qp_map.at(q_id) << std::endl;
+  }
+
+
   return rc;
 }
 //int RDMA_Manager::post_atomic(int opcode)

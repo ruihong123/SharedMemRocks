@@ -223,7 +223,7 @@ class RDMA_Manager{
 
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
-  std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions, which is mainly designed for Shared memory side*/
+  std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
   size_t Block_Size = 64*1024*1024;
