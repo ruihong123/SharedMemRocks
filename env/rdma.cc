@@ -226,6 +226,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
     fprintf(stderr, "%s for %s:%d\n", gai_strerror(sockfd), servername, port);
     goto sock_connect_exit;
   }
+
   /* Search through results and find the one we want */
   for (iterator = resolved_addr; iterator; iterator = iterator->ai_next) {
     sockfd = socket(iterator->ai_family, iterator->ai_socktype,
@@ -238,11 +239,13 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
           if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
             goto sock_connect_exit;
           listen(listenfd, 1);
-          sockfd = accept(listenfd, &address, &len);
-          std::cout << "connection built up from" <<address.sa_data << std::endl;
-          std::cout << "connection family is " <<address.sa_family << std::endl;
-          std::thread([this](std::string client_ip,
-                             int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd);
+          while(1){
+            sockfd = accept(listenfd, &address, &len);
+            std::cout << "connection built up from" <<address.sa_data << std::endl;
+            std::cout << "connection family is " <<address.sa_family << std::endl;
+            std::thread([this](std::string client_ip,
+                               int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd);
+          }
 
     }
   }
