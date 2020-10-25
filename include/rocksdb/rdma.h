@@ -16,6 +16,10 @@
 #include <unordered_map>
 #include <algorithm>
 #include <shared_mutex>
+#include <thread>
+#include <chrono>
+#include <memory>
+#include <sstream>
 //#include <options.h>
 
 #include <arpa/inet.h>
@@ -57,18 +61,23 @@ struct config_t
   int gid_idx;		  /* gid index to use */
   int init_local_buffer_size;   /*initial local SST buffer size*/
 };
-struct computing_to_memory_msg
-{
-  size_t mem_size;
-
-
-};
 /* structure to exchange data which is needed to connect the QPs */
 struct registered_qp_config {
   uint32_t qp_num; /* QP number */
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
+enum RDMA_Command_Type {create_qp_, create_mr_};
+union RDMA_Command_Content{
+  size_t mem_size;
+  registered_qp_config qp_config;
+};
+struct computing_to_memory_msg
+{
+  RDMA_Command_Type command;
+  RDMA_Command_Content content;
+};
+
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
 struct SST_Metadata{
@@ -162,6 +171,9 @@ struct resources
   char* send_buf = nullptr;                       /* SEND buffer pools pointer, it could contain multiple SEND buffers */
   char* receive_buf = nullptr;		        /* receive buffer pool pointer,  it could contain multiple acturall receive buffers */
   std::map<std::string, int> sock_map;						   /* TCP socket file descriptor */
+  std::map<std::string, ibv_mr*> mr_receive_map;
+  std::map<std::string, ibv_mr*> mr_send_map;
+
 };
 /* structure of test parameters */
 class RDMA_Manager{
@@ -182,7 +194,8 @@ class RDMA_Manager{
 
 
   // this function is for the server.
-  void Server_to_Client_Communication_thread(int socketfd);
+  void Server_to_Client_Communication_thread();
+  void server_communication_thread(std::string client_ip, int socket_fd);
   // Local memory register need to first allocate memory outside them register it.
   // it also push the new block bit map to the Remote_Mem_Bitmap
   bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
@@ -191,12 +204,15 @@ class RDMA_Manager{
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
   // new query pair creation and connection to remote Memory by RDMA send and receive
-  bool Remote_Query_Pair_Connection();// Only called by client.
+  bool Remote_Query_Pair_Connection(
+      std::string& qp_id);// Only called by client.
 
-  int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
-  int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size);
+  int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
+                std::string q_id);
+  int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
+                 std::string q_id);
   int RDMA_Send();
-  int poll_completion(ibv_wc* wc_p, int num_entries);
+  int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const;
   bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const;
 
@@ -214,24 +230,26 @@ class RDMA_Manager{
   uint64_t Table_Size = 10*1024*1024;
   std::mutex create_mutex;
   std::shared_mutex rw_mutex;
+  std::mutex send_recv_mutex;
  private:
 
   config_t rdma_config;
 
-  int sock_connect(const char* servername, int port);
+  int client_sock_connect(const char* servername, int port);
+  int server_sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
-
-  int post_send(void* mr, bool is_server);// should change it into <template>post_send(void* mr, template &send_data)
+  template <typename T>
+  int post_send(ibv_mr* mr, std::string qp_id = "main");
 //  int post_receives(int len);
-  int post_receive(void* mr, bool is_server);
+  template <typename T>
+  int post_receive(ibv_mr* mr, std::string qp_id = "main");
 
   int resources_create();
   int modify_qp_to_init(struct ibv_qp* qp);
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid, uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
   bool create_qp(std::string& id);
-  int connect_qp(registered_qp_config remote_con_data, std::string& id,
-                 int socket_fd);
+  int connect_qp(registered_qp_config remote_con_data, std::string& qp_id);
   int resources_destroy();
   void print_config(void);
   void usage(const char* argv0);

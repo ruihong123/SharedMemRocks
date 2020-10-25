@@ -1,6 +1,6 @@
 #include <include/rocksdb/rdma.h>
-#include <chrono>
-#include <memory>
+
+
 /******************************************************************************
 * Function: RDMA_Manager
 
@@ -17,7 +17,7 @@ RDMA_Manager::RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
                           std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap)
     : rdma_config(config){
   res = new resources();
-  res->sock = -1;
+//  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;
   Local_Mem_Bitmap = Local_Bitmap;
 }
@@ -34,12 +34,12 @@ RDMA_Manager::RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
 ******************************************************************************/
 RDMA_Manager::~RDMA_Manager()
 {
-  if (res->qp)
-    if (ibv_destroy_qp(res->qp))
-    {
-      fprintf(stderr, "failed to destroy QP\n");
+  if (!res->qp_map.empty())
+    for ( auto it = res->qp_map.begin(); it != res->qp_map.end(); it++ ) {
+      if (ibv_destroy_qp(it->second)) {
+        fprintf(stderr, "failed to destroy QP\n");
+      }
     }
-
   if (res->mr_receive)
     if (ibv_dereg_mr(res->mr_receive))
     {
@@ -77,11 +77,14 @@ RDMA_Manager::~RDMA_Manager()
     delete res->send_buf;
 //  if (res->SST_buf)
 //    delete res->SST_buf;
-  if (res->cq)
-    if (ibv_destroy_cq(res->cq))
-    {
-      fprintf(stderr, "failed to destroy CQ\n");
+  if (!res->cq_map.empty())
+    for ( auto it = res->cq_map.begin(); it != res->cq_map.end(); it++ ){
+      if (ibv_destroy_cq(it->second))
+      {
+        fprintf(stderr, "failed to destroy CQ\n");
+      }
     }
+
 
 
   if (res->pd)
@@ -95,11 +98,15 @@ RDMA_Manager::~RDMA_Manager()
     {
       fprintf(stderr, "failed to close device context\n");
     }
-  if (res->sock >= 0)
-    if (close(res->sock))
+  if (!res->sock_map.empty())
+    for ( auto it = res->sock_map.begin(); it != res->sock_map.end(); it++ )
     {
-      fprintf(stderr, "failed to close socket\n");
+      if (close(it->second))
+      {
+        fprintf(stderr, "failed to close socket\n");
+      }
     }
+
 
   delete res;
 }
@@ -129,7 +136,7 @@ this example
 * indicated port for an incoming connection.
 *
 ******************************************************************************/
-int RDMA_Manager::sock_connect(const char* servername, int port)
+int RDMA_Manager::client_sock_connect(const char* servername, int port)
 {
 	struct addrinfo* resolved_addr = NULL;
 	struct addrinfo* iterator;
@@ -195,6 +202,197 @@ sock_connect_exit:
 	}
 	return sockfd;
 }
+// connection code for server side, will get prepared for multiple connection
+// on the same port.
+int RDMA_Manager::server_sock_connect(const char* servername, int port) {
+  struct addrinfo* resolved_addr = NULL;
+  struct addrinfo* iterator;
+  char service[6];
+  int sockfd = -1;
+  int listenfd = 0;
+  struct sockaddr address;
+  socklen_t len;
+  struct addrinfo hints =
+      {
+          .ai_flags = AI_PASSIVE,
+          .ai_family = AF_INET,
+          .ai_socktype = SOCK_STREAM };
+  if (sprintf(service, "%d", port) < 0)
+    goto sock_connect_exit;
+  /* Resolve DNS address, use sockfd as temp storage */
+  sockfd = getaddrinfo(servername, service, &hints, &resolved_addr);
+  if (sockfd < 0)
+  {
+    fprintf(stderr, "%s for %s:%d\n", gai_strerror(sockfd), servername, port);
+    goto sock_connect_exit;
+  }
+  /* Search through results and find the one we want */
+  for (iterator = resolved_addr; iterator; iterator = iterator->ai_next) {
+    sockfd = socket(iterator->ai_family, iterator->ai_socktype,
+                    iterator->ai_protocol);
+      if (sockfd >= 0) {
+
+          /* Server mode. Set up listening socket an accept a connection */
+          listenfd = sockfd;
+          sockfd = -1;
+          if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
+            goto sock_connect_exit;
+          listen(listenfd, 1);
+          sockfd = accept(listenfd, &address, &len);
+          std::cout << "connection built up from" <<address.sa_data << std::endl;
+          std::cout << "connection family is " <<address.sa_family << std::endl;
+          std::thread([this](std::string client_ip,
+                             int socket_fd){this->server_communication_thread(client_ip, socket_fd);}, std::string(address.sa_data),sockfd);
+
+    }
+  }
+sock_connect_exit:
+
+      if (listenfd)
+        close(listenfd);
+      if (resolved_addr)
+        freeaddrinfo(resolved_addr);
+      if (sockfd < 0)
+      {
+        if (servername)
+          fprintf(stderr, "Couldn't connect to %s:%d\n", servername, port);
+        else
+        {
+          perror("server accept");
+          fprintf(stderr, "accept() failed\n");
+        }
+      }
+      return sockfd;
+}
+void RDMA_Manager::server_communication_thread(std::string client_ip,
+                                               int socket_fd) {
+  char temp_receive[2];
+  char temp_send[] = "Q";
+  struct registered_qp_config local_con_data;
+  struct registered_qp_config remote_con_data;
+  struct registered_qp_config tmp_con_data;
+//  std::string qp_id = "main";
+  int rc = 0;
+
+  union ibv_gid my_gid;
+  if (rdma_config.gid_idx >= 0)
+  {
+    rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx, &my_gid);
+    if (rc)
+    {
+      fprintf(stderr, "could not get gid for port %d, index %d\n", rdma_config.ib_port, rdma_config.gid_idx);
+      return;
+    }
+  }
+  else
+    memset(&my_gid, 0, sizeof my_gid);
+  /* exchange using TCP sockets info required to connect QPs */
+  create_qp(client_ip);
+  local_con_data.qp_num = htonl(res->qp_map[client_ip]->qp_num);
+  local_con_data.lid = htons(res->port_attr.lid);
+  memcpy(local_con_data.gid, &my_gid, 16);
+  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+  if (sock_sync_data(res->sock_map["main"], sizeof(struct registered_qp_config), (char*)&local_con_data, (char*)&tmp_con_data) < 0)
+  {
+    fprintf(stderr, "failed to exchange connection data between sides\n");
+    rc = 1;
+  }
+  remote_con_data.qp_num = ntohl(tmp_con_data.qp_num);
+  remote_con_data.lid = ntohs(tmp_con_data.lid);
+  memcpy(remote_con_data.gid, tmp_con_data.gid, 16);
+  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
+  if (connect_qp(remote_con_data, client_ip))
+  {
+    fprintf(stderr, "failed to connect QPs\n");
+  }
+
+
+  ibv_mr* send_mr;
+  char* send_buff;
+  if(!Local_Memory_Register(&send_buff, &send_mr, 1000)){
+    fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
+  }
+  ibv_mr* recv_mr;
+  char* recv_buff;
+  if(!Local_Memory_Register(&recv_buff, &recv_mr, 1000)) {
+    fprintf(stderr, "memory registering failed by size of 0x%x\n",
+            1000);
+  }
+  post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+
+  // sync after send & recv buffer creation and receive request posting.
+  if (sock_sync_data(socket_fd, 1, temp_send, temp_receive)) /* just send a dummy char back and forth */
+  {
+    fprintf(stderr, "sync error after QPs are were moved to RTS\n");
+    rc = 1;
+  }
+
+// Computing node and share memory connection succeed.
+  // Now is the communication through rdma.
+  computing_to_memory_msg * receive_pointer;
+  receive_pointer = (computing_to_memory_msg*)recv_buff;
+  ibv_wc wc[2] = {};
+  while (true){
+    poll_completion(wc, 1, client_ip);
+     //copy the pointer of receive buf to a new place because
+    // it is the same with send buff pointer.
+    if(receive_pointer->command == create_mr_){
+      ibv_mr * send_pointer = (ibv_mr*)send_buff;
+      ibv_mr* mr;
+      char* buff;
+      if(!Local_Memory_Register(&buff, &mr, receive_pointer->content.mem_size)){
+        fprintf(stderr, "memory registering failed by size of 0x%x\n",
+                static_cast<unsigned>(receive_pointer->content.mem_size));
+      }
+
+      *send_pointer = *mr;
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      post_send<ibv_mr>(send_mr, client_ip);// note here should be the mr point to the send buffer.
+      poll_completion(wc, 1, client_ip);
+    }
+    else if (receive_pointer->command == create_mr_){
+      std::string new_qp_id = std::to_string(receive_pointer->content.qp_config.lid)
+                              + std::to_string(receive_pointer->content.qp_config.qp_num);
+      registered_qp_config * send_pointer = (registered_qp_config*)send_buff;
+      create_qp(new_qp_id);
+      if (rdma_config.gid_idx >= 0)
+      {
+        rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx, &my_gid);
+        if (rc)
+        {
+          fprintf(stderr, "could not get gid for port %d, index %d\n", rdma_config.ib_port, rdma_config.gid_idx);
+          return;
+        }
+      }
+      else
+        memset(&my_gid, 0, sizeof my_gid);
+      /* exchange using TCP sockets info required to connect QPs */
+      send_pointer->qp_num = htonl(res->qp_map[new_qp_id]->qp_num);
+      send_pointer->lid = htons(res->port_attr.lid);
+      memcpy(local_con_data.gid, &my_gid, 16);
+      connect_qp(receive_pointer->content.qp_config, new_qp_id);
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      post_send<registered_qp_config>(send_mr, client_ip);
+      poll_completion(wc, 1, client_ip);
+    }
+  }
+  return;
+  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
+
+
+
+}
+void RDMA_Manager::Server_to_Client_Communication_thread() {
+
+  if (resources_create())
+  {
+    fprintf(stderr, "failed to create resources\n");
+
+  }
+  server_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
+
+}
 
 //    Register the memory through ibv_reg_mr on the local side. this function will be
 //    called by both of the server side and client side.
@@ -217,7 +415,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpoin
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu\n", mr_flags, size);
     return false;
   }
-  else if(size > Block_Size){ // for the send buffer and receive buffer they will not be
+  else if(rdma_config.server_name){ // for the send buffer and receive buffer they will not be
     // add to the local mem pool.
     local_mem_pool.push_back(*p2mrpointer);
     int placeholder_num = (*p2mrpointer)->length/(Block_Size);// here we supposing the SSTables are 4 megabytes
@@ -251,7 +449,8 @@ void RDMA_Manager::Client_Set_Up_RDMA(){
   rdma_config.server_name = ip_add.c_str();
   /* if client side */
 
-  res->sock_map["main"]  = sock_connect(rdma_config.server_name, rdma_config.tcp_port);
+  res->sock_map["main"]  =
+      client_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
   if (res->sock_map["main"]  < 0)
   {
     fprintf(stderr, "failed to establish TCP connection to server %s, port %d\n",
@@ -392,7 +591,8 @@ int RDMA_Manager::resources_create()
 
 bool RDMA_Manager::Client_Connect_to_Server() {
 //  int iter = 1;
-
+  char temp_receive[2];
+  char temp_send[] = "Q";
   struct registered_qp_config local_con_data;
   struct registered_qp_config remote_con_data;
   struct registered_qp_config tmp_con_data;
@@ -429,7 +629,12 @@ bool RDMA_Manager::Client_Connect_to_Server() {
 
   fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
   fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
-  connect_qp(registered_qp_config(), qp_id, res->sock_map["main"]);
+  connect_qp(remote_con_data, qp_id);
+  if (sock_sync_data(res->sock_map["main"], 1, temp_send, temp_receive)) /* just send a dummy char back and forth */
+  {
+    fprintf(stderr, "sync error after QPs are were moved to RTS\n");
+    rc = 1;
+  }
   return false;
 
 }
@@ -481,10 +686,9 @@ bool RDMA_Manager::create_qp(std::string& id) {
 * Connect the QP. Transition the server side to RTR, sender side to RTS
 ******************************************************************************/
 int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
-                             std::string& id, int socket_fd) {
+                             std::string& qp_id) {
 	int rc;
-        char temp_receive[2];
-        char temp_send[] = "Q";
+
 	if (rdma_config.gid_idx >= 0)
 	{
 		uint8_t* p = remote_con_data.gid;
@@ -492,27 +696,21 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
 			p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 	}
 	/* modify the QP to init */
-	rc = modify_qp_to_init(res->qp_map[id]);
+	rc = modify_qp_to_init(res->qp_map[qp_id]);
 	if (rc)
 	{
 		fprintf(stderr, "change QP state to INIT failed\n");
 		goto connect_qp_exit;
 	}
-	/* let the server post RR to be prepared for incoming messages */
-	if (!rdma_config.server_name)
-	{       ibv_mr * receive_pointer;
-                receive_pointer = (ibv_mr*)res->receive_buf;
-                post_receive(receive_pointer, true);
 
-	}
 	/* modify the QP to RTR */
-	rc = modify_qp_to_rtr(res->qp_map[id], remote_con_data.qp_num, remote_con_data.lid, remote_con_data.gid);
+	rc = modify_qp_to_rtr(res->qp_map[qp_id], remote_con_data.qp_num, remote_con_data.lid, remote_con_data.gid);
 	if (rc)
 	{
 		fprintf(stderr, "failed to modify QP state to RTR\n");
 		goto connect_qp_exit;
 	}
-	rc = modify_qp_to_rts(res->qp_map[id]);
+	rc = modify_qp_to_rts(res->qp_map[qp_id]);
 	if (rc)
 	{
 		fprintf(stderr, "failed to modify QP state to RTS\n");
@@ -520,12 +718,6 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
 	}
 	fprintf(stdout, "QP state was change to RTS\n");
 	/* sync to make sure that both sides are in states that they can connect to prevent packet loose */
-
-	if (sock_sync_data(socket_fd, 1, temp_send, temp_receive)) /* just send a dummy char back and forth */
-	{
-		fprintf(stderr, "sync error after QPs are were moved to RTS\n");
-		rc = 1;
-	}
 connect_qp_exit:
 	return rc;
 }
@@ -695,67 +887,10 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data, char
 End of socket operations
 ******************************************************************************/
 
-/******************************************************************************
-* Function: post_send
-*
-* Input
-* res pointer to resources structure
-* opcode IBV_WR_SEND, IBV_WR_RDMA_READ or IBV_WR_RDMA_WRITE
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-* This function will create and post a send work request
-******************************************************************************/
-int RDMA_Manager::post_send(void* mr, bool is_server)
-{
-	struct ibv_send_wr sr;
-	struct ibv_sge sge;
-	struct ibv_send_wr* bad_wr = NULL;
-	int rc;
-        if(is_server){
-          /* prepare the scatter/gather entry */
-          memset(&sge, 0, sizeof(sge));
-          sge.addr = (uintptr_t)mr;
-          sge.length = sizeof(ibv_mr);
-          sge.lkey = res->mr_send->lkey;
-        }
-        else{
-          /* prepare the scatter/gather entry */
-          memset(&sge, 0, sizeof(sge));
-          sge.addr = (uintptr_t)res->send_buf;
-          sge.length = sizeof(computing_to_memory_msg);
-          sge.lkey = res->mr_send->lkey;
-        }
 
-	/* prepare the send work request */
-	memset(&sr, 0, sizeof(sr));
-	sr.next = NULL;
-	sr.wr_id = 0;
-	sr.sg_list = &sge;
-	sr.num_sge = 1;
-	sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
-	sr.send_flags = IBV_SEND_SIGNALED;
-
-	/* there is a Receive Request in the responder side, so we won't get any into RNR flow */
-	//*(start) = std::chrono::steady_clock::now();
-	//start = std::chrono::steady_clock::now();
-	rc = ibv_post_send(res->qp, &sr, &bad_wr);
-	if (rc)
-		fprintf(stderr, "failed to post SR\n");
-	else
-	{
-          fprintf(stdout, "Send Request was posted\n");
-	}
-	return rc;
-}
 // return 0 means success
-int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size)
-{
+int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
+                            size_t msg_size, std::string q_id) {
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
@@ -779,7 +914,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
   /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
   //*(start) = std::chrono::steady_clock::now();
   //start = std::chrono::steady_clock::now();
-  rc = ibv_post_send(res->qp, &sr, &bad_wr);
+  rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
 //  else
@@ -789,14 +924,14 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size
   ibv_wc wc = {};
 //  auto start = std::chrono::high_resolution_clock::now();
 //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
-  rc = poll_completion(&wc, 1);
+  rc = poll_completion(&wc, 1, q_id);
   if (rc != 0)
     std::cout << "RDMA Read Failed" << std::endl;
 
   return rc;
 }
-int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size)
-{
+int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
+                             size_t msg_size, std::string q_id) {
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
@@ -819,7 +954,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
   /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
   //*(start) = std::chrono::steady_clock::now();
   //start = std::chrono::steady_clock::now();
-  rc = ibv_post_send(res->qp, &sr, &bad_wr);
+  rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
 //  else
@@ -830,7 +965,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 //  auto start = std::chrono::high_resolution_clock::now();
 //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
 //wait until the job complete.
-  rc = poll_completion(&wc, 1);
+  rc = poll_completion(&wc, 1, q_id);
   if (rc != 0)
     std::cout << "RDMA Read Failed" << std::endl;
   return rc;
@@ -886,6 +1021,68 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 //  }
 //  return rc;
 //}
+/******************************************************************************
+* Function: post_send
+*
+* Input
+* res pointer to resources structure
+* opcode IBV_WR_SEND, IBV_WR_RDMA_READ or IBV_WR_RDMA_WRITE
+*
+* Output
+* none
+*
+* Returns
+* 0 on success, error code on failure
+*
+* Description
+* This function will create and post a send work request
+******************************************************************************/
+template <typename T>
+int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id) {
+  struct ibv_send_wr sr;
+  struct ibv_sge sge;
+  struct ibv_send_wr* bad_wr = NULL;
+  int rc;
+  if(!rdma_config.server_name){
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = sizeof(T);
+    sge.lkey = mr->lkey;
+  }
+  else{
+      /* prepare the scatter/gather entry */
+      memset(&sge, 0, sizeof(sge));
+      sge.addr = (uintptr_t)res->send_buf;
+      sge.length = sizeof(T);
+      sge.lkey = res->mr_send->lkey;
+  }
+
+  /* prepare the send work request */
+  memset(&sr, 0, sizeof(sr));
+  sr.next = NULL;
+  sr.wr_id = 0;
+  sr.sg_list = &sge;
+  sr.num_sge = 1;
+  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+  sr.send_flags = IBV_SEND_SIGNALED;
+
+  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+  //*(start) = std::chrono::steady_clock::now();
+  //start = std::chrono::steady_clock::now();
+
+  if (rdma_config.server_name)
+    rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+  else
+    rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+  if (rc)
+    fprintf(stderr, "failed to post SR\n");
+  else
+  {
+    fprintf(stdout, "Send Request was posted\n");
+  }
+  return rc;
+}
 
 /******************************************************************************
 * Function: post_receive
@@ -903,26 +1100,27 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_siz
 *
 ******************************************************************************/
 // TODO: Add templete for post send and post receive, making the type of transfer data configurable.
-int RDMA_Manager::post_receive(void* mr, bool is_server)
+template <typename T>
+int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id)
 {
 	struct ibv_recv_wr rr;
 	struct ibv_sge sge;
 	struct ibv_recv_wr* bad_wr;
 	int rc;
-        if(is_server){
+        if(!rdma_config.server_name){
           /* prepare the scatter/gather entry */
 
           memset(&sge, 0, sizeof(sge));
-          sge.addr = (uintptr_t)mr;
-          sge.length = sizeof(computing_to_memory_msg);
-          sge.lkey = res->mr_receive->lkey;
+          sge.addr = (uintptr_t)mr->addr;
+          sge.length = sizeof(T);
+          sge.lkey = mr->lkey;
 
         }
         else{
           /* prepare the scatter/gather entry */
           memset(&sge, 0, sizeof(sge));
-          sge.addr = (uintptr_t)mr;
-          sge.length = sizeof(ibv_mr);
+          sge.addr = (uintptr_t)res->receive_buf;
+          sge.length = sizeof(T);
           sge.lkey = res->mr_receive->lkey;
         }
 
@@ -933,7 +1131,10 @@ int RDMA_Manager::post_receive(void* mr, bool is_server)
 	rr.sg_list = &sge;
 	rr.num_sge = 1;
 	/* post the Receive Request to the RQ */
-	rc = ibv_post_recv(res->qp, &rr, &bad_wr);
+        if (rdma_config.server_name)
+          rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
+        else
+          rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
 	if (rc)
 		fprintf(stderr, "failed to post RR\n");
 	else
@@ -958,7 +1159,8 @@ int RDMA_Manager::post_receive(void* mr, bool is_server)
 * poll the queue until MAX_POLL_CQ_TIMEOUT milliseconds have passed.
 *
 ******************************************************************************/
-int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries) {
+int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
+                                  std::string q_id) {
 
 	//unsigned long start_time_msec;
 	//unsigned long cur_time_msec;
@@ -971,7 +1173,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries) {
 	//start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
 	do
 	{
-		poll_result = ibv_poll_cq(res->cq, num_entries, wc_p);
+		poll_result = ibv_poll_cq(res->cq_map.at(q_id), num_entries, wc_p);
                 if (poll_result < 0) break;
                 else poll_num = poll_num + poll_result;
 		/*gettimeofday(&cur_time, NULL);
@@ -1067,11 +1269,12 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
   //register the memory block from the remote memory
   computing_to_memory_msg * send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
-  send_pointer->mem_size = size;
+  send_pointer->command = create_mr_;
+  send_pointer->content.mem_size = size;
   ibv_mr * receive_pointer;
   receive_pointer = (ibv_mr*)res->receive_buf;
-  post_receive(receive_pointer, false);
-  post_send(send_pointer, false);
+  post_receive<ibv_mr>(res->mr_receive, std::string("main"));
+  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
 //  while(wc.opcode != IBV_WC_RECV){
 //    poll_completion(&wc);
@@ -1082,7 +1285,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
 //  }
 //  assert(wc.opcode == IBV_WC_RECV);
 
-  if(!poll_completion(wc, 2)){ //poll the receive for 2 entires
+  if(!poll_completion(
+          wc, 2, std::string("main"))){ //poll the receive for 2 entires
     auto* temp_pointer = new ibv_mr();
     //Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
     // Please remember to delete it when diregistering mem region from the remote memory
@@ -1104,55 +1308,59 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
 
   return true;
 }
-bool RDMA_Manager::Remote_Query_Pair_Connection() {
-  return false;
-}
-void RDMA_Manager::Server_to_Client_Communication_thread(int socketfd) {
-
-  if (resources_create())
+bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
+  create_qp(qp_id);
+  union ibv_gid my_gid;
+  int rc;
+  if (rdma_config.gid_idx >= 0)
   {
-    fprintf(stderr, "failed to create resources\n");
+    rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx, &my_gid);
+    if (rc)
+    {
+      fprintf(stderr, "could not get gid for port %d, index %d\n", rdma_config.ib_port, rdma_config.gid_idx);
+      return false;
+    }
+  }
+  else
+    memset(&my_gid, 0, sizeof my_gid);
 
-  }
-  if (connect_qp(registered_qp_config(), tobedone, socketfd))
-  {
-    fprintf(stderr, "failed to connect QPs\n");
-  }
+  computing_to_memory_msg * send_pointer;
+  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  send_pointer->command = create_qp_;
+  send_pointer->content.qp_config.qp_num = res->qp_map[qp_id]->qp_num;
+  memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
+  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+  registered_qp_config * receive_pointer;
+  receive_pointer = (registered_qp_config*)res->receive_buf;
+  post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
+  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
-  computing_to_memory_msg * receive_pointer;
-  receive_pointer = (computing_to_memory_msg*)res->receive_buf; //copy the pointer of receive buf to a new place because
-                                                                // we don't want to change the pointer type for res->receive_buff,
-                                                                // making it always void.
+//  while(wc.opcode != IBV_WC_RECV){
+//    poll_completion(&wc);
+//    if (wc.status != 0){
+//      fprintf(stderr, "Work completion status is %d \n", wc.status);
+//    }
+//
+//  }
+//  assert(wc.opcode == IBV_WC_RECV);
 
-  ibv_mr* send_pointer = (ibv_mr*)res->send_buf; // it is the same with send buff pointer.
-  poll_completion(wc, 1);
-  while(true){
-
-    if(wc->opcode == IBV_WC_RECV && wc->status == IBV_WC_SUCCESS){
-
-      ibv_mr* mr;
-      char* buff = new char[receive_pointer->mem_size];
-      if(!Local_Memory_Register(&buff, &mr, receive_pointer->mem_size)){
-        fprintf(stderr, "memory registering failed by size of 0x%x\n", static_cast<unsigned>(receive_pointer->mem_size));
-      }
-//      local_mem_pool.push_back(mr);
-
-      *send_pointer = *mr;
-
-      post_send(send_pointer,true);
-      post_receive(receive_pointer,true);
-
-      poll_completion(wc, 1);
-      poll_completion(wc, 1);
-
-
-    }
-
-    else if(wc->status != IBV_WC_SUCCESS ) {
-      fprintf(stderr, "failed to poll receive\n");
-    }
-  }
-  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
+  if(!poll_completion(
+          wc, 2, std::string("main"))){
+    //poll the receive for 2 entires
+    registered_qp_config temp_buff = *receive_pointer;
+    //te,p_buff will have the informatin for the remote query pair,
+    // use this information for qp connection.
+    connect_qp(temp_buff, qp_id);
+    return true;
+  }  else
+    return false;
+//  // sync the communication by rdma.
+//  post_receive<registered_qp_config>(receive_pointer, std::string("main"));
+//  post_send<computing_to_memory_msg>(send_pointer, std::string("main"));
+//  if(!poll_completion(wc, 2, std::string("main"))){
+//    return true;
+//  }else
+//    return false;
 
 
 }

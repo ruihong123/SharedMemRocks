@@ -454,13 +454,14 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
     return IOStatus::OK();
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real);
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,
+                               std::string());
     position_ +=  sst_meta_->file_size - position_;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
     *result = Slice(scratch, n_real);
   }
   else{
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n);
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, std::string());
     position_ +=  n;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
     *result = Slice(scratch, n);
@@ -953,7 +954,8 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     //First step
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
-    int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, first_half);
+    int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, first_half,
+                                   std::string());
     memcpy(buff_ptr, local_mr_pointer->addr, first_half);// copy to the buffer
 
     if (flag!=0){
@@ -965,7 +967,8 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     sst_meta_current = sst_meta_current->next_ptr;
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half);
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
+                               std::string());
     memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
 //    std::cout << "read blocks accross Table chunk" << std::endl;
     if (flag!=0){
@@ -978,7 +981,8 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     chunk_offset = second_half;
     buff_ptr += second_half;
   }else{
-    int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size);
+    int flag =
+        rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, std::string());
     memcpy(buff_ptr, local_mr_pointer->addr, size);// copy to the buffer
 //    std::cout << "read blocks within Table chunk" << std::endl;
 
@@ -1552,7 +1556,8 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
     memcpy(local_mr_pointer->addr, buff_ptr, first_half);
-    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half);
+    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half,
+                                std::string());
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1573,7 +1578,8 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
     memcpy(local_mr_pointer->addr, buff_ptr, second_half);
-    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, second_half);
+    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, second_half,
+                                std::string());
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1587,7 +1593,8 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
   else{
     // append the whole size.
     memcpy(local_mr_pointer->addr, buff_ptr, size);
-    flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size);
+    flag =
+        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size, std::string());
     remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
     chunk_offset += size;
     buff_ptr += size;

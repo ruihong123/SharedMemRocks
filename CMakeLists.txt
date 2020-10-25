@@ -1321,6 +1321,10 @@ if(WITH_BENCHMARK_TOOLS)
           client.cc)
   target_link_libraries(Try_DB_Client
           ${ROCKSDB_LIB} ${GFLAGS_LIB})
+  add_executable(RDMA_Client
+          compute_node.cc)
+  target_link_libraries(RDMA_Client
+          ${ROCKSDB_LIB} ${GFLAGS_LIB})
 endif()
 
 if(WITH_CORE_TOOLS OR WITH_TOOLS)
