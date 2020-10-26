@@ -898,7 +898,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
   const std::lock_guard<std::mutex> lock(
       rdma_mg_->create_mutex);// write lock
-    IOStatus s;
+  IOStatus s;
+  //Find the Poxis thread ID for the key for the qp_map in rdma manager.
+  auto myid = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << myid;
+  std::string posix_tid = ss.str();
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
@@ -921,14 +926,14 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   while (n > kDefaultPageSize){
     Read_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
-               chunk_offset, sst_meta_current);
+               chunk_offset, sst_meta_current, posix_tid);
 //    chunk_src += kDefaultPageSize;
     n -= kDefaultPageSize;
 //    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
-             sst_meta_current);
+             sst_meta_current, posix_tid);
 
 //  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
   *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
@@ -945,7 +950,8 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
                                           ibv_mr* local_mr_pointer,
                                           ibv_mr& remote_mr,
                                           size_t& chunk_offset,
-                                          SST_Metadata*& sst_meta_current) const {
+                                          SST_Metadata*& sst_meta_current,
+                                          std::string& thread_id) const {
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
 
@@ -955,7 +961,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
     int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, first_half,
-                                   std::string());
+                                   thread_id);
     memcpy(buff_ptr, local_mr_pointer->addr, first_half);// copy to the buffer
 
     if (flag!=0){
@@ -968,7 +974,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
-                               std::string());
+                               thread_id);
     memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
 //    std::cout << "read blocks accross Table chunk" << std::endl;
     if (flag!=0){
@@ -982,7 +988,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     buff_ptr += second_half;
   }else{
     int flag =
-        rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, std::string());
+        rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, thread_id);
     memcpy(buff_ptr, local_mr_pointer->addr, size);// copy to the buffer
 //    std::cout << "read blocks within Table chunk" << std::endl;
 
@@ -1516,6 +1522,10 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 //      sst_meta_head->file_lock);// write lock
   const std::lock_guard<std::mutex> lock(
       rdma_mg_->create_mutex);// write lock
+  auto myid = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << myid;
+  std::string posix_tid = ss.str();
   const char* src = data.data();
   size_t nbytes = data.size();
 //  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
@@ -1530,11 +1540,13 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 
   char* chunk_src = const_cast<char*>(src);
   while (nbytes > kDefaultPageSize){
-    Append_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr);
+    Append_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
+                 posix_tid);
     nbytes -= kDefaultPageSize;
 
   }
-  Append_chunk(chunk_src,nbytes, local_mr_pointer, remote_mr);
+  Append_chunk(chunk_src, nbytes, local_mr_pointer, remote_mr,
+               posix_tid);
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else
@@ -1546,7 +1558,8 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 // make sure the local buffer can hold the transferred data if not then send it by multiple times.
 IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
                                         ibv_mr* local_mr_pointer,
-                                        ibv_mr& remote_mr) {
+                                        ibv_mr& remote_mr,
+                                        std::string& thread_id) {
   IOStatus s = IOStatus::OK();
   assert(size <= kDefaultPageSize);
   int flag;
@@ -1557,7 +1570,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
     memcpy(local_mr_pointer->addr, buff_ptr, first_half);
     flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half,
-                                std::string());
+                                thread_id);
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1579,7 +1592,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     chunk_offset = 0;
     memcpy(local_mr_pointer->addr, buff_ptr, second_half);
     flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, second_half,
-                                std::string());
+                                thread_id);
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1594,7 +1607,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     // append the whole size.
     memcpy(local_mr_pointer->addr, buff_ptr, size);
     flag =
-        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size, std::string());
+        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size, thread_id);
     remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
     chunk_offset += size;
     buff_ptr += size;

@@ -97,7 +97,7 @@ struct ThreadPoolImpl::Impl {
 
   // Set the thread priority.
   void SetThreadPriority(Env::Priority priority) { priority_ = priority; }
-
+//  friend std::shared_ptr<FileSystem> FileSystem::Default();
 private:
  static void BGThreadWrapper(void* arg);
 
@@ -182,7 +182,11 @@ inline void ThreadPoolImpl::Impl::LowerCPUPriority(CpuPriority pri) {
 void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   bool low_io_priority = false;
   CpuPriority current_cpu_priority = CpuPriority::kNormal;
-
+  auto myid = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << myid;
+  std::string posix_tid = ss.str();
+  FileSystem::Default()->rdma_mg_->Remote_Query_Pair_Connection(posix_tid);
   while (true) {
     // Wait until there is an item that is ready to run
     std::unique_lock<std::mutex> lock(mu_);
@@ -277,6 +281,7 @@ void ThreadPoolImpl::Impl::BGThreadWrapper(void* arg) {
   BGThreadMetadata* meta = reinterpret_cast<BGThreadMetadata*>(arg);
   size_t thread_id = meta->thread_id_;
   ThreadPoolImpl::Impl* tp = meta->thread_pool_;
+
 #ifdef ROCKSDB_USING_THREAD_STATUS
   // initialize it because compiler isn't good enough to see we don't use it
   // uninitialized

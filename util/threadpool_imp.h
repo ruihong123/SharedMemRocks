@@ -10,6 +10,7 @@
 
 #include "rocksdb/threadpool.h"
 #include "rocksdb/env.h"
+#include "include/rocksdb/file_system.h"
 
 #include <memory>
 #include <functional>
