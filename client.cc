@@ -24,6 +24,12 @@ int main()
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
+  // first create query pair for this thread.
+  auto myid = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << myid;
+  std::string posix_tid = ss.str();
+  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid);
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
