@@ -516,11 +516,6 @@ int RDMA_Manager::resources_create()
 	int num_devices;
 	int rc = 0;
 //        ibv_device_attr *device_attr;
-        rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
-        std::cout << "maximum query pair number is" << res->device_attr.max_qp << std::endl;
-        std::cout << "maximum completion queue number is" << res->device_attr.max_cq << std::endl;
-        std::cout << "maximum memory region number is" << res->device_attr.max_mr << std::endl;
-        std::cout << "maximum memory region size is" << res->device_attr.max_mr_size << std::endl;
 
         fprintf(stdout, "searching for IB devices in host\n");
 	/* get device names in the system */
@@ -609,6 +604,11 @@ int RDMA_Manager::resources_create()
 
 
 	fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
+        rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
+        std::cout << "maximum query pair number is" << res->device_attr.max_qp << std::endl;
+        std::cout << "maximum completion queue number is" << res->device_attr.max_cq << std::endl;
+        std::cout << "maximum memory region number is" << res->device_attr.max_mr << std::endl;
+        std::cout << "maximum memory region size is" << res->device_attr.max_mr_size << std::endl;
 
 
 	return rc;
