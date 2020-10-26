@@ -230,7 +230,7 @@ class RDMA_Manager{
   uint64_t Table_Size = 10*1024*1024;
   std::mutex create_mutex;
   std::shared_mutex rw_mutex;
-  std::mutex send_recv_mutex;
+  std::mutex qp_create_mutex;
   std::vector<std::thread> thread_pool;
  private:
 

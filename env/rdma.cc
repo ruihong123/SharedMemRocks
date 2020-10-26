@@ -1339,6 +1339,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
+  std::lock_guard<std::mutex> l(qp_create_mutex);
   create_qp(qp_id);
   union ibv_gid my_gid;
   int rc;

@@ -895,9 +895,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-//  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
-  const std::lock_guard<std::mutex> lock(
-      rdma_mg_->create_mutex);// write lock
+  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
+//  const std::lock_guard<std::mutex> lock(
+//      rdma_mg_->create_mutex);// write lock
   IOStatus s;
   //Find the Poxis thread ID for the key for the qp_map in rdma manager.
   auto myid = std::this_thread::get_id();
@@ -1518,10 +1518,10 @@ RDMAWritableFile::~RDMAWritableFile() {
 
 IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-//  const std::unique_lock<std::shared_mutex> lock(
-//      sst_meta_head->file_lock);// write lock
-  const std::lock_guard<std::mutex> lock(
-      rdma_mg_->create_mutex);// write lock
+  const std::unique_lock<std::shared_mutex> lock(
+      sst_meta_head->file_lock);// write lock
+//  const std::lock_guard<std::mutex> lock(
+//      rdma_mg_->create_mutex);// write lock
   auto myid = std::this_thread::get_id();
   std::stringstream ss;
   ss << myid;
