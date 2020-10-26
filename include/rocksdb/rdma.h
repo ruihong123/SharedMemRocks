@@ -81,7 +81,7 @@ struct computing_to_memory_msg
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
 struct SST_Metadata{
-  std::shared_mutex file_lock;
+  std::mutex file_lock;
   std::string fname;
   ibv_mr* mr;
   ibv_mr* map_pointer;

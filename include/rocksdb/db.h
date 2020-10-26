@@ -25,7 +25,7 @@
 #include "rocksdb/transaction_log.h"
 #include "rocksdb/types.h"
 #include "rocksdb/version.h"
-
+#include "include/rocksdb/file_system.h"
 #ifdef _WIN32
 // Windows API macro interference
 #undef DeleteFile

@@ -439,7 +439,11 @@ RDMASequentialFile::~RDMASequentialFile() {
 IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   Slice* result, char* scratch,
                                   IODebugContext* /*dbg*/) {
-  const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
+  const std::lock_guard<std::mutex> lock(sst_meta_->file_lock);
+  auto myid = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << myid;
+  std::string posix_tid = ss.str();
   IOStatus s;
 //  assert((position_+ n) <= sst_meta_->file_size);
   ibv_mr* map_pointer;
@@ -461,7 +465,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
     *result = Slice(scratch, n_real);
   }
   else{
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, std::string());
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, posix_tid);
     position_ +=  n;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
     *result = Slice(scratch, n);
@@ -895,7 +899,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
+//  const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
+  const std::lock_guard<std::mutex> lock(sst_meta_head_->file_lock);
+
 //  const std::lock_guard<std::mutex> lock(
 //      rdma_mg_->create_mutex);// write lock
   IOStatus s;
@@ -1498,8 +1504,9 @@ RDMAWritableFile::RDMAWritableFile(SST_Metadata* sst_meta,
       sst_meta_head(sst_meta),
       rdma_mg_(rdma_mg){
   // when open writeable file, get the read lock for the file.
-  const std::shared_lock<std::shared_mutex> lock(
-      sst_meta_head->file_lock);// write lock
+//  const std::shared_lock<std::shared_mutex> lock(
+//      sst_meta_head->file_lock);// write lock
+  const std::lock_guard<std::mutex> lock(sst_meta_head->file_lock);
   chunk_offset = sst_meta->file_size;
   sst_meta_current = sst_meta;
 
@@ -1518,8 +1525,9 @@ RDMAWritableFile::~RDMAWritableFile() {
 
 IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
-  const std::unique_lock<std::shared_mutex> lock(
-      sst_meta_head->file_lock);// write lock
+//  const std::unique_lock<std::shared_mutex> lock(
+//      sst_meta_head->file_lock);// write lock
+  const std::lock_guard<std::mutex> lock(sst_meta_head->file_lock);
 //  const std::lock_guard<std::mutex> lock(
 //      rdma_mg_->create_mutex);// write lock
   auto myid = std::this_thread::get_id();

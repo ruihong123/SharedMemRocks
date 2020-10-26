@@ -184,6 +184,7 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port)
 				sockfd = accept(listenfd, NULL, 0);
 			}
 		}
+          fprintf(stdout, "TCP connection was established\n");
 	}
 sock_connect_exit:
 	if (listenfd)
@@ -514,10 +515,14 @@ int RDMA_Manager::resources_create()
 	int cq_size = 0;
 	int num_devices;
 	int rc = 0;
+//        ibv_device_attr *device_attr;
+        rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
+        std::cout << "maximum query pair number is" << res->device_attr.max_qp << std::endl;
+        std::cout << "maximum completion queue number is" << res->device_attr.max_cq << std::endl;
+        std::cout << "maximum memory region number is" << res->device_attr.max_mr << std::endl;
+        std::cout << "maximum memory region size is" << res->device_attr.max_mr_size << std::endl;
 
-
-	fprintf(stdout, "TCP connection was established\n");
-	fprintf(stdout, "searching for IB devices in host\n");
+        fprintf(stdout, "searching for IB devices in host\n");
 	/* get device names in the system */
 	dev_list = ibv_get_device_list(&num_devices);
 	if (!dev_list)
@@ -1346,6 +1351,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   if (rdma_config.gid_idx >= 0)
   {
     rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx, &my_gid);
+
+
     if (rc)
     {
       fprintf(stderr, "could not get gid for port %d, index %d\n", rdma_config.ib_port, rdma_config.gid_idx);

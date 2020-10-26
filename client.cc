@@ -2,11 +2,11 @@
 #include <include/rocksdb/table.h>
 #include <stdlib.h>
 
+#include <chrono>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
-
-#include <chrono>
 
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
@@ -31,6 +31,12 @@ int main()
   using namespace std::chrono;
   auto start = high_resolution_clock::now();
   auto f = [=](int dislocation){
+    // first create query pair for this thread.
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::string posix_tid = ss.str();
+    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid);
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
