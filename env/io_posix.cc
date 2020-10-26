@@ -459,7 +459,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,
-                               std::string());
+                               posix_tid);
     position_ +=  sst_meta_->file_size - position_;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
     *result = Slice(scratch, n_real);

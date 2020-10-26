@@ -25,11 +25,11 @@ int main()
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
   // first create query pair for this thread.
-  auto my_main_id = std::this_thread::get_id();
-  std::stringstream ss_main;
-  ss_main << my_main_id;
-  std::string posix_tid_main = ss_main.str();
-  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
+//  auto my_main_id = std::this_thread::get_id();
+//  std::stringstream ss_main;
+//  ss_main << my_main_id;
+//  std::string posix_tid_main = ss_main.str();
+//  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
