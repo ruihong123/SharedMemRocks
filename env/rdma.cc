@@ -1301,6 +1301,7 @@ void RDMA_Manager::usage(const char* argv0)
 }
 
 bool RDMA_Manager::Remote_Memory_Register(size_t size){
+  std::lock_guard<std::mutex> l(main_qp_mutex);
   //register the memory block from the remote memory
   computing_to_memory_msg * send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
@@ -1337,14 +1338,14 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size){
     //   value copy. it could raise a segment fault(Double check it)
   }
   else{
-    fprintf(stderr, "failed to poll receive\n");
+    fprintf(stderr, "failed to poll receive for remote memory register\n");
     return false;
   }
 
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
-  std::lock_guard<std::mutex> l(qp_create_mutex);
+  std::lock_guard<std::mutex> l(main_qp_mutex);
   create_qp(qp_id);
   union ibv_gid my_gid;
   int rc;
@@ -1412,7 +1413,8 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string &file_name,
   sst_meta = new SST_Metadata;
   sst_meta->mr = new ibv_mr;
   if(Remote_Mem_Bitmap->empty()){
-
+    // this lock is to prevent the system register too much remote memory at the
+    // begginning.
     create_mutex.lock();
     if(Remote_Mem_Bitmap->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024);
