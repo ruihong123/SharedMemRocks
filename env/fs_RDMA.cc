@@ -137,6 +137,7 @@ int cloexec_flags(int flags, const EnvOptions* options) {
 //Add rdma manager into filesystem, maitaining a file to RDMA Placeholder table.
 class RDMAFileSystem : public FileSystem {
  public:
+  RDMA_Manager* rdma_mg;
   RDMAFileSystem();
 
   const char* Name() const override { return "Posix File System"; }
@@ -188,12 +189,12 @@ class RDMAFileSystem : public FileSystem {
     SST_Metadata* next_file_meta;
     while (file_meta->next_ptr != nullptr){
       next_file_meta = file_meta->next_ptr;
-      rdma_mg_->Deallocate_Remote_RDMA_Slot(file_meta);
+      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
       delete file_meta->mr;
       delete file_meta;
       file_meta = next_file_meta;
     }
-    rdma_mg_->Deallocate_Remote_RDMA_Slot(file_meta);
+    rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
     delete file_meta->mr;
     delete file_meta;
     return 0;
@@ -212,7 +213,7 @@ class RDMAFileSystem : public FileSystem {
     if(type == write_new){
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        rdma_mg_->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+        rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
         return IOStatus::OK();
       } else {
@@ -223,7 +224,7 @@ class RDMAFileSystem : public FileSystem {
     if(type == rwtype) {
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        rdma_mg_->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+        rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
         return IOStatus::OK();
       } else {
@@ -254,7 +255,8 @@ class RDMAFileSystem : public FileSystem {
     RDMA_open(fname, meta_data, readtype);
     if (!options.use_mmap_reads) { //Notice: check here when debugging.
       result->reset(new RDMASequentialFile(meta_data, kDefaultPageSize,
-                                             options, rdma_mg_));
+                                             options,
+                                           rdma_mg));
     }
     else{
       std::cout << "Please turn off MMAP option"<< std::endl;
@@ -326,7 +328,7 @@ class RDMAFileSystem : public FileSystem {
     RDMA_open(fname, meta_data, readtype);
     if (!options.use_mmap_reads) { //Notice: check here when debugging.
       result->reset(new RDMARandomAccessFile(meta_data, kDefaultPageSize,
-                                              options, rdma_mg_));
+                                              options, rdma_mg));
     }
     else{
       std::cout << "Please turn off MMAP option"<< std::endl;
@@ -346,8 +348,7 @@ class RDMAFileSystem : public FileSystem {
     SST_Metadata* meta_data = nullptr;
     RDMA_open(fname, meta_data, type);
     if (!options.use_mmap_reads){
-      result->reset(new RDMAWritableFile(meta_data, kDefaultPageSize, options,
-                                          rdma_mg_));
+      result->reset(new RDMAWritableFile(meta_data, kDefaultPageSize, options, rdma_mg));
     }else{
       std::cout << "Please turn off Mmap option" << std::endl;
     }
@@ -382,7 +383,7 @@ class RDMAFileSystem : public FileSystem {
       RDMA_open(fname, meta_data, type);
       if (!options.use_mmap_reads){
         result->reset(new RDMAWritableFile(meta_data, kDefaultPageSize, options,
-                                            rdma_mg_));
+                                           rdma_mg));
       }else{
         std::cout << "Please turn off Mmap option" << std::endl;
 
@@ -547,7 +548,7 @@ class RDMAFileSystem : public FileSystem {
     }
 
     SetFD_CLOEXEC(fd, &options);
-    result->reset(new PosixRandomRWFile(fname, fd, options, rdma_mg_));
+    result->reset(new PosixRandomRWFile(fname, fd, options, rdma_mg));
     return IOStatus::OK();
   }
 
@@ -942,7 +943,7 @@ class RDMAFileSystem : public FileSystem {
  private:
 //  bool checkedDiskForMmap_;
 //  bool forceMmapOff_;  // do we override Env options?
-  RDMA_Manager* rdma_mg_;
+
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap;
@@ -1039,8 +1040,8 @@ RDMAFileSystem::RDMAFileSystem()
   };
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  rdma_mg_ = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
-  rdma_mg_->Client_Set_Up_Resources();
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
+  rdma_mg->Client_Set_Up_Resources();
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local
@@ -1055,7 +1056,7 @@ RDMAFileSystem::RDMAFileSystem()
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
   delete Remote_Bitmap;
   delete Local_Bitmap;
-  delete rdma_mg_;
+  delete rdma_mg;
 }
 
 }  // namespace
