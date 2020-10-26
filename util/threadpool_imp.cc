@@ -186,7 +186,7 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   std::stringstream ss;
   ss << myid;
   std::string posix_tid = ss.str();
-  FileSystem::Default()->rdma_mg_->Remote_Query_Pair_Connection(posix_tid);
+  FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid);
   while (true) {
     // Wait until there is an item that is ready to run
     std::unique_lock<std::mutex> lock(mu_);
