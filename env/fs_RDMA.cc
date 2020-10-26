@@ -137,7 +137,6 @@ int cloexec_flags(int flags, const EnvOptions* options) {
 //Add rdma manager into filesystem, maitaining a file to RDMA Placeholder table.
 class RDMAFileSystem : public FileSystem {
  public:
-  RDMA_Manager* rdma_mg;
   RDMAFileSystem();
 
   const char* Name() const override { return "Posix File System"; }

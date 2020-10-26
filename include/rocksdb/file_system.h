@@ -163,7 +163,7 @@ class FileSystem {
   FileSystem(const FileSystem&) = delete;
 
   virtual ~FileSystem();
-
+  RDMA_Manager* rdma_mg;
   virtual const char* Name() const = 0;
 
   static const char* Type() { return "FileSystem"; }
