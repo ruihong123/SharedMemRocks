@@ -251,8 +251,10 @@ class RDMAFileSystem : public FileSystem {
     IOStatus s = IOStatus::OK();
     result->reset();
     SST_Metadata* meta_data = nullptr;
-    RDMA_open(fname, meta_data, readtype);
-    if (!options.use_mmap_reads) { //Notice: check here when debugging.
+    s = RDMA_open(fname, meta_data, readtype);
+    if (!s.ok())
+      std::cerr << s.ToString() << std::endl;
+    if (!options.use_mmap_reads && s.ok()) { //Notice: check here when debugging.
       result->reset(new RDMASequentialFile(meta_data, kDefaultPageSize,
                                              options,
                                            rdma_mg));
