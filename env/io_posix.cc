@@ -37,6 +37,7 @@
 #include "util/autovector.h"
 #include "util/coding.h"
 #include "util/string_util.h"
+#include <chrono>
 
 #if defined(OS_LINUX) && !defined(F_SET_RW_HINT)
 #define F_LINUX_SPECIFIC_BASE 1024
@@ -901,6 +902,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
+  auto start = std::chrono::high_resolution_clock::now();
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 //  const std::lock_guard<std::mutex> lock(sst_meta_head_->file_lock);
 
@@ -951,6 +953,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     s = IOError(
         "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
                 sst_meta_head_->fname, 1);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  std::cout << n_original <<"time elapse :" << duration.count() << std::endl;
   return s;
 }
 
@@ -1527,6 +1532,7 @@ RDMAWritableFile::~RDMAWritableFile() {
 
 IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
                                    IODebugContext* /*dbg*/) {
+  auto start = std::chrono::high_resolution_clock::now();
   const std::unique_lock<std::shared_mutex> lock(
       sst_meta_head->file_lock);// write lock
 //  const std::lock_guard<std::mutex> lock(sst_meta_head->file_lock);
@@ -1563,6 +1569,9 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
     s = IOError(
         "While RDMA Local Buffer Deallocate failed ",
                 sst_meta_head->fname, 1);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  std::cout << data.size() <<"time elapse:" << duration.count() << std::endl;
   return s;
 }
 // make sure the local buffer can hold the transferred data if not then send it by multiple times.
