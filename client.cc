@@ -47,7 +47,7 @@ int main()
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
-//    option_wr.disableWAL = true;
+    option_wr.disableWAL = true;
     rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     s = db->Delete(option_wr, "NewKey");
     for (int i = 0; i<1000; i++){
