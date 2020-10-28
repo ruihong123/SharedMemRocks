@@ -1041,7 +1041,7 @@ RDMAFileSystem::RDMAFileSystem()
   };
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  size_t block_size = kDefaultPageSize;
+  size_t block_size = 10*1024*1024;
   size_t table_size = 10*1024*1024;
   rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap, block_size, table_size);
   rdma_mg->Client_Set_Up_Resources();

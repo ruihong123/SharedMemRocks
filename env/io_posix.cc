@@ -934,12 +934,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   assert(offset == chunk_offset);
   char* chunk_src = scratch;
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
-  while (n > kDefaultPageSize){
-    Read_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
+  while (n > rdma_mg_->Block_Size){
+    Read_chunk(chunk_src, rdma_mg_->Block_Size, local_mr_pointer, remote_mr,
                chunk_offset, sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
-//    chunk_src += kDefaultPageSize;
-    n -= kDefaultPageSize;
-//    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
+//    chunk_src += rdma_mg_->Block_Size;
+    n -= rdma_mg_->Block_Size;
+//    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + rdma_mg_->Block_Size);
 
   }
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
@@ -967,7 +967,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
                                           std::string& thread_id) const {
   auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
-  assert(size <= kDefaultPageSize);
+  assert(size <= rdma_mg_->Block_Size);
 
   if (size + chunk_offset >= rdma_mg_->Table_Size ){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
@@ -1559,10 +1559,10 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_current->mr->addr) + chunk_offset);
 
   char* chunk_src = const_cast<char*>(src);
-  while (nbytes > kDefaultPageSize){
-    Append_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
+  while (nbytes > rdma_mg_->Block_Size){
+    Append_chunk(chunk_src, rdma_mg_->Block_Size, local_mr_pointer, remote_mr,
                  *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
-    nbytes -= kDefaultPageSize;
+    nbytes -= rdma_mg_->Block_Size;
 
   }
   Append_chunk(chunk_src, nbytes, local_mr_pointer, remote_mr,
@@ -1585,7 +1585,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
                                         std::string& thread_id) {
   auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
-  assert(size <= kDefaultPageSize);
+  assert(size <= rdma_mg_->Block_Size);
   int flag;
   if (chunk_offset + size >= rdma_mg_->Table_Size){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
