@@ -902,7 +902,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 //  const std::lock_guard<std::mutex> lock(sst_meta_head_->file_lock);
 
@@ -953,9 +953,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     s = IOError(
         "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
                 sst_meta_head_->fname, 1);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << n_original <<"Read total time elapse :" << duration.count() << std::endl;
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//  std::cout << n_original <<"Read total time elapse :" << duration.count() << std::endl;
   return s;
 }
 
@@ -965,7 +965,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
                                           size_t& chunk_offset,
                                           SST_Metadata*& sst_meta_current,
                                           std::string& thread_id) const {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
   assert(size <= rdma_mg_->Block_Size);
 
@@ -1016,9 +1016,9 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     chunk_offset += size;
     buff_ptr += size;
   }
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << size <<"inner Read Chunk time elapse :" << duration.count() << std::endl;
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//  std::cout << size <<"inner Read Chunk time elapse :" << duration.count() << std::endl;
   return s;
 }
 IOStatus RDMARandomAccessFile::MultiRead(FSReadRequest* reqs,
@@ -1583,7 +1583,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
                                         ibv_mr* local_mr_pointer,
                                         ibv_mr& remote_mr,
                                         std::string& thread_id) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
   assert(size <= rdma_mg_->Block_Size);
   int flag;
@@ -1648,9 +1648,9 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
 //
   sst_meta_head->file_size += size;
 //  assert(sst_meta_head->file_size <= rdma_mg_->Table_Size);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << size <<"Write inner chunk time elapse:" << duration.count() << std::endl;
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//  std::cout << size <<"Write inner chunk time elapse:" << duration.count() << std::endl;
 
   return s;
 }
