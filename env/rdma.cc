@@ -886,7 +886,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   // start = std::chrono::steady_clock::now();
   rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
   auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::cout << "rdma read  send command for " << msg_size << "time elapse :" << duration.count() << std::endl;
   start = std::chrono::high_resolution_clock::now();
 
@@ -905,7 +905,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
     fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
   }
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::cout << "rdma read poll command for " << msg_size << "time elapse :" << duration.count() << std::endl;
 
   return rc;
@@ -937,7 +937,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   // start = std::chrono::steady_clock::now();
   rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
   auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::cout << "rdma write send command for" << msg_size << "time elapse :" << duration.count() << std::endl;
   start = std::chrono::high_resolution_clock::now();
 
@@ -957,7 +957,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
     fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
   }
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::cout << "rdma write poll command for" << msg_size << "time elapse :" << duration.count() << std::endl;
   return rc;
 }
