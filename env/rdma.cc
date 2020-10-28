@@ -904,8 +904,8 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
     std::cout << "q id is" << q_id << std::endl;
     fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
   }
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   std::cout << "rdma read for" << msg_size << "time elapse :" << duration.count() << std::endl;
 
   return rc;
