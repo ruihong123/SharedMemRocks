@@ -68,16 +68,16 @@ int main()
   }
   auto start = std::chrono::high_resolution_clock::now();
 
-  auto f = [=](int dislocation){
+  auto f = [&](int dislocation){
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
     auto* posix_tid = new std::string(ss.str());
     rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
     rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
-    std::string value;
-    std::string key;
-    rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
+//    std::string value;
+//    std::string key;
+//    rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     for (int i = 0; i<5000000; i++) {
       key = std::to_string(( std::rand() % ( 5000001 ) ));
 //      value = std::to_string(i+dislocation);
