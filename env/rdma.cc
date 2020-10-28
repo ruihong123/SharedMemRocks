@@ -22,6 +22,7 @@ RDMA_Manager::RDMA_Manager(
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
     rdma_config(config)
 {
+  assert(block_size<table_size);
   res = new resources();
   //  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;

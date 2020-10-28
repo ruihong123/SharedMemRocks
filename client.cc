@@ -15,6 +15,7 @@ int main()
 {
   rocksdb::DB* db;
   rocksdb::Options options;
+//  rocksdb::Options::block_size =
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
 //  options.block_size = 4*1024*1024;
