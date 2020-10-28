@@ -440,10 +440,10 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
                                   Slice* result, char* scratch,
                                   IODebugContext* /*dbg*/) {
   const std::shared_lock<std::shared_mutex> lock(sst_meta_->file_lock);
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  std::string posix_tid = ss.str();
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  std::string posix_tid = ss.str();
   IOStatus s;
 //  assert((position_+ n) <= sst_meta_->file_size);
   ibv_mr* map_pointer;
@@ -456,16 +456,18 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   if (position_ == sst_meta_->file_size)
     return IOStatus::OK();
+  // two situations if position + n out of bound then only read data with in
+  // file size
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,
-                               posix_tid);
+                               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
     position_ +=  sst_meta_->file_size - position_;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
     *result = Slice(scratch, n_real);
   }
   else{
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, posix_tid);
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
     position_ +=  n;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
     *result = Slice(scratch, n);
@@ -906,10 +908,10 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //      rdma_mg_->create_mutex);// write lock
   IOStatus s;
   //Find the Poxis thread ID for the key for the qp_map in rdma manager.
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  std::string posix_tid = ss.str();
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  std::string posix_tid = ss.str();
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
@@ -932,14 +934,14 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer);
   while (n > kDefaultPageSize){
     Read_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
-               chunk_offset, sst_meta_current, posix_tid);
+               chunk_offset, sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
 //    chunk_src += kDefaultPageSize;
     n -= kDefaultPageSize;
 //    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + kDefaultPageSize);
 
   }
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
-             sst_meta_current, posix_tid);
+             sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
 
 //  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
   *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
@@ -1530,10 +1532,10 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 //  const std::lock_guard<std::mutex> lock(sst_meta_head->file_lock);
 //  const std::lock_guard<std::mutex> lock(
 //      rdma_mg_->create_mutex);// write lock
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  std::string posix_tid = ss.str();
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  std::string posix_tid = ss.str();
   const char* src = data.data();
   size_t nbytes = data.size();
 //  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
@@ -1549,12 +1551,12 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   char* chunk_src = const_cast<char*>(src);
   while (nbytes > kDefaultPageSize){
     Append_chunk(chunk_src, kDefaultPageSize, local_mr_pointer, remote_mr,
-                 posix_tid);
+                 *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
     nbytes -= kDefaultPageSize;
 
   }
   Append_chunk(chunk_src, nbytes, local_mr_pointer, remote_mr,
-               posix_tid);
+               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
   if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer,map_pointer))
     delete local_mr_pointer;
   else

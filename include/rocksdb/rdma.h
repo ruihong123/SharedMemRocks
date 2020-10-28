@@ -20,6 +20,7 @@
 #include <chrono>
 #include <memory>
 #include <sstream>
+
 //#include <options.h>
 
 #include <arpa/inet.h>
@@ -28,7 +29,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-
+#include "util/thread_local.h"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -175,17 +176,20 @@ struct resources
   std::map<std::string, ibv_mr*> mr_send_map;
 
 };
+
+namespace ROCKSDB_NAMESPACE {
 /* structure of test parameters */
 class RDMA_Manager{
  public:
   RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
                In_Use_Array>* Remote_Bitmap,
-               std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap);
+               std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap,
+               size_t block_size, size_t table_size);
 //  RDMA_Manager(config_t config) : rdma_config(config){
 //    res = new resources();
 //    res->sock = -1;
 //  }
-  RDMA_Manager()=delete;
+//  RDMA_Manager()=delete;
   ~RDMA_Manager();
   // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
   void Client_Set_Up_Resources();
@@ -226,12 +230,14 @@ class RDMA_Manager{
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
-  size_t Block_Size = 64*1024*1024;
-  uint64_t Table_Size = 10*1024*1024;
+  size_t Block_Size;
+  uint64_t Table_Size;
   std::mutex create_mutex;
   std::shared_mutex rw_mutex;
   std::mutex main_qp_mutex;
   std::vector<std::thread> thread_pool;
+  std::unique_ptr<ThreadLocalPtr> t_local_1;
+//  static __thread std::string thread_id;
  private:
 
   config_t rdma_config;
@@ -260,5 +266,5 @@ class RDMA_Manager{
 //#ifdef __cplusplus
 //}
 //#endif
-
+}
 #endif

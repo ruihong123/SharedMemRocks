@@ -10,13 +10,14 @@
 
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
-
+//thread_local std::string rage("");
 int main()
 {
   rocksdb::DB* db;
   rocksdb::Options options;
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
+//  options.block_size = 4*1024*1024;
   options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::LOW);
   rocksdb::BlockBasedTableOptions table_options;
@@ -34,15 +35,15 @@ int main()
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
-  using namespace std::chrono;
-  auto start = high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){
     // first create query pair for this thread.
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
-    std::string posix_tid = ss.str();
-    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid);
+    auto* posix_tid = new std::string(ss.str());
+    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+    rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
@@ -135,8 +136,8 @@ int main()
   t3.join();
   t4.join();
   t5.join();
-  auto stop = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>(stop - start);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
   std::cout << duration.count() << std::endl;
 

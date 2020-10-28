@@ -1,12 +1,12 @@
 #include <iostream>
 #include "rocksdb/rdma.h"
 
-void client_thread(RDMA_Manager* rdma_manager){
+void client_thread(rocksdb::RDMA_Manager* rdma_manager){
 
   auto myid = std::this_thread::get_id();
   std::stringstream ss;
   ss << myid;
-  std::string thread_id = ss.str();
+  auto* thread_id = new std::string(ss.str());
   rdma_manager->Remote_Memory_Register(100*1024*1024);
   rdma_manager->Remote_Query_Pair_Connection(thread_id);
   std::cout << rdma_manager->remote_mem_pool[0];
@@ -49,7 +49,7 @@ int main()
   };
   auto Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   auto Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  RDMA_Manager* rdma_manager = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
+  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
 //  RDMA_Manager rdma_manager(config, Remote_Bitmap, Local_Bitmap);
   rdma_manager->Client_Set_Up_Resources();
   std::thread thread_object(client_thread, rdma_manager);

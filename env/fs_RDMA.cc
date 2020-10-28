@@ -1041,13 +1041,16 @@ RDMAFileSystem::RDMAFileSystem()
   };
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
   Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap);
+  size_t block_size = kDefaultPageSize;
+  size_t table_size = 10*1024*1024;
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap, block_size, table_size);
   rdma_mg->Client_Set_Up_Resources();
   auto myid = std::this_thread::get_id();
   std::stringstream ss;
   ss << myid;
-  std::string posix_tid = ss.str();
-  rdma_mg->Remote_Query_Pair_Connection(posix_tid);
+  auto* posix_tid = new std::string(ss.str());
+  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+  rdma_mg->t_local_1->Reset(posix_tid);
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local
