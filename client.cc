@@ -19,8 +19,8 @@ int main()
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
 //  options.block_size = 4*1024*1024;
-  options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::HIGH);
-  options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::LOW);
+  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
+  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
   rocksdb::BlockBasedTableOptions table_options;
   table_options.checksum= rocksdb::kCRC32c;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
