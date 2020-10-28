@@ -887,7 +887,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "rdma read  send command for" << msg_size << "time elapse :" << duration.count() << std::endl;
+  std::cout << "rdma read  send command for " << msg_size << "time elapse :" << duration.count() << std::endl;
   start = std::chrono::high_resolution_clock::now();
 
   if (rc) fprintf(stderr, "failed to post SR\n");
@@ -906,7 +906,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   }
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "rdma read for" << msg_size << "time elapse :" << duration.count() << std::endl;
+  std::cout << "rdma read poll command for " << msg_size << "time elapse :" << duration.count() << std::endl;
 
   return rc;
 }
