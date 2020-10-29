@@ -19,8 +19,8 @@ int main()
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
 //  options.block_size = 4*1024*1024;
-  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
-  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
+  options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::HIGH);
+  options.env->SetBackgroundThreads(2, rocksdb::Env::Priority::LOW);
   rocksdb::BlockBasedTableOptions table_options;
   table_options.checksum= rocksdb::kCRC32c;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
@@ -33,8 +33,9 @@ int main()
 //  std::string posix_tid_main = ss_main.str();
 //  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
-      rocksdb::DB::Open(options, "/tmp/testdb", &db);
+      rocksdb::DB::Open(options, "/tmp/testdb1", &db);
 //  assert(status.ok());
+  status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){
@@ -51,33 +52,33 @@ int main()
     option_wr.disableWAL = true;
     rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     s = db->Delete(option_wr, "NewKey");
-    for (int i = 0; i<1000; i++){
-      key = std::to_string(i);
-      value = std::to_string(i+dislocation);
-
-      s = db->Put(option_wr, key, value);
-      if (!s.ok()){
-        std::cerr << s.ToString() << std::endl;
-        return;
-      }
-
-//      std::cout << "iteration number " << i << std::endl;
-
-    }
-   for (int i = 0; i<1000; i++){
+//    for (int i = 0; i<1000; i++){
+//      key = std::to_string(i);
+//      value = std::to_string(i+dislocation);
+//
+//      s = db->Put(option_wr, key, value);
+//      if (!s.ok()){
+//        std::cerr << s.ToString() << std::endl;
+//        return;
+//      }
+//
+////      std::cout << "iteration number " << i << std::endl;
+//
+//    }
+//   for (int i = 0; i<1000; i++){
+//     key = std::to_string(i);
+////     value = std::to_string(i+dislocation);
+//     s = db->Delete(option_wr, key);
+//     if (!s.ok()){
+//       std::cerr << s.ToString() << std::endl;
+//       return;
+//     }
+//
+////     std::cout << "Delete iteration number " << i << std::endl;
+//   }
+   for (int i = 0; i<6000000; i++){
      key = std::to_string(i);
-//     value = std::to_string(i+dislocation);
-     s = db->Delete(option_wr, key);
-     if (!s.ok()){
-       std::cerr << s.ToString() << std::endl;
-       return;
-     }
-
-//     std::cout << "Delete iteration number " << i << std::endl;
-   }
-   for (int i = 1001; i<5000000; i++){
-     key = std::to_string(i);
-     value = std::to_string(i+dislocation);
+     value = std::to_string(std::rand() % ( 30000001 ));
      s = db->Put(option_wr, key, value);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;
@@ -86,43 +87,43 @@ int main()
 
 //     std::cout << "iteration number " << i << std::endl;
    }
-   for (int i = 1000+1000*dislocation; i<1000+1000*(dislocation+1); i++){
-     key = std::to_string(i);
-//     value = std::to_string(i + dislocation);
-     s = db->Delete(option_wr, key);
-     if (!s.ok()){
-       std::cerr << s.ToString() << std::endl;
-       return;
-     }
-//     std::cout << "iteration number " << i << std::endl;
-   }
-    s = db->Get(rocksdb::ReadOptions(), "50", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "800", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "1100", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "8000", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-     s = db->Get(rocksdb::ReadOptions(), "20000", &value);
-     if(s.ok()) std::cout<< value << std::endl;
-     else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "100000", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "300000", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "700000", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
-    s = db->Get(rocksdb::ReadOptions(), "-10000", &value);
-    if(s.ok()) std::cout<< value << std::endl;
-    else std::cerr << s.ToString() << std::endl;
+//   for (int i = 1000+1000*dislocation; i<1000+1000*(dislocation+1); i++){
+//     key = std::to_string(i);
+////     value = std::to_string(i + dislocation);
+//     s = db->Delete(option_wr, key);
+//     if (!s.ok()){
+//       std::cerr << s.ToString() << std::endl;
+//       return;
+//     }
+////     std::cout << "iteration number " << i << std::endl;
+//   }
+//    s = db->Get(rocksdb::ReadOptions(), "50", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "800", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "1100", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "8000", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//     s = db->Get(rocksdb::ReadOptions(), "20000", &value);
+//     if(s.ok()) std::cout<< value << std::endl;
+//     else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "100000", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "300000", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "700000", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
+//    s = db->Get(rocksdb::ReadOptions(), "-10000", &value);
+//    if(s.ok()) std::cout<< value << std::endl;
+//    else std::cerr << s.ToString() << std::endl;
   };
   std::thread t5(f, 5);
   std::thread t1(f, 0);

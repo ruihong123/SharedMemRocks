@@ -79,7 +79,7 @@ int main()
 //    std::string key;
 //    rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     for (int i = 0; i<5000000; i++) {
-      key = std::to_string(( std::rand() % ( 5000001 ) ));
+      key = std::to_string(( std::rand() % ( 50000000 ) ));
 //      value = std::to_string(i+dislocation);
       s = db->Get(rocksdb::ReadOptions(), key, &value);
       if (!s.ok()) {
