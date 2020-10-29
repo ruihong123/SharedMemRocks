@@ -12,7 +12,7 @@ int main()
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
   rocksdb::Status status =
-      rocksdb::DB::Open(options, "/tmp/testdb1", &db);
+      rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   std::string value;
@@ -79,7 +79,7 @@ int main()
 //    std::string key;
 //    rocksdb::Status s = db->Put(option_wr, "StartKey", "StartValue");
     for (int i = 0; i<5000000; i++) {
-      key = std::to_string(( std::rand() % ( 50000000 ) ));
+      key = std::to_string(( std::rand() % ( 5000000 ) ));
 //      value = std::to_string(i+dislocation);
       s = db->Get(rocksdb::ReadOptions(), key, &value);
       if (!s.ok()) {

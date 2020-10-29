@@ -33,7 +33,7 @@ int main()
 //  std::string posix_tid_main = ss_main.str();
 //  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
-      rocksdb::DB::Open(options, "/tmp/testdb1", &db);
+      rocksdb::DB::Open(options, "/tmp/testdb", &db);
 //  assert(status.ok());
   status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
@@ -76,7 +76,7 @@ int main()
 //
 ////     std::cout << "Delete iteration number " << i << std::endl;
 //   }
-   for (int i = 0; i<6000000; i++){
+   for (int i = 0; i<5000000; i++){
      key = std::to_string(i);
      value = std::to_string(std::rand() % ( 30000001 ));
      s = db->Put(option_wr, key, value);
