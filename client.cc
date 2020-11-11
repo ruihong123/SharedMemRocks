@@ -15,14 +15,17 @@ int main()
 {
   rocksdb::DB* db;
   rocksdb::Options options;
-//  rocksdb::Options::block_size =
+//  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
   options.write_buffer_size = 4*1024*1024;
 //  options.block_size = 4*1024*1024;
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::LOW);
+  options.use_direct_reads = false;
+  options.use_direct_io_for_flush_and_compaction = false;
   rocksdb::BlockBasedTableOptions table_options;
   table_options.checksum= rocksdb::kCRC32c;
+//  table_options.block_size = 1024*1024;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
@@ -34,7 +37,7 @@ int main()
 //  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
-//  assert(status.ok());
+  assert(status.ok());
   status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   auto start = std::chrono::high_resolution_clock::now();

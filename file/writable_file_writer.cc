@@ -41,20 +41,20 @@ IOStatus WritableFileWriter::Append(const Slice& data) {
   }
 
   // See whether we need to enlarge the buffer to avoid the flush
-  if (buf_.Capacity() - buf_.CurrentSize() < left) {
-    for (size_t cap = buf_.Capacity();
-         cap < max_buffer_size_;  // There is still room to increase
-         cap *= 2) {
-      // See whether the next available size is large enough.
-      // Buffer will never be increased to more than max_buffer_size_.
-      size_t desired_capacity = std::min(cap * 2, max_buffer_size_);
-      if (desired_capacity - buf_.CurrentSize() >= left ||
-          (use_direct_io() && desired_capacity == max_buffer_size_)) {
-        buf_.AllocateNewBuffer(desired_capacity, true);
-        break;
-      }
-    }
-  }
+//  if (buf_.Capacity() - buf_.CurrentSize() < left) {
+//    for (size_t cap = buf_.Capacity();
+//         cap < max_buffer_size_;  // There is still room to increase
+//         cap *= 2) {
+//      // See whether the next available size is large enough.
+//      // Buffer will never be increased to more than max_buffer_size_.
+//      size_t desired_capacity = std::min(cap * 2, max_buffer_size_);
+//      if (desired_capacity - buf_.CurrentSize() >= left ||
+//          (use_direct_io() && desired_capacity == max_buffer_size_)) {
+//        buf_.AllocateNewBuffer(desired_capacity, true);
+//        break;
+//      }
+//    }
+//  }
 
   // Flush only when buffered I/O
   if (!use_direct_io() && (buf_.Capacity() - buf_.CurrentSize()) < left) {
@@ -448,76 +448,76 @@ void WritableFileWriter::UpdateFileChecksum(const Slice& data) {
 #ifndef ROCKSDB_LITE
 IOStatus WritableFileWriter::WriteDirect() {
   assert(use_direct_io());
-  IOStatus s;
-  const size_t alignment = buf_.Alignment();
-  assert((next_write_offset_ % alignment) == 0);
-
-  // Calculate whole page final file advance if all writes succeed
-  size_t file_advance = TruncateToPageBoundary(alignment, buf_.CurrentSize());
-
-  // Calculate the leftover tail, we write it here padded with zeros BUT we
-  // will write
-  // it again in the future either on Close() OR when the current whole page
-  // fills out
-  size_t leftover_tail = buf_.CurrentSize() - file_advance;
-
-  // Round up and pad
-  buf_.PadToAlignmentWith(0);
-
-  const char* src = buf_.BufferStart();
-  uint64_t write_offset = next_write_offset_;
-  size_t left = buf_.CurrentSize();
-
-  while (left > 0) {
-    // Check how much is allowed
-    size_t size;
-    if (rate_limiter_ != nullptr) {
-      size = rate_limiter_->RequestToken(left, buf_.Alignment(),
-                                         writable_file_->GetIOPriority(),
-                                         stats_, RateLimiter::OpType::kWrite);
-    } else {
-      size = left;
-    }
-
-    {
-      IOSTATS_TIMER_GUARD(write_nanos);
-      TEST_SYNC_POINT("WritableFileWriter::Flush:BeforeAppend");
-      FileOperationInfo::StartTimePoint start_ts;
-      if (ShouldNotifyListeners()) {
-        start_ts = FileOperationInfo::StartNow();
-      }
-      // direct writes must be positional
-      s = writable_file_->PositionedAppend(Slice(src, size), write_offset,
-                                           IOOptions(), nullptr);
-      if (ShouldNotifyListeners()) {
-        auto finish_ts = std::chrono::steady_clock::now();
-        NotifyOnFileWriteFinish(write_offset, size, start_ts, finish_ts, s);
-      }
-      if (!s.ok()) {
-        buf_.Size(file_advance + leftover_tail);
-        return s;
-      }
-    }
-
-    IOSTATS_ADD(bytes_written, size);
-    left -= size;
-    src += size;
-    write_offset += size;
-    assert((next_write_offset_ % alignment) == 0);
-  }
-
-  if (s.ok()) {
-    // Move the tail to the beginning of the buffer
-    // This never happens during normal Append but rather during
-    // explicit call to Flush()/Sync() or Close()
-    buf_.RefitTail(file_advance, leftover_tail);
-    // This is where we start writing next time which may or not be
-    // the actual file size on disk. They match if the buffer size
-    // is a multiple of whole pages otherwise filesize_ is leftover_tail
-    // behind
-    next_write_offset_ += file_advance;
-  }
-  return s;
+//  IOStatus s;
+//  const size_t alignment = buf_.Alignment();
+//  assert((next_write_offset_ % alignment) == 0);
+//
+//  // Calculate whole page final file advance if all writes succeed
+//  size_t file_advance = TruncateToPageBoundary(alignment, buf_.CurrentSize());
+//
+//  // Calculate the leftover tail, we write it here padded with zeros BUT we
+//  // will write
+//  // it again in the future either on Close() OR when the current whole page
+//  // fills out
+//  size_t leftover_tail = buf_.CurrentSize() - file_advance;
+//
+//  // Round up and pad
+//  buf_.PadToAlignmentWith(0);
+//
+//  const char* src = buf_.BufferStart();
+//  uint64_t write_offset = next_write_offset_;
+//  size_t left = buf_.CurrentSize();
+//
+//  while (left > 0) {
+//    // Check how much is allowed
+//    size_t size;
+//    if (rate_limiter_ != nullptr) {
+//      size = rate_limiter_->RequestToken(left, buf_.Alignment(),
+//                                         writable_file_->GetIOPriority(),
+//                                         stats_, RateLimiter::OpType::kWrite);
+//    } else {
+//      size = left;
+//    }
+//
+//    {
+//      IOSTATS_TIMER_GUARD(write_nanos);
+//      TEST_SYNC_POINT("WritableFileWriter::Flush:BeforeAppend");
+//      FileOperationInfo::StartTimePoint start_ts;
+//      if (ShouldNotifyListeners()) {
+//        start_ts = FileOperationInfo::StartNow();
+//      }
+//      // direct writes must be positional
+//      s = writable_file_->PositionedAppend(Slice(src, size), write_offset,
+//                                           IOOptions(), nullptr);
+//      if (ShouldNotifyListeners()) {
+//        auto finish_ts = std::chrono::steady_clock::now();
+//        NotifyOnFileWriteFinish(write_offset, size, start_ts, finish_ts, s);
+//      }
+//      if (!s.ok()) {
+//        buf_.Size(file_advance + leftover_tail);
+//        return s;
+//      }
+//    }
+//
+//    IOSTATS_ADD(bytes_written, size);
+//    left -= size;
+//    src += size;
+//    write_offset += size;
+//    assert((next_write_offset_ % alignment) == 0);
+//  }
+//
+//  if (s.ok()) {
+//    // Move the tail to the beginning of the buffer
+//    // This never happens during normal Append but rather during
+//    // explicit call to Flush()/Sync() or Close()
+//    buf_.RefitTail(file_advance, leftover_tail);
+//    // This is where we start writing next time which may or not be
+//    // the actual file size on disk. They match if the buffer size
+//    // is a multiple of whole pages otherwise filesize_ is leftover_tail
+//    // behind
+//    next_write_offset_ += file_advance;
+//  }
+  return IOStatus::IOError("No direct IO");
 }
 #endif  // !ROCKSDB_LITE
 }  // namespace ROCKSDB_NAMESPACE

@@ -122,7 +122,7 @@ class WritableFileWriter {
   std::string file_name_;
   FSWritableFilePtr writable_file_;
   Env* env_;
-  AlignedBuffer buf_;
+  RDMA_buffer buf_;
   size_t max_buffer_size_;
   // Actually written data size can be used for truncate
   // not counting padding data
@@ -153,7 +153,7 @@ class WritableFileWriter {
       : file_name_(_file_name),
         writable_file_(std::move(file), io_tracer),
         env_(env),
-        buf_(),
+        buf_(std::string("write")),
         max_buffer_size_(options.writable_file_max_buffer_size),
         filesize_(0),
 #ifndef ROCKSDB_LITE
@@ -169,8 +169,8 @@ class WritableFileWriter {
         checksum_finalized_(false) {
     TEST_SYNC_POINT_CALLBACK("WritableFileWriter::WritableFileWriter:0",
                              reinterpret_cast<void*>(max_buffer_size_));
-    buf_.Alignment(writable_file_->GetRequiredBufferAlignment());
-    buf_.AllocateNewBuffer(std::min((size_t)65536, max_buffer_size_));
+//    buf_.Alignment(writable_file_->GetRequiredBufferAlignment());
+//    buf_.AllocateNewBuffer(std::min((size_t)65536, max_buffer_size_));
 #ifndef ROCKSDB_LITE
     std::for_each(listeners.begin(), listeners.end(),
                   [this](const std::shared_ptr<EventListener>& e) {

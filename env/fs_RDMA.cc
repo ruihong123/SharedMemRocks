@@ -217,6 +217,7 @@ class RDMAFileSystem : public FileSystem {
         return IOStatus::OK();
       } else {
         file_to_sst_meta[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
+        file_to_sst_meta[file_name]->next_ptr = nullptr;
         sst_meta = file_to_sst_meta[file_name];
         return IOStatus::OK();      }
     }
@@ -947,7 +948,8 @@ class RDMAFileSystem : public FileSystem {
 
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
   std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Write_Bitmap;
+  std::unordered_map<ibv_mr*, In_Use_Array>* Read_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -1040,10 +1042,13 @@ RDMAFileSystem::RDMAFileSystem()
       1024*1024*1024 /*initial local buffer size*/
   };
   Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  size_t block_size = 10*1024*1024;
-  size_t table_size = 20*1024*1024;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap, block_size, table_size);
+  Write_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
+  Read_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
+  size_t read_block_size = 4*1024;
+  size_t write_block_size = 4*1024*1024;
+  size_t table_size = 8*1024*1024;
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
+                             table_size, write_block_size, read_block_size);
   rdma_mg->Client_Set_Up_Resources();
   auto myid = std::this_thread::get_id();
   std::stringstream ss;
@@ -1064,7 +1069,8 @@ RDMAFileSystem::RDMAFileSystem()
 }
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
   delete Remote_Bitmap;
-  delete Local_Bitmap;
+  delete Write_Bitmap;
+  delete Read_Bitmap;
   delete rdma_mg;
 }
 

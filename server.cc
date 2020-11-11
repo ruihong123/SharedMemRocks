@@ -16,7 +16,8 @@ int main()
   0};
   size_t block_size = 4*1024*1024;
   size_t table_size = 10*1024*1024;
-  rocksdb::RDMA_Manager RDMA_manager(config, local, remote, block_size, table_size);
+  rocksdb::RDMA_Manager RDMA_manager(config, local, remote, block_size, 0,
+                                     table_size, 0);
   RDMA_manager.Server_to_Client_Communication();
 
 
