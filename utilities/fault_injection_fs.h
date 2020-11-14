@@ -69,6 +69,7 @@ class TestFSWritableFile : public FSWritableFile {
                           IODebugContext* dbg) override {
     return Append(data, options, dbg);
   }
+  virtual IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override {return IOStatus::NotSupported();}
   virtual IOStatus Truncate(uint64_t size, const IOOptions& options,
                             IODebugContext* dbg) override {
     return target_->Truncate(size, options, dbg);

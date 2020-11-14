@@ -223,7 +223,7 @@ IOStatus WritableFileWriter::Flush() {
       }
 #endif  // !ROCKSDB_LITE
     } else {
-      s = WriteBuffered(buf_.BufferStart(), buf_.CurrentSize());
+      s = WriteBuffered(buf_.Get_mr(), buf_.CurrentSize());
     }
     if (!s.ok()) {
       return s;
@@ -426,6 +426,51 @@ IOStatus WritableFileWriter::WriteBuffered(const char* data, size_t size) {
 
     left -= allowed;
     src += allowed;
+  }
+  buf_.Size(0);
+  return s;
+}
+IOStatus WritableFileWriter::WriteBuffered(ibv_mr* mr, size_t size) {
+  IOStatus s;
+  assert(!use_direct_io());
+//  const char* src = data;
+  size_t left = size;
+
+  while (left > 0) {
+      size_t allowed = left;
+    {
+      IOSTATS_TIMER_GUARD(write_nanos);
+      TEST_SYNC_POINT("WritableFileWriter::Flush:BeforeAppend");
+#ifndef ROCKSDB_LITE
+      FileOperationInfo::StartTimePoint start_ts;
+      uint64_t old_size = writable_file_->GetFileSize(IOOptions(), nullptr);
+      if (ShouldNotifyListeners()) {
+        start_ts = FileOperationInfo::StartNow();
+        old_size = next_write_offset_;
+      }
+#endif
+      {
+        auto prev_perf_level = GetPerfLevel();
+        IOSTATS_CPU_TIMER_GUARD(cpu_write_nanos, env_);
+        s = writable_file_->Append(mr, left);
+        SetPerfLevel(prev_perf_level);
+      }
+#ifndef ROCKSDB_LITE
+      if (ShouldNotifyListeners()) {
+        auto finish_ts = std::chrono::steady_clock::now();
+        NotifyOnFileWriteFinish(old_size, allowed, start_ts, finish_ts, s);
+      }
+#endif
+      if (!s.ok()) {
+        return s;
+      }
+    }
+
+    IOSTATS_ADD(bytes_written, allowed);
+    TEST_KILL_RANDOM("WritableFileWriter::WriteBuffered:0", rocksdb_kill_odds);
+
+    left -= allowed;
+//    src += allowed;
   }
   buf_.Size(0);
   return s;

@@ -741,6 +741,7 @@ class FSWritableFile {
   // PositionedAppend, so the users cannot mix the two.
   virtual IOStatus Append(const Slice& data, const IOOptions& options,
                           IODebugContext* dbg) = 0;
+  virtual IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) = 0;
 
   // EXPERIMENTAL / CURRENTLY UNUSED
   // Append data with verification information
@@ -1312,6 +1313,7 @@ class FSRandomAccessFileWrapper : public FSRandomAccessFile {
 };
 
 class FSWritableFileWrapper : public FSWritableFile {
+  using FSWritableFile::Append;
  public:
   explicit FSWritableFileWrapper(FSWritableFile* t) : target_(t) {}
 

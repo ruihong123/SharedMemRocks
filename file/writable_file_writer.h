@@ -247,5 +247,6 @@ class WritableFileWriter {
   IOStatus WriteBuffered(const char* data, size_t size);
   IOStatus RangeSync(uint64_t offset, uint64_t nbytes);
   IOStatus SyncInternal(bool use_fsync);
+  IOStatus WriteBuffered(ibv_mr* mr, size_t size);
 };
 }  // namespace ROCKSDB_NAMESPACE

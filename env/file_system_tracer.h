@@ -249,7 +249,7 @@ class FSWritableFileTracingWrapper : public FSWritableFileWrapper {
                   IODebugContext* dbg) override {
     return Append(data, options, dbg);
   }
-
+  IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override {return IOStatus::NotSupported();}
   IOStatus PositionedAppend(const Slice& data, uint64_t offset,
                             const IOOptions& options,
                             IODebugContext* dbg) override;

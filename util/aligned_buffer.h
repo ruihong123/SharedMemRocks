@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include "port/port.h"
+#include <include/rocksdb/rdma.h>
+#include <include/rocksdb/file_system.h>
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -54,6 +56,7 @@ inline size_t Rounddown(size_t x, size_t y) { return (x / y) * y; }
 //   ...
 //   buf.AllocateNewBuffer(2*user_requested_buf_size, /*copy_data*/ true,
 //                         copy_offset, copy_len);
+
 class AlignedBuffer {
   size_t alignment_;
   std::unique_ptr<char[]> buf_;
@@ -224,6 +227,192 @@ public:
       cursize_ += pad_size;
     }
   }
+
+  void PadWith(size_t pad_size, int padding) {
+    assert((pad_size + cursize_) <= capacity_);
+    memset(bufstart_ + cursize_, padding, pad_size);
+    cursize_ += pad_size;
+  }
+
+  // After a partial flush move the tail to the beginning of the buffer.
+  void RefitTail(size_t tail_offset, size_t tail_size) {
+    if (tail_size > 0) {
+      memmove(bufstart_, bufstart_ + tail_offset, tail_size);
+    }
+    cursize_ = tail_size;
+  }
+
+  // Returns a place to start appending.
+  // WARNING: Note that it is possible to write past the end of the buffer if
+  // the buffer is modified without using the write APIs or encapsulation
+  // offered by AlignedBuffer. It is up to the user to guard against such
+  // errors.
+  char* Destination() {
+    return bufstart_ + cursize_;
+  }
+
+  void Size(size_t cursize) {
+    cursize_ = cursize;
+  }
+};
+class RDMA_buffer {
+//  size_t alignment_;
+//  std::unique_ptr<char[]> buf_;
+  ibv_mr* mr_;
+  ibv_mr* map_mr_;
+  size_t capacity_;
+  size_t cursize_;
+  char* bufstart_;
+  std::string buff_type_;
+
+ public:
+  RDMA_buffer(std::string buffer_type):buff_type_(buffer_type){
+//    auto start = std::chrono::high_resolution_clock::now();
+    FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Write Memory allocate, time elapse: %ld\n", duration.count());
+    bufstart_ = static_cast<char*>(mr_->addr);
+    capacity_ = mr_->length;
+    cursize_ = 0;
+  }
+
+  RDMA_buffer(RDMA_buffer&& o) ROCKSDB_NOEXCEPT {
+    *this = std::move(o);
+  }
+
+  RDMA_buffer& operator=(RDMA_buffer&& o) ROCKSDB_NOEXCEPT {
+//    alignment_ = std::move(o.alignment_);
+    mr_ = std::move(o.mr_);
+    capacity_ = std::move(o.capacity_);
+    cursize_ = std::move(o.cursize_);
+    bufstart_ = std::move(o.bufstart_);
+    return *this;
+  }
+  ~RDMA_buffer() ROCKSDB_NOEXCEPT {
+//    auto start = std::chrono::high_resolution_clock::now();
+    FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Write Memory Deallocate, time elapse: %ld\n", duration.count());
+  }
+  RDMA_buffer(const RDMA_buffer&) = delete;
+
+  RDMA_buffer& operator=(const RDMA_buffer&) = delete;
+
+  ibv_mr* Get_mr(){
+      return mr_;
+  }
+  size_t Capacity() const {
+    return capacity_;
+  }
+
+  size_t CurrentSize() const {
+    return cursize_;
+  }
+
+  const char* BufferStart() const {
+    return bufstart_;
+  }
+
+  char* BufferStart() { return bufstart_; }
+
+  void Clear() {
+    cursize_ = 0;
+  }
+
+  void Release() {
+    cursize_ = 0;
+    capacity_ = 0;
+    bufstart_ = nullptr;
+    FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+    printf("Write buffer deregister");
+    return;
+  }
+
+
+
+//  void AllocateNewBuffer(size_t requested_capacity, bool copy_data = false,
+//                         uint64_t copy_offset = 0, size_t copy_len = 0) {
+////    assert(alignment_ > 0);
+////    assert((alignment_ & (alignment_ - 1)) == 0);
+//    rdma_mg_->Allocate_Local_RDMA_Slot(mr_, map_mr_, std::string("read"));
+//
+//    copy_len = copy_len > 0 ? copy_len : cursize_;
+//    if (copy_data && requested_capacity < copy_len) {
+//      // If we are downsizing to a capacity that is smaller than the current
+//      // data in the buffer -- Ignore the request.
+//      return;
+//    }
+//
+//    size_t new_capacity = Roundup(requested_capacity, alignment_);
+//    char* new_buf = new char[new_capacity + alignment_];
+//    char* new_bufstart = reinterpret_cast<char*>(
+//        (reinterpret_cast<uintptr_t>(new_buf) + (alignment_ - 1)) &
+//        ~static_cast<uintptr_t>(alignment_ - 1));
+//
+//    if (copy_data) {
+//      assert(bufstart_ + copy_offset + copy_len <= bufstart_ + cursize_);
+//      memcpy(new_bufstart, bufstart_ + copy_offset, copy_len);
+//      cursize_ = copy_len;
+//    } else {
+//      cursize_ = 0;
+//    }
+//
+//    bufstart_ = new_bufstart;
+//    capacity_ = new_capacity;
+//    buf_.reset(new_buf);
+//  }
+
+  // Append to the buffer.
+  //
+  // src         : source to copy the data from.
+  // append_size : number of bytes to copy from src.
+  // Returns the number of bytes appended.
+  //
+  // If append_size is more than the remaining buffer size only the
+  // remaining-size worth of bytes are copied.
+  size_t Append(const char* src, size_t append_size) {
+    size_t buffer_remaining = capacity_ - cursize_;
+    size_t to_copy = std::min(append_size, buffer_remaining);
+
+    if (to_copy > 0) {
+      memcpy(bufstart_ + cursize_, src, to_copy);
+      cursize_ += to_copy;
+    }
+    return to_copy;
+  }
+
+  // Read from the buffer.
+  //
+  // dest      : destination buffer to copy the data to.
+  // offset    : the buffer offset to start reading from.
+  // read_size : the number of bytes to copy from the buffer to dest.
+  // Returns the number of bytes read/copied to dest.
+  size_t Read(char* dest, size_t offset, size_t read_size) const {
+    assert(offset < cursize_);
+
+    size_t to_read = 0;
+    if(offset < cursize_) {
+      to_read = std::min(cursize_ - offset, read_size);
+    }
+    if (to_read > 0) {
+      memcpy(dest, bufstart_ + offset, to_read);
+    }
+    return to_read;
+  }
+
+  // Pad to the end of alignment with "padding"
+//  void PadToAlignmentWith(int padding) {
+//    size_t total_size = Roundup(cursize_, alignment_);
+//    size_t pad_size = total_size - cursize_;
+//
+//    if (pad_size > 0) {
+//      assert((pad_size + cursize_) <= capacity_);
+//      memset(bufstart_ + cursize_, padding, pad_size);
+//      cursize_ += pad_size;
+//    }
+//  }
 
   void PadWith(size_t pad_size, int padding) {
     assert((pad_size + cursize_) <= capacity_);

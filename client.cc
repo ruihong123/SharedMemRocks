@@ -17,7 +17,7 @@ int main()
   rocksdb::Options options;
 //  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
-  options.write_buffer_size = 4*1024*1024;
+  options.write_buffer_size = 1*1024*1024;
 //  options.block_size = 4*1024*1024;
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::LOW);
