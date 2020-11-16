@@ -10,6 +10,7 @@
 #include "table/block_based/block_based_table_factory.h"
 
 #include <stdint.h>
+#include <table/block_fetcher.h>
 
 #include <cinttypes>
 #include <memory>
@@ -393,6 +394,7 @@ void BlockBasedTableFactory::InitializeOptions() {
     co.capacity = 8 << 20;
     // It makes little sense to pay overhead for mid-point insertion while the
     // block size is only 8MB.
+    co.memory_allocator.reset(new RDMA_Allocator());
     co.high_pri_pool_ratio = 0.0;
     table_options_.block_cache = NewLRUCache(co);
   }

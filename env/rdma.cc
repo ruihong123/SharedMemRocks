@@ -15,13 +15,13 @@ void UnrefHandle_rdma(void* ptr){
 * Initialize the resource for RDMA.
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(
-    config_t config, std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap,
-    std::unordered_map<ibv_mr*, In_Use_Array>* Write_Bitmap,
-    std::unordered_map<ibv_mr*, In_Use_Array>* Read_Bitmap, size_t table_size,
+    config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
+                           std::map<void*, In_Use_Array>* Write_Bitmap,
+                           std::map<void*, In_Use_Array>* Read_Bitmap, size_t table_size,
     size_t write_block_size, size_t read_block_size)
     : Read_Block_Size(read_block_size), Write_Block_Size(write_block_size),Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
-    rdma_config(config)
+      rdma_config(config)
 {
   assert(read_block_size <table_size);
   res = new resources();
@@ -167,7 +167,7 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
     }
     fprintf(stdout, "TCP connection was established\n");
   }
-sock_connect_exit:
+  sock_connect_exit:
   if (listenfd) close(listenfd);
   if (resolved_addr) freeaddrinfo(resolved_addr);
   if (sockfd < 0) {
@@ -227,7 +227,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
       }
     }
   }
-sock_connect_exit:
+  sock_connect_exit:
 
   if (listenfd) close(listenfd);
   if (resolved_addr) freeaddrinfo(resolved_addr);
@@ -406,11 +406,18 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     int placeholder_num =
         (*p2mrpointer)->length /
         (chunk_size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, chunk_size);
-    if (chunk_size == Write_Block_Size)
-      Write_Local_Mem_Bitmap->insert({*p2mrpointer, in_use_array});
-    else if (chunk_size == Read_Block_Size)
-      Read_Local_Mem_Bitmap->insert({*p2mrpointer, in_use_array});
+    In_Use_Array in_use_array(placeholder_num, chunk_size, *p2mrpointer);
+    if (chunk_size == Write_Block_Size){
+//        std::unique_lock<std::shared_mutex> l(write_pool_mutex);
+      Write_Local_Mem_Bitmap->insert({(*p2mrpointer)->addr, in_use_array});
+//        l.unlock();
+    }
+    else if (chunk_size == Read_Block_Size){
+//        std::unique_lock<std::shared_mutex> l(read_pool_mutex);
+      Read_Local_Mem_Bitmap->insert({(*p2mrpointer)->addr, in_use_array});
+//        l.unlock();
+    }
+
     else
       printf("RDma bitmap insert error");
     fprintf(
@@ -485,10 +492,10 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 int RDMA_Manager::resources_create() {
   struct ibv_device** dev_list = NULL;
   struct ibv_device* ib_dev = NULL;
-  int iter = 1;
+//  int iter = 1;
   int i;
 
-  int cq_size = 0;
+//  int cq_size = 0;
   int num_devices;
   int rc = 0;
   //        ibv_device_attr *device_attr;
@@ -631,7 +638,7 @@ bool RDMA_Manager::create_qp(std::string& id) {
 
   /* each side will send only one WR, so Completion Queue with 1 entry is enough
    */
-  int cq_size = 1000;
+  int cq_size = 2500;
   ibv_cq* cq = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
   if (!cq) {
     fprintf(stderr, "failed to create CQ with %u entries\n", cq_size);
@@ -641,13 +648,14 @@ bool RDMA_Manager::create_qp(std::string& id) {
   /* create the Queue Pair */
   memset(&qp_init_attr, 0, sizeof(qp_init_attr));
   qp_init_attr.qp_type = IBV_QPT_RC;
-  qp_init_attr.sq_sig_all = 1;
+  qp_init_attr.sq_sig_all = 0;
   qp_init_attr.send_cq = cq;
   qp_init_attr.recv_cq = cq;
-  qp_init_attr.cap.max_send_wr = 100;
-  qp_init_attr.cap.max_recv_wr = 100;
+  qp_init_attr.cap.max_send_wr = 2500;
+  qp_init_attr.cap.max_recv_wr = 2500;
   qp_init_attr.cap.max_send_sge = 30;
   qp_init_attr.cap.max_recv_sge = 30;
+//  qp_init_attr.cap.max_inline_data = -1;
   ibv_qp* qp = ibv_create_qp(res->pd, &qp_init_attr);
   if (!qp) {
     fprintf(stderr, "failed to create QP\n");
@@ -704,7 +712,7 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
   }
   fprintf(stdout, "QP %s state was change to RTS\n", qp_id.c_str());
   /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
-connect_qp_exit:
+  connect_qp_exit:
   return rc;
 }
 /******************************************************************************
@@ -766,7 +774,7 @@ int RDMA_Manager::modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn,
   attr.dest_qp_num = remote_qpn;
   attr.rq_psn = 0;
   attr.max_dest_rd_atomic = 1;
-  attr.min_rnr_timer = 0x12;
+  attr.min_rnr_timer = 0xc;
   attr.ah_attr.is_global = 0;
   attr.ah_attr.dlid = dlid;
   attr.ah_attr.sl = 0;
@@ -777,7 +785,7 @@ int RDMA_Manager::modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn,
     attr.ah_attr.port_num = 1;
     memcpy(&attr.ah_attr.grh.dgid, dgid, 16);
     attr.ah_attr.grh.flow_label = 0;
-    attr.ah_attr.grh.hop_limit = 1;
+    attr.ah_attr.grh.hop_limit = 0xFF;
     attr.ah_attr.grh.sgid_index = rdma_config.gid_idx;
     attr.ah_attr.grh.traffic_class = 0;
   }
@@ -808,9 +816,9 @@ int RDMA_Manager::modify_qp_to_rts(struct ibv_qp* qp) {
   int rc;
   memset(&attr, 0, sizeof(attr));
   attr.qp_state = IBV_QPS_RTS;
-  attr.timeout = 0x12;
-  attr.retry_cnt = 6;
-  attr.rnr_retry = 0;
+  attr.timeout = 0xe;
+  attr.retry_cnt = 7;
+  attr.rnr_retry = 7;
   attr.sq_psn = 0;
   attr.max_rd_atomic = 1;
   flags = IBV_QP_STATE | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT | IBV_QP_RNR_RETRY |
@@ -871,9 +879,15 @@ End of socket operations
 ******************************************************************************/
 
 // return 0 means success
-int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
-                            size_t msg_size, std::string q_id) {
+int
+RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, unsigned int send_flag,
+                        int poll_num) {
 //  auto start = std::chrono::high_resolution_clock::now();
+  std::shared_lock<std::shared_mutex> l(main_qp_mutex);
+//    auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  std::printf("Read lock time elapse : (%ld)\n",duration.count());
+
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
@@ -890,7 +904,10 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   sr.sg_list = &sge;
   sr.num_sge = 1;
   sr.opcode = IBV_WR_RDMA_READ;
-  sr.send_flags = IBV_SEND_SIGNALED;
+  if (send_flag != 0 )
+    sr.send_flags = send_flag;
+//  printf("send flag to transform is %u", send_flag);
+//  printf("send flag is %u", sr.send_flags);
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
 
@@ -905,28 +922,44 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
 //    std::cout << " " << msg_size << "time elapse :" <<  << std::endl;
 //  start = std::chrono::high_resolution_clock::now();
 
-  if (rc) fprintf(stderr, "failed to post SR\n");
+  if (rc) {
+    fprintf(stderr, "failed to post SR %s \n", q_id.c_str());
+    exit(1);
+
+  }else{
+//      printf("qid: %s", q_id.c_str());
+  }
   //  else
   //  {
   //    fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
   //  }
-  ibv_wc wc = {};
-  //  auto start = std::chrono::high_resolution_clock::now();
-  //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
-  rc = poll_completion(&wc, 1, q_id);
-  if (rc != 0) {
-    std::cout << "RDMA Read Failed" << std::endl;
-    std::cout << "q id is" << q_id << std::endl;
-    fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+  if (poll_num != 0){
+    ibv_wc* wc = new ibv_wc[poll_num]();
+    //  auto start = std::chrono::high_resolution_clock::now();
+    //  while(std::chrono::high_resolution_clock::now
+    //  ()-start < std::chrono::nanoseconds(msg_size+200000));
+    rc = poll_completion(wc, poll_num, q_id);
+    if (rc != 0) {
+      std::cout << "RDMA Read Failed" << std::endl;
+      std::cout << "q id is" << q_id << std::endl;
+      fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+    }
+    delete[] wc;
   }
+
+
+
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA READ and poll: %zu elapse: %ld\n", msg_size, duration.count());
   return rc;
 }
 int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
-                             size_t msg_size, std::string q_id) {
+                             size_t msg_size, std::string q_id, unsigned int send_flag,
+                             int poll_num) {
 //  auto start = std::chrono::high_resolution_clock::now();
+  std::shared_lock<std::shared_mutex> l(main_qp_mutex);
+
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
@@ -943,7 +976,8 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   sr.sg_list = &sge;
   sr.num_sge = 1;
   sr.opcode = IBV_WR_RDMA_WRITE;
-  sr.send_flags = IBV_SEND_SIGNALED;
+  if (send_flag != 0 )
+    sr.send_flags = send_flag;
   sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
   sr.wr.rdma.rkey = remote_mr->rkey;
   /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
@@ -961,15 +995,18 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   //  {
   //    fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
   //  }
-  ibv_wc wc = {};
-  //  auto start = std::chrono::high_resolution_clock::now();
-  //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
-  // wait until the job complete.
-  rc = poll_completion(&wc, 1, q_id);
-  if (rc != 0) {
-    std::cout << "RDMA Write Failed" << std::endl;
-    std::cout << "q id is" << q_id << std::endl;
-    fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+  if (poll_num != 0){
+    ibv_wc* wc = new ibv_wc[poll_num]();
+    //  auto start = std::chrono::high_resolution_clock::now();
+    //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
+    // wait until the job complete.
+    rc = poll_completion(wc, poll_num, q_id);
+    if (rc != 0) {
+      std::cout << "RDMA Write Failed" << std::endl;
+      std::cout << "q id is" << q_id << std::endl;
+      fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+    }
+    delete []  wc;
   }
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -1266,7 +1303,7 @@ void RDMA_Manager::usage(const char* argv0) {
 }
 
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
-  std::lock_guard<std::mutex> l(main_qp_mutex);
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
@@ -1295,8 +1332,11 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
 
     // push the bitmap of the new registed buffer to the bitmap vector in resource.
     int placeholder_num =static_cast<int>(temp_pointer->length) /(Table_Size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, Table_Size);
-    Remote_Mem_Bitmap->insert({temp_pointer, in_use_array});
+    In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
+//    std::unique_lock l(remote_pool_mutex);
+    Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
+//    l.unlock();
+
     // NOTICE: Couold be problematic because the pushback may not an absolute
     //   value copy. it could raise a segment fault(Double check it)
   } else {
@@ -1307,7 +1347,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
-  std::lock_guard<std::mutex> l(main_qp_mutex);
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   create_qp(qp_id);
   union ibv_gid my_gid;
   int rc;
@@ -1372,12 +1412,13 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
   if (Remote_Mem_Bitmap->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.
-    remote_mem_create_mutex.lock();
+    std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024);
     }
-    remote_mem_create_mutex.unlock();
+    mem_write_lock.unlock();
   }
+  std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
   auto ptr = Remote_Mem_Bitmap->begin();
 
   while (ptr != Remote_Mem_Bitmap->end()) {
@@ -1387,13 +1428,13 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     // from the remote memory. The memory was divided into chunks with size == SSTable size.
     int sst_index = ptr->second.allocate_memory_slot();
     if (sst_index >= 0) {
-      *(sst_meta->mr) = *(ptr->first);
+      *(sst_meta->mr) = *((ptr->second).get_mr_ori());
       sst_meta->mr->addr = static_cast<void*>(
           static_cast<char*>(sst_meta->mr->addr) + sst_index * Table_Size);
       sst_meta->mr->length = Table_Size;
       sst_meta->fname = file_name;
       sst_meta->map_pointer =
-          ptr->first;  // it could be confused that the map_pointer is for the memtadata deletion
+          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
       // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
       sst_meta->file_size = 0;
 #ifndef NDEBUG
@@ -1403,13 +1444,14 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     } else
       ptr++;
   }
+  mem_read_lock.unlock();
   // If not find remote buffers are all used, allocate another remote memory region.
-  remote_mem_create_mutex.lock();
+  std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
   Remote_Memory_Register(1 * 1024 * 1024 * 1024);
-  remote_mem_create_mutex.unlock();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
-  int sst_index = Remote_Mem_Bitmap->at(mr_last).allocate_memory_slot();
+  int sst_index = Remote_Mem_Bitmap->at(mr_last->addr).allocate_memory_slot();
+  mem_write_lock.unlock();
 
   //  sst_meta->mr = new ibv_mr();
   *(sst_meta->mr) = *(mr_last);
@@ -1417,7 +1459,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
       static_cast<char*>(sst_meta->mr->addr) + sst_index * Table_Size);
   sst_meta->mr->length = Table_Size;
   sst_meta->fname = file_name;
-  sst_meta->map_pointer = ptr->first;
+  sst_meta->map_pointer = mr_last;
   return;
 }
 // A function try to allocat
@@ -1429,14 +1471,15 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   if (buffer_type == "write") {
     chunk_size = Write_Block_Size;
     if (Write_Local_Mem_Bitmap->empty()) {
-      local_mem_create_mutex.lock();
+      std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
       if (Write_Local_Mem_Bitmap->empty()) {
         ibv_mr* mr;
         char* buff;
         Local_Memory_Register(&buff, &mr, 256 * chunk_size, chunk_size);
       }
-      local_mem_create_mutex.unlock();
+      mem_write_lock.unlock();
     }
+    std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
     auto ptr = Write_Local_Mem_Bitmap->begin();
 
     while (ptr != Write_Local_Mem_Bitmap->end()) {
@@ -1448,8 +1491,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       int block_index = ptr->second.allocate_memory_slot();
       if (block_index >= 0) {
         mr_input = new ibv_mr();
-        map_pointer = ptr->first;
-        *(mr_input) = *(ptr->first);
+        map_pointer = (ptr->second).get_mr_ori();
+        *(mr_input) = *((ptr->second).get_mr_ori());
         mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
                                             block_index * chunk_size);
         mr_input->length = chunk_size;
@@ -1458,16 +1501,20 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       } else
         ptr++;
     }
+    mem_read_lock.unlock();
     // if not find available Local block buffer then allocate a new buffer. then
     // pick up one buffer from the new Local memory region.
     // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
     // TODO:: Because there are two many thread going on at the same time.
     ibv_mr* mr_to_allocate = new ibv_mr();
     char* buff = new char[chunk_size];
-    local_mem_create_mutex.lock();
+
+    std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
     Local_Memory_Register(&buff, &mr_to_allocate, chunk_size * 32, chunk_size);
-    local_mem_create_mutex.unlock();
-    int block_index = Write_Local_Mem_Bitmap->at(mr_to_allocate).allocate_memory_slot();
+
+
+    int block_index = Write_Local_Mem_Bitmap->at(mr_to_allocate->addr).allocate_memory_slot();
+    mem_write_lock.unlock();
     if (block_index >= 0) {
       mr_input = new ibv_mr();
       map_pointer = mr_to_allocate;
@@ -1482,16 +1529,16 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   else if (buffer_type == "read"){
     chunk_size = Read_Block_Size;
     if (Read_Local_Mem_Bitmap->empty()) {
-      local_mem_create_mutex.lock();
+      std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
       if (Read_Local_Mem_Bitmap->empty()) {
         ibv_mr* mr;
         char* buff;
         Local_Memory_Register(&buff, &mr, 1024*256*chunk_size, chunk_size);
       }
-      local_mem_create_mutex.unlock();
+      mem_write_lock.unlock();
     }
+    std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
     auto ptr = Read_Local_Mem_Bitmap->begin();
-
     while (ptr != Read_Local_Mem_Bitmap->end()) {
       size_t region_chunk_size = ptr->second.get_chunk_size();
       if (region_chunk_size != chunk_size){
@@ -1501,8 +1548,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       int block_index = ptr->second.allocate_memory_slot();
       if (block_index >= 0) {
         mr_input = new ibv_mr();
-        map_pointer = ptr->first;
-        *(mr_input) = *(ptr->first);
+        map_pointer = (ptr->second).get_mr_ori();
+        *(mr_input) = *((ptr->second).get_mr_ori());
         mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
                                             block_index * chunk_size);
 
@@ -1511,16 +1558,19 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       } else
         ptr++;
     }
+    mem_read_lock.unlock();
     // if not find available Local block buffer then allocate a new buffer. then
     // pick up one buffer from the new Local memory region.
     // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
     // TODO:: Because there are two many thread going on at the same time.
     ibv_mr* mr_to_allocate = new ibv_mr();
     char* buff = new char[chunk_size];
-    local_mem_create_mutex.lock();
+
+    std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
     Local_Memory_Register(&buff, &mr_to_allocate, chunk_size*512, chunk_size);
-    local_mem_create_mutex.unlock();
-    int block_index = Read_Local_Mem_Bitmap->at(mr_to_allocate).allocate_memory_slot();
+    int block_index = Read_Local_Mem_Bitmap->at(mr_to_allocate->addr).allocate_memory_slot();
+    mem_write_lock.unlock();
+
     if (block_index >= 0) {
       mr_input = new ibv_mr();
       map_pointer = mr_to_allocate;
@@ -1530,9 +1580,9 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       //  mr_input.fname = file_name;
       return;
     }
-  else
-    printf("invalid buffer type");
-  // Need to develop a mechanism to preallocate the memory in advance.
+    else
+      printf("invalid buffer type");
+    // Need to develop a mechanism to preallocate the memory in advance.
 
   }
 #ifndef NDEBUG
@@ -1543,30 +1593,88 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
 }
 // Remeber to delete the mr because it was created be new, otherwise memory leak.
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
-                                              std::string buffer_type) const {
+                                              std::string buffer_type) {
   int buff_offset =
       static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
   if (buffer_type == "read"){
     assert(buff_offset % Read_Block_Size == 0);
-    return Read_Local_Mem_Bitmap->at(map_pointer)
+    std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+    return Read_Local_Mem_Bitmap->at(map_pointer->addr)
         .deallocate_memory_slot(buff_offset / Read_Block_Size);
   }
   else if (buffer_type == "write"){
     assert(buff_offset % Write_Block_Size == 0);
-    return Write_Local_Mem_Bitmap->at(map_pointer)
+    std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+    return Write_Local_Mem_Bitmap->at(map_pointer->addr)
         .deallocate_memory_slot(buff_offset / Write_Block_Size);
   }
   return false;
 }
-bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const {
+bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
+
   int buff_offset = static_cast<char*>(sst_meta->mr->addr) -
                     static_cast<char*>(sst_meta->map_pointer->addr);
   assert(buff_offset % Table_Size == 0);
 #ifndef NDEBUG
 //  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
 #endif
-  return Remote_Mem_Bitmap->at(sst_meta->map_pointer)
+  std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+  return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
       .deallocate_memory_slot(buff_offset / Table_Size);
+}
+bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
+  std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+  std::map<void*, In_Use_Array>* Bitmap = nullptr;
+  if (buff_type == "read") {
+    Bitmap = Read_Local_Mem_Bitmap;
+  }else if (buff_type == "write") {
+    Bitmap = Write_Local_Mem_Bitmap;
+  }
+  auto mr_iter = Bitmap->upper_bound(p);
+  if(mr_iter == Bitmap->begin()){
+    return false;
+  }else if (mr_iter == Bitmap->end()){
+    mr_iter--;
+    size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+//      assert(buff_offset>=0);
+    if (buff_offset < mr_iter->second.get_mr_ori()->length)
+      return mr_iter->second.deallocate_memory_slot(buff_offset / mr_iter->second.get_chunk_size());
+    else
+      return false;
+  }else{
+    size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+//      assert(buff_offset>=0);
+    if (buff_offset < mr_iter->second.get_mr_ori()->length)
+      return mr_iter->second.deallocate_memory_slot(buff_offset / mr_iter->second.get_chunk_size());
+  }
+  return false;
+
+
+
+}
+bool RDMA_Manager::CheckInsideLocalBuff(
+    void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
+    std::map<void*, In_Use_Array>* Bitmap) {
+  std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+  mr_iter = Bitmap->upper_bound(p);
+    if(mr_iter == Bitmap->begin()){
+      return false;
+    }else if (mr_iter == Bitmap->end()){
+      mr_iter--;
+      size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+//      assert(buff_offset>=0);
+      if (buff_offset < mr_iter->second.get_mr_ori()->length)
+        return true;
+      else
+        return false;
+    }else{
+      size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+//      assert(buff_offset>=0);
+      if (buff_offset < mr_iter->second.get_mr_ori()->length)
+        return true;
+    }
+
+    return false;
 }
 
 }

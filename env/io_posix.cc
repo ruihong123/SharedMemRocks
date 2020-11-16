@@ -462,13 +462,13 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,
-                               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
+                               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())), IBV_SEND_SIGNALED,1);
     position_ +=  sst_meta_->file_size - position_;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
     *result = Slice(scratch, n_real);
   }
   else{
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
+    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())), IBV_SEND_SIGNALED,1);
     position_ +=  n;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
     *result = Slice(scratch, n);
@@ -909,13 +909,13 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      IODebugContext* /*dbg*/) const {
 //  auto start = std::chrono::high_resolution_clock::now();
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
-//  auto stop = std::chrono::high_resolution_clock::now();
+  //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Read Get the lock time elapse: %ld\n", duration.count());
 //  const std::lock_guard<std::mutex> lock(sst_meta_head_->file_lock);
 
 //  const std::lock_guard<std::mutex> lock(
-//      rdma_mg_->remote_mem_create_mutex);// write lock
+//      rdma_mg_->remote_mem_mutex);// write lock
   IOStatus s;
   //Find the Poxis thread ID for the key for the qp_map in rdma manager.
 //  auto myid = std::this_thread::get_id();
@@ -923,11 +923,11 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  ss << myid;
 //  std::string posix_tid = ss.str();
 //  start = std::chrono::high_resolution_clock::now();
+//  assert(n<= rdma_mg_->Read_Block_Size);
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
-  ibv_mr* local_mr_pointer;
-  local_mr_pointer = nullptr;
+
   SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
   //find the SST_Metadata for current chunk.
   size_t chunk_offset = offset%(rdma_mg_->Table_Size);
@@ -946,45 +946,119 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
   assert(offset == chunk_offset);
   char* chunk_src = scratch;
+  std::string thread_id = *(static_cast<std::string*>(rdma_mg_->t_local_1->Get()));
+  std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
+  if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
+                                     rdma_mg_->Read_Local_Mem_Bitmap)){
+//    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
+    ibv_mr local_mr;
+    local_mr = *(mr_start->second.get_mr_ori());
+    local_mr.addr = scratch;
+    assert(n <= rdma_mg_->Read_Block_Size);
+    if (n + chunk_offset >= rdma_mg_->Table_Size ){
+      // if block write accross two SSTable chunks, seperate it into 2 steps.
+      //First step
+      size_t first_half = rdma_mg_->Table_Size - chunk_offset;
+      size_t second_half = n - (rdma_mg_->Table_Size - chunk_offset);
+      int flag = rdma_mg_->RDMA_Read(&remote_mr, &local_mr, first_half,
+                                     thread_id, IBV_SEND_SIGNALED,1);
+
+      if (flag!=0){
+        return IOError("While appending to file", sst_meta_head_->fname, flag);
+      }
+      //move the buffer to the next part
+      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + first_half);
+      assert(sst_meta_current->next_ptr != nullptr);
+      sst_meta_current = sst_meta_current->next_ptr;
+      remote_mr = *(sst_meta_current->mr);
+      chunk_offset = 0;
+      flag = rdma_mg_->RDMA_Read(&remote_mr, &local_mr, second_half,
+                                 thread_id, IBV_SEND_SIGNALED,1);
+//    std::cout << "New read blocks accross Table chunk" << std::endl;
+      if (flag!=0){
+
+        return IOError("While appending to file", sst_meta_head_->fname, flag);
+
+
+      }
+//      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
+      chunk_offset = second_half;
+//      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
+    }else{
+//    auto start = std::chrono::high_resolution_clock::now();
+      int flag =
+          rdma_mg_->RDMA_Read(&remote_mr, &local_mr, n, thread_id, IBV_SEND_SIGNALED,1);
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("New Bare RDMA read size: %zu time elapse: %ld\n", n, duration.count());
+//    printf("%s", scratch);
+
+//    start = std::chrono::high_resolution_clock::now();
+//    stop = std::chrono::high_resolution_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Read Memcopy size: %zu time elapse: %ld\n", size, duration.count());
+//    std::cout << "read blocks within Table chunk" << std::endl;
+
+      if (flag!=0){
+
+        return IOError("While appending to file", sst_meta_head_->fname, flag);
+
+
+      }
+//      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + n);
+      chunk_offset += n;
+//      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
+    }
+    *result = Slice(scratch, n_original);
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//  std::cout << size <<"inner Read Chunk time elapse :" << duration.count() << std::endl;
+    return s;
+
+  }else{
+    ibv_mr* local_mr_pointer;
+    local_mr_pointer = nullptr;
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Read pointer convert time elapse: %ld\n", duration.count());
 //  start = std::chrono::high_resolution_clock::now();
-  rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
+    rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Read Memory allocate, time elapse : (%ld)\n", duration.count());
 //  auto start = std::chrono::high_resolution_clock::now();
-  while (n > rdma_mg_->Read_Block_Size){
-    Read_chunk(chunk_src, rdma_mg_->Read_Block_Size, local_mr_pointer, remote_mr,
-               chunk_offset, sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
+    while (n > rdma_mg_->Read_Block_Size){
+      Read_chunk(chunk_src, rdma_mg_->Read_Block_Size, local_mr_pointer, remote_mr,
+                 chunk_offset, sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
 //    chunk_src += rdma_mg_->Read_Block_Size;
-    n -= rdma_mg_->Read_Block_Size;
+      n -= rdma_mg_->Read_Block_Size;
 //    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + rdma_mg_->Read_Block_Size);
 
-  }
-  Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
-             sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
+    }
+    Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
+               sst_meta_current, *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA read size: %zu time elapse: %ld\n", n, duration.count());
 //  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
 //  start = std::chrono::high_resolution_clock::now();
-  *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
-  if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
-                                           std::string("read")))
-    delete local_mr_pointer;
-  else
-    s = IOError(
-        "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
-                sst_meta_head_->fname, 1);
+    *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
+    if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
+                                            std::string("read")))
+      delete local_mr_pointer;
+    else
+      s = IOError(
+          "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
+          sst_meta_head_->fname, 1);
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Read Local buffer deallocate time elapse: %ld\n", duration.count());
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //  std::cout << n_original <<"Read total time elapse :" << duration.count() << std::endl;
-  return s;
+    return s;
+  }
+
 }
 
 IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
@@ -1003,7 +1077,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     size_t first_half = rdma_mg_->Table_Size - chunk_offset;
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
     int flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, first_half,
-                                   thread_id);
+                                   thread_id, IBV_SEND_SIGNALED,1);
     memcpy(buff_ptr, local_mr_pointer->addr, first_half);// copy to the buffer
 
     if (flag!=0){
@@ -1016,7 +1090,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
-                               thread_id);
+                               thread_id, IBV_SEND_SIGNALED,1);
     memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
 //    std::cout << "read blocks accross Table chunk" << std::endl;
     if (flag!=0){
@@ -1031,7 +1105,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
   }else{
 //    auto start = std::chrono::high_resolution_clock::now();
     int flag =
-        rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, thread_id);
+        rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, thread_id, IBV_SEND_SIGNALED,1);
 //    auto stop = std::chrono::high_resolution_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    printf("Bare RDMA read size: %zu time elapse: %ld\n", size, duration.count());
@@ -1589,7 +1663,7 @@ IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
     size_t second_half = msg_size - (rdma_mg_->Table_Size - chunk_offset);
     ibv_mr temp_mr = *(local_mr_pointer);
     flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half,
-                                thread_id);
+                                thread_id,IBV_SEND_SIGNALED,1);
     temp_mr.addr = static_cast<void*>(static_cast<char*>(local_mr_pointer->addr) + first_half);
 
     if (flag!=0){
@@ -1611,7 +1685,7 @@ IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
     flag = rdma_mg_->RDMA_Write(&remote_mr, &temp_mr, second_half,
-                                thread_id);
+                                thread_id, IBV_SEND_SIGNALED,1);
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1632,7 +1706,7 @@ IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
 //  printf("Write Local buffer deallocate time elapse: %ld\n", duration.count());
 //    start = std::chrono::high_resolution_clock::now();
     flag =
-        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, msg_size, thread_id);
+        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, msg_size, thread_id, IBV_SEND_SIGNALED,1);
 //    stop = std::chrono::high_resolution_clock::now();
 //    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    printf("New Bare RDMA write size: %zu time elapse: %ld\n", msg_size, duration.count());
@@ -1679,7 +1753,7 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   printf("Write Get the lock time elapse: %ld\n", duration.count());
 //  const std::lock_guard<std::mutex> lock(sst_meta_head->file_lock);
 //  const std::lock_guard<std::mutex> lock(
-//      rdma_mg_->remote_mem_create_mutex);// write lock
+//      rdma_mg_->remote_mem_mutex);// write lock
 //  auto myid = std::this_thread::get_id();
 //  std::stringstream ss;
 //  ss << myid;
@@ -1749,7 +1823,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     size_t second_half = size - (rdma_mg_->Table_Size - chunk_offset);
     memcpy(local_mr_pointer->addr, buff_ptr, first_half);
     flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, first_half,
-                                thread_id);
+                                thread_id, IBV_SEND_SIGNALED,1);
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1771,7 +1845,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
     chunk_offset = 0;
     memcpy(local_mr_pointer->addr, buff_ptr, second_half);
     flag = rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, second_half,
-                                thread_id);
+                                thread_id, IBV_SEND_SIGNALED,1);
     if (flag!=0){
 
       return IOError("While appending to file", sst_meta_head->fname, flag);
@@ -1794,7 +1868,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
 //  printf("Write Local buffer deallocate time elapse: %ld\n", duration.count());
     start = std::chrono::high_resolution_clock::now();
     flag =
-        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size, thread_id);
+        rdma_mg_->RDMA_Write(&remote_mr, local_mr_pointer, size, thread_id, IBV_SEND_SIGNALED,1);
     stop = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     printf("Bare RDMA write size: %zu time elapse: %ld\n", size, duration.count());

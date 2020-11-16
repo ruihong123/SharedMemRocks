@@ -947,9 +947,9 @@ class RDMAFileSystem : public FileSystem {
 //  bool forceMmapOff_;  // do we override Env options?
 
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Write_Bitmap;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Read_Bitmap;
+  std::map<void*, In_Use_Array>* Remote_Bitmap;
+  std::map<void*, In_Use_Array>* Write_Bitmap;
+  std::map<void*, In_Use_Array>* Read_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -1041,9 +1041,9 @@ RDMAFileSystem::RDMAFileSystem()
       -1, /* gid_idx */
       1024*1024*1024 /*initial local buffer size*/
   };
-  Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  Write_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  Read_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
+  Remote_Bitmap = new std::map<void*, In_Use_Array>;
+  Write_Bitmap = new std::map<void*, In_Use_Array>;
+  Read_Bitmap = new std::map<void*, In_Use_Array>;
   size_t read_block_size = 4*1024;
   size_t write_block_size = 1*1024*1024;
   size_t table_size = 4*1024*1024;

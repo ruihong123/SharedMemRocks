@@ -97,7 +97,7 @@ inline bool BlockFetcher::TryGetCompressedBlockFromPersistentCache() {
   return false;
 }
 
-inline void BlockFetcher::PrepareBufferForBlockFromFile() {
+inline void BlockFetcher::  PrepareBufferForBlockFromFile() {
   // cache miss read from device
   if ((do_uncompress_ || ioptions_.allow_mmap_reads) &&
       block_size_with_trailer_ < kDefaultStackBufferSize) {
