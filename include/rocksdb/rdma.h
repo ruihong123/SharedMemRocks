@@ -265,9 +265,9 @@ class RDMA_Manager{
   std::shared_mutex main_qp_mutex;
   std::shared_mutex qp_cq_map_mutex;
   std::vector<std::thread> thread_pool;
-  std::unique_ptr<ThreadLocalPtr> t_local_1;
-  std::unique_ptr<ThreadLocalPtr> qp_local;
-  std::unique_ptr<ThreadLocalPtr> cq_local;
+  ThreadLocalPtr* t_local_1;
+  ThreadLocalPtr* qp_local;
+  ThreadLocalPtr* cq_local;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:

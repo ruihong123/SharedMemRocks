@@ -18,11 +18,11 @@ void client_thread(rocksdb::RDMA_Manager* rdma_manager){
   char *msg = static_cast<char *>(rdma_manager->local_mem_pool[0]->addr);
   strcpy(msg, "message from computing node");
   int msg_size = sizeof("message from computing node");
-  rdma_manager->RDMA_Write(rdma_manager->remote_mem_pool[0], &mem_pool_table[0],
-                           msg_size, *thread_id);
-
-  rdma_manager->RDMA_Read(rdma_manager->remote_mem_pool[0], &mem_pool_table[1],
-                          msg_size, *thread_id);
+//  rdma_manager->RDMA_Write(rdma_manager->remote_mem_pool[0], &mem_pool_table[0],
+//                           msg_size, *thread_id);
+//
+//  rdma_manager->RDMA_Read(rdma_manager->remote_mem_pool[0], &mem_pool_table[1],
+//                          msg_size, *thread_id);
 //  ibv_wc* wc = new ibv_wc();
 //
 //    rdma_manager->poll_completion(wc, 2, thread_id);
@@ -44,12 +44,12 @@ int main()
       NULL,  /* server_name */
       19875, /* tcp_port */
       1,	 /* ib_port */ //physical
-      -1, /* gid_idx */
+      1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
   };
-  auto Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  auto Read_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  auto Write_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
+  auto Remote_Bitmap = new std::map<void*, In_Use_Array>;
+  auto Read_Bitmap = new std::map<void*, In_Use_Array>;
+  auto Write_Bitmap = new std::map<void*, In_Use_Array>;
   size_t read_block_size = 4*1024;
   size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;

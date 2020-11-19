@@ -79,7 +79,7 @@ int main()
 //
 ////     std::cout << "Delete iteration number " << i << std::endl;
 //   }
-   for (int i = 0; i<5000000; i++){
+   for (int i = 0; i<5; i++){
      key = std::to_string(i);
      value = std::to_string(std::rand() % ( 30000001 ));
      s = db->Put(option_wr, key, value);

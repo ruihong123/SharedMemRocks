@@ -5,7 +5,10 @@ void UnrefHandle_rdma(void* ptr){
 }
 void UnrefHandle_qp(void* ptr){
   if (ibv_destroy_qp(static_cast<ibv_qp*>(ptr))) {
-    fprintf(stderr, "failed to destroy QP\n");
+    fprintf(stderr, "Thread local qp failed to destroy QP\n");
+  }
+  else{
+    printf("thread local qp destroy successfully!");
   }
 }
 /******************************************************************************
@@ -27,6 +30,7 @@ RDMA_Manager::RDMA_Manager(
     : Read_Block_Size(read_block_size), Write_Block_Size(write_block_size),Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
+      cq_local(new ThreadLocalPtr(&UnrefHandle_qp)),
       rdma_config(config)
 {
   assert(read_block_size <table_size);
@@ -54,14 +58,17 @@ RDMA_Manager::~RDMA_Manager() {
         fprintf(stderr, "failed to destroy QP\n");
       }
     }
-  if (res->mr_receive)
-    if (ibv_dereg_mr(res->mr_receive)) {
-      fprintf(stderr, "failed to deregister MR\n");
-    }
-  if (res->mr_send)
-    if (ibv_dereg_mr(res->mr_send)) {
-      fprintf(stderr, "failed to deregister MR\n");
-    }
+  delete t_local_1;
+  delete qp_local;
+  delete cq_local;
+//  if (res->mr_receive)
+//    if (ibv_dereg_mr(res->mr_receive)) {
+//      fprintf(stderr, "failed to deregister MR\n");
+//    }
+//  if (res->mr_send)
+//    if (ibv_dereg_mr(res->mr_send)) {
+//      fprintf(stderr, "failed to deregister MR\n");
+//    }
   if (!local_mem_pool.empty()) {
     //    ibv_dereg_mr(local_mem_pool.at(0));
     //    std::for_each(local_mem_pool.begin(), local_mem_pool.end(), ibv_dereg_mr);
@@ -78,8 +85,8 @@ RDMA_Manager::~RDMA_Manager() {
     }
     remote_mem_pool.clear();
   }
-  if (res->receive_buf) delete res->receive_buf;
-  if (res->send_buf) delete res->send_buf;
+//  if (res->receive_buf) delete res->receive_buf;
+//  if (res->send_buf) delete res->send_buf;
   //  if (res->SST_buf)
   //    delete res->SST_buf;
   if (!res->cq_map.empty())
@@ -363,7 +370,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       /* exchange using TCP sockets info required to connect QPs */
       send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
       send_pointer->lid = res->port_attr.lid;
-      memcpy(local_con_data.gid, &my_gid, 16);
+      memcpy(send_pointer->gid, &my_gid, 16);
       connect_qp(receive_pointer->content.qp_config, new_qp_id);
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<registered_qp_config>(send_mr, client_ip);
@@ -650,10 +657,10 @@ bool RDMA_Manager::create_qp(std::string& id) {
     fprintf(stderr, "failed to create CQ with %u entries\n", cq_size);
   }
   std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
-//  if (id != "")
+  if (id != "")
     res->cq_map[id] = cq;
-//  else
-//    cq_local->Reset(cq);
+  else
+    cq_local->Reset(cq);
 
   /* create the Queue Pair */
   memset(&qp_init_attr, 0, sizeof(qp_init_attr));
@@ -670,10 +677,10 @@ bool RDMA_Manager::create_qp(std::string& id) {
   if (!qp) {
     fprintf(stderr, "failed to create QP\n");
   }
-//  if (id != "")
+  if (id != "")
     res->qp_map[id] = qp;
-//  else
-//    qp_local->Reset(qp);
+  else
+    qp_local->Reset(qp);
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
 
   return true;
@@ -697,10 +704,10 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
                              std::string& qp_id) {
   int rc;
   ibv_qp* qp;
-//  if (qp_id != "")
+  if (qp_id != "")
     qp = res->qp_map[qp_id];
-//  else
-//    qp = static_cast<ibv_qp*>(qp_local->Get());
+  else
+    qp = static_cast<ibv_qp*>(qp_local->Get());
   if (rdma_config.gid_idx >= 0) {
     uint8_t* p = remote_con_data.gid;
     fprintf(stdout,
@@ -935,18 +942,21 @@ RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, st
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("rdma read  send prepare for (%zu), time elapse : (%ld)\n", msg_size, duration.count());
 //  start = std::chrono::high_resolution_clock::now();
-  std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
-//  if (q_id != "")
+  if (q_id != ""){
+    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
     rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
-//  else{
-//    ibv_qp* qp = static_cast<ibv_qp*>(qp_local->Get());
-//    if (qp == NULL){
-//      Remote_Query_Pair_Connection(q_id);
-//      qp = static_cast<ibv_qp*>(qp_local->Get());
-//    }
-//    rc = ibv_post_send(qp, &sr, &bad_wr);
-//  }
-
+    l.unlock();
+  }
+  else{
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local->Get());
+    if (qp == NULL){
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local->Get());
+    }
+    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+    l.unlock();
+  }
 //    std::cout << " " << msg_size << "time elapse :" <<  << std::endl;
 //  start = std::chrono::high_resolution_clock::now();
 
@@ -1013,17 +1023,22 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA Write send preparation size: %zu elapse: %ld\n", msg_size, duration.count());
 //  start = std::chrono::high_resolution_clock::now();
-  std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
-//  if (q_id != "")
+
+  if (q_id != ""){
+    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
     rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
-//  else{
-//    ibv_qp* qp = static_cast<ibv_qp*>(qp_local->Get());
-//    if (qp == NULL){
-//      Remote_Query_Pair_Connection(q_id);
-//      qp = static_cast<ibv_qp*>(qp_local->Get());
-//    }
-//    rc = ibv_post_send(qp, &sr, &bad_wr);
-//  }
+    l.unlock();
+  }
+  else{
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local->Get());
+    if (qp == NULL){
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local->Get());
+    }
+    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+    l.unlock();
+  }
 
   //  start = std::chrono::high_resolution_clock::now();
   if (rc) fprintf(stderr, "failed to post SR\n");
@@ -1245,8 +1260,14 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   /* poll the completion for a while before giving up of doing it .. */
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
+  std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+  ibv_cq* cq_l =  static_cast<ibv_cq*>(cq_local->Get());
+
   do {
-    poll_result = ibv_poll_cq(res->cq_map.at(q_id), num_entries, wc_p);
+    if (q_id != "")
+      poll_result = ibv_poll_cq(res->cq_map.at(q_id), num_entries, wc_p);
+    else
+      poll_result = ibv_poll_cq(cq_l, num_entries, wc_p);
     if (poll_result < 0)
       break;
     else
@@ -1256,6 +1277,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   } while (poll_num < num_entries);  // && ((cur_time_msec - start_time_msec) < MAX_POLL_CQ_TIMEOUT));
   //*(end) = std::chrono::steady_clock::now();
   // end = std::chrono::steady_clock::now();
+  l.unlock();
   if (poll_result < 0) {
     /* poll CQ failed */
     fprintf(stderr, "poll CQ failed\n");
@@ -1403,7 +1425,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     }
   } else
     memset(&my_gid, 0, sizeof my_gid);
-
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  // lock should be here because from here on we will modify the send buffer.
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_qp_;
@@ -1414,7 +1437,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
   registered_qp_config* receive_pointer;
   receive_pointer = (registered_qp_config*)res->receive_buf;
-  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+
   post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
   post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
