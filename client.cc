@@ -18,7 +18,6 @@ int main()
 //  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
   options.write_buffer_size = 1*1024*1024;
-//  options.block_size = 4*1024*1024;
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::LOW);
   options.use_direct_reads = false;
@@ -43,12 +42,12 @@ int main()
   auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){
     // first create query pair for this thread.
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    auto* posix_tid = new std::string(ss.str());
-    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
-    rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
+//    auto myid = std::this_thread::get_id();
+//    std::stringstream ss;
+//    ss << myid;
+//    auto* posix_tid = new std::string(ss.str());
+//    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+//    rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
@@ -79,7 +78,7 @@ int main()
 //
 ////     std::cout << "Delete iteration number " << i << std::endl;
 //   }
-   for (int i = 0; i<5; i++){
+   for (int i = 0; i<500000; i++){
      key = std::to_string(i);
      value = std::to_string(std::rand() % ( 30000001 ));
      s = db->Put(option_wr, key, value);

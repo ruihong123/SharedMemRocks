@@ -526,7 +526,6 @@ ThreadLocalPtr::ThreadLocalPtr(UnrefHandler handler)
 ThreadLocalPtr::~ThreadLocalPtr() {
   Instance()->ReclaimId(id_);
 }
-
 void* ThreadLocalPtr::Get() const {
   return Instance()->Get(id_);
 }
@@ -550,5 +549,6 @@ void ThreadLocalPtr::Scrape(autovector<void*>* ptrs, void* const replacement) {
 void ThreadLocalPtr::Fold(FoldFunc func, void* res) {
   Instance()->Fold(id_, func, res);
 }
+
 
 }  // namespace ROCKSDB_NAMESPACE

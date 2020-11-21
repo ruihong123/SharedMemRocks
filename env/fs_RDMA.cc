@@ -1107,7 +1107,7 @@ RDMAFileSystem::RDMAFileSystem()
       NULL,  /* server_name */
       19875, /* tcp_port */
       1,	 /* ib_port */
-      -1, /* gid_idx */
+      1, /* gid_idx */
       1024*1024*1024 /*initial local buffer size*/
   };
   Remote_Bitmap = new std::map<void*, In_Use_Array>;

@@ -4,11 +4,23 @@ void UnrefHandle_rdma(void* ptr){
   delete static_cast<std::string*>(ptr);
 }
 void UnrefHandle_qp(void* ptr){
+  if (ptr == nullptr)
+    return;
   if (ibv_destroy_qp(static_cast<ibv_qp*>(ptr))) {
     fprintf(stderr, "Thread local qp failed to destroy QP\n");
   }
   else{
     printf("thread local qp destroy successfully!");
+  }
+}
+void UnrefHandle_cq(void* ptr){
+  if (ptr == nullptr)
+    return;
+  if (ibv_destroy_cq(static_cast<ibv_cq*>(ptr))) {
+    fprintf(stderr, "Thread local cq failed to destroy QP\n");
+  }
+  else{
+    printf("thread local cq destroy successfully!");
   }
 }
 /******************************************************************************
@@ -30,7 +42,7 @@ RDMA_Manager::RDMA_Manager(
     : Read_Block_Size(read_block_size), Write_Block_Size(write_block_size),Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
-      cq_local(new ThreadLocalPtr(&UnrefHandle_qp)),
+      cq_local(new ThreadLocalPtr(&UnrefHandle_cq)),
       rdma_config(config)
 {
   assert(read_block_size <table_size);
@@ -58,9 +70,9 @@ RDMA_Manager::~RDMA_Manager() {
         fprintf(stderr, "failed to destroy QP\n");
       }
     }
-  delete t_local_1;
   delete qp_local;
-  delete cq_local;
+  delete  cq_local;
+  delete t_local_1;
 //  if (res->mr_receive)
 //    if (ibv_dereg_mr(res->mr_receive)) {
 //      fprintf(stderr, "failed to deregister MR\n");
