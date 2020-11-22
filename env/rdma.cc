@@ -358,7 +358,11 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
           client_ip);  // note here should be the mr point to the send buffer.
       poll_completion(wc, 1, client_ip);
     } else if (receive_pointer->command == create_qp_) {
+      char gid_str[17];
+      memset(gid_str,0,17);
+      memcpy(gid_str, receive_pointer->content.qp_config.gid, 16);
       std::string new_qp_id =
+          std::string(gid_str)+
           std::to_string(receive_pointer->content.qp_config.lid) +
           std::to_string(receive_pointer->content.qp_config.qp_num);
       std::cout << "create query pair command receive for" << client_ip
@@ -1392,7 +1396,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   //
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
-
+  printf("Remote memory registeration, size: %zu", size);
   if (!poll_completion(wc, 2, std::string("main"))) {  // poll the receive for 2 entires
     auto* temp_pointer = new ibv_mr();
     // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,

@@ -1113,7 +1113,7 @@ RDMAFileSystem::RDMAFileSystem()
   Remote_Bitmap = new std::map<void*, In_Use_Array>;
   Write_Bitmap = new std::map<void*, In_Use_Array>;
   Read_Bitmap = new std::map<void*, In_Use_Array>;
-  size_t read_block_size = 4*1024;
+  size_t read_block_size = 8*1024;
   size_t write_block_size = 1*1024*1024;
   size_t table_size = 4*1024*1024;
   rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
