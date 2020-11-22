@@ -1102,29 +1102,29 @@ size_t RDMAFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
 RDMAFileSystem::RDMAFileSystem()
     :
       allow_non_owner_access_(true) {
-  struct config_t config = {
-      NULL,  /* dev_name */
-      NULL,  /* server_name */
-      19875, /* tcp_port */
-      1,	 /* ib_port */
-      1, /* gid_idx */
-      1024*1024*1024 /*initial local buffer size*/
-  };
-  Remote_Bitmap = new std::map<void*, In_Use_Array>;
-  Write_Bitmap = new std::map<void*, In_Use_Array>;
-  Read_Bitmap = new std::map<void*, In_Use_Array>;
-  size_t read_block_size = 4*1024;
-  size_t write_block_size = 1*1024*1024;
-  size_t table_size = 4*1024*1024;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
-                             table_size, write_block_size, read_block_size);
-  rdma_mg->Client_Set_Up_Resources();
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  auto* posix_tid = new std::string(ss.str());
-  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
-  rdma_mg->t_local_1->Reset(posix_tid);
+    struct config_t config = {
+        NULL,  /* dev_name */
+        NULL,  /* server_name */
+        19875, /* tcp_port */
+        1,	 /* ib_port */
+        1, /* gid_idx */
+        1024*1024*1024 /*initial local buffer size*/
+    };
+    Remote_Bitmap = new std::map<void*, In_Use_Array>;
+    Write_Bitmap = new std::map<void*, In_Use_Array>;
+    Read_Bitmap = new std::map<void*, In_Use_Array>;
+    size_t read_block_size = 4*1024;
+    size_t write_block_size = 1*1024*1024;
+    size_t table_size = 4*1024*1024;
+    rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
+                               table_size, write_block_size, read_block_size);
+    rdma_mg->Client_Set_Up_Resources();
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    auto* posix_tid = new std::string(ss.str());
+    rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+    rdma_mg->t_local_1->Reset(posix_tid);
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local

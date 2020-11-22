@@ -1387,7 +1387,32 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
   RecordTick(stats_, COMPACT_WRITE_BYTES, meta.fd.GetFileSize());
   return s;
 }
-
+//Status DB::RDMA_Init(Env* env) {
+//  struct config_t config = {
+//      NULL,  /* dev_name */
+//      NULL,  /* server_name */
+//      19875, /* tcp_port */
+//      1,	 /* ib_port */
+//      1, /* gid_idx */
+//      1024*1024*1024 /*initial local buffer size*/
+//  };
+//
+//  env->GetFileSystem()->Remote_Bitmap = new std::map<void*, In_Use_Array>;
+//  Write_Bitmap = new std::map<void*, In_Use_Array>;
+//  Read_Bitmap = new std::map<void*, In_Use_Array>;
+//  size_t read_block_size = 4*1024;
+//  size_t write_block_size = 1*1024*1024;
+//  size_t table_size = 4*1024*1024;
+//  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
+//                             table_size, write_block_size, read_block_size);
+//  rdma_mg->Client_Set_Up_Resources();
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  auto* posix_tid = new std::string(ss.str());
+//  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+//  rdma_mg->t_local_1->Reset(posix_tid);
+//}
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
