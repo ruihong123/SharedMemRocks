@@ -11,9 +11,9 @@
 #include <inttypes.h>
 #include <endian.h>
 #include <byteswap.h>
-#include <getopt.h>
+//#include <getopt.h>
 #include <cassert>
-#include <unordered_map>
+//#include <unordered_map>
 #include <algorithm>
 #include <shared_mutex>
 #include <thread>
@@ -115,7 +115,8 @@ struct atomwrapper
 };
 class In_Use_Array{
  public:
-  In_Use_Array(size_t size, int type) :size_(size){
+  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
+      :size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori){
     in_use = new std::atomic<bool>[size_];
     for (size_t i = 0; i < size_; ++i){
       in_use[i] = false;
@@ -124,10 +125,15 @@ class In_Use_Array{
   }
   int allocate_memory_slot(){
     for (int i = 0; i < static_cast<int>(size_); ++i){
+//      auto start = std::chrono::high_resolution_clock::now();
       bool temp = in_use[i];
       if (temp == false) {
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        std::printf("Compare and swap time duration is %ld \n", duration.count());
         if(in_use[i].compare_exchange_strong(temp, true)){
 //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
+
           return i; // find the empty slot then return the index for the slot
 
         }
@@ -146,9 +152,17 @@ class In_Use_Array{
     return in_use[index].compare_exchange_strong(temp, false);
 
   }
+  size_t get_chunk_size(){
+    return chunk_size_;
+  }
+  ibv_mr* get_mr_ori(){
+    return mr_ori_;
+  }
  private:
   size_t size_;
+  size_t chunk_size_;
   std::atomic<bool>* in_use;
+  ibv_mr* mr_ori_;
 //  int type_;
 };
 /* structure of system resources */
@@ -181,10 +195,10 @@ namespace ROCKSDB_NAMESPACE {
 /* structure of test parameters */
 class RDMA_Manager{
  public:
-  RDMA_Manager(config_t config, std::unordered_map<ibv_mr*,
-               In_Use_Array>* Remote_Bitmap,
-               std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap,
-               size_t block_size, size_t table_size);
+  RDMA_Manager(config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
+               std::map<void*, In_Use_Array>* Write_Bitmap, std::map<void*, In_Use_Array>* Read_Bitmap,
+               size_t table_size, size_t write_block_size,
+               size_t read_block_size);
 //  RDMA_Manager(config_t config) : rdma_config(config){
 //    res = new resources();
 //    res->sock = -1;
@@ -200,9 +214,12 @@ class RDMA_Manager{
   // this function is for the server.
   void Server_to_Client_Communication();
   void server_communication_thread(std::string client_ip, int socket_fd);
-  // Local memory register need to first allocate memory outside them register it.
+  // Local memory register will register RDMA memory in local machine,
+  //Both Computing node and share memory will call this function.
   // it also push the new block bit map to the Remote_Mem_Bitmap
-  bool Local_Memory_Register(char** p2buffpointer, ibv_mr** p2mrpointer, size_t size);// register the memory on the local side
+  bool Local_Memory_Register(
+      char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
+      size_t chunk_size);// register the memory on the local side
   // Remote Memory registering will call RDMA send and receive to the remote memory
   // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
@@ -211,32 +228,47 @@ class RDMA_Manager{
   bool Remote_Query_Pair_Connection(
       std::string& qp_id);// Only called by client.
 
-  int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
-                std::string q_id);
+  int RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, unsigned int send_flag,
+                int poll_num);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
-                 std::string q_id);
+                 std::string q_id, unsigned int send_flag,
+                 int poll_num);
   int RDMA_Send();
   int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id);
-  bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer) const;
-  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta) const;
+  bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
+                                  std::string buffer_type);
+  bool Deallocate_Local_RDMA_Slot(void* p, std::string buff_type);
+  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
 
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
-  void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, ibv_mr*& map_pointer);
-
+  void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, ibv_mr*& map_pointer,
+                                std::string buffer_type);
+  bool CheckInsideLocalBuff(void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
+                            std::map<void*, In_Use_Array>* Bitmap);
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
-  std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Local_Mem_Bitmap = nullptr;
-  size_t Block_Size;
+  std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
+//  std::shared_mutex remote_pool_mutex;
+  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
+//  std::shared_mutex write_pool_mutex;
+  std::map<void*, In_Use_Array>* Read_Local_Mem_Bitmap = nullptr;
+//  std::shared_mutex read_pool_mutex;
+  size_t Read_Block_Size;
+  size_t Write_Block_Size;
   uint64_t Table_Size;
-  std::mutex create_mutex;
+  std::shared_mutex remote_mem_mutex;
+  std::shared_mutex local_mem_mutex;
   std::shared_mutex rw_mutex;
-  std::mutex main_qp_mutex;
+  std::shared_mutex main_qp_mutex;
+  std::shared_mutex qp_cq_map_mutex;
   std::vector<std::thread> thread_pool;
-  std::unique_ptr<ThreadLocalPtr> t_local_1;
+  ThreadLocalPtr* t_local_1;
+  ThreadLocalPtr* qp_local;
+  ThreadLocalPtr* cq_local;
+  // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:
 

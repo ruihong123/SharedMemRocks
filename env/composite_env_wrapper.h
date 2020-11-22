@@ -747,6 +747,7 @@ class LegacyWritableFileWrapper : public FSWritableFile {
                   IODebugContext* /*dbg*/) override {
     return status_to_io_status(target_->Append(data));
   }
+  IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override {return IOStatus::NotSupported();}
   IOStatus PositionedAppend(const Slice& data, uint64_t offset,
                             const IOOptions& /*options*/,
                             IODebugContext* /*dbg*/) override {

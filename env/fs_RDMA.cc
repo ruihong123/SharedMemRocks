@@ -98,28 +98,27 @@ struct LockHoldingInfo {
   int64_t acquire_time;
   uint64_t acquiring_thread;
 };
-
 static std::map<std::string, LockHoldingInfo> locked_files;
 static port::Mutex mutex_locked_files;
 
-//static int LockOrUnlock(int fd, bool lock) {
-//  errno = 0;
-//  struct flock f;
-//  memset(&f, 0, sizeof(f));
-//  f.l_type = (lock ? F_WRLCK : F_UNLCK);
-//  f.l_whence = SEEK_SET;
-//  f.l_start = 0;
-//  f.l_len = 0;  // Lock/unlock entire file
-//  int value = fcntl(fd, F_SETLK, &f);
-//
-//  return value;
-//}
+static int LockOrUnlock(int fd, bool lock) {
+  errno = 0;
+  struct flock f;
+  memset(&f, 0, sizeof(f));
+  f.l_type = (lock ? F_WRLCK : F_UNLCK);
+  f.l_whence = SEEK_SET;
+  f.l_start = 0;
+  f.l_len = 0;  // Lock/unlock entire file
+  int value = fcntl(fd, F_SETLK, &f);
 
-//class PosixFileLock : public FileLock {
-// public:
-//  int fd_;
-//  std::string filename;
-//};
+  return value;
+}
+
+class PosixFileLock : public FileLock {
+ public:
+  int fd_;
+  std::string filename;
+};
 
 int cloexec_flags(int flags, const EnvOptions* options) {
   // If the system supports opening the file with cloexec enabled,
@@ -217,6 +216,7 @@ class RDMAFileSystem : public FileSystem {
         return IOStatus::OK();
       } else {
         file_to_sst_meta[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
+        file_to_sst_meta[file_name]->next_ptr = nullptr;
         sst_meta = file_to_sst_meta[file_name];
         return IOStatus::OK();      }
     }
@@ -826,14 +826,84 @@ class RDMAFileSystem : public FileSystem {
 
   IOStatus LockFile(const std::string& fname, const IOOptions& /*opts*/,
                     FileLock** lock, IODebugContext* /*dbg*/) override {
-    std::cout << "LockFile has not been implemented" << std::endl;
-    return IOStatus::OK();
+    *lock = nullptr;
+
+    LockHoldingInfo lhi;
+    int64_t current_time = 0;
+    // Ignore status code as the time is only used for error message.
+    Env::Default()->GetCurrentTime(&current_time).PermitUncheckedError();
+    lhi.acquire_time = current_time;
+    lhi.acquiring_thread = Env::Default()->GetThreadID();
+
+    mutex_locked_files.Lock();
+    // If it already exists in the locked_files set, then it is already locked,
+    // and fail this lock attempt. Otherwise, insert it into locked_files.
+    // This check is needed because fcntl() does not detect lock conflict
+    // if the fcntl is issued by the same thread that earlier acquired
+    // this lock.
+    // We must do this check *before* opening the file:
+    // Otherwise, we will open a new file descriptor. Locks are associated with
+    // a process, not a file descriptor and when *any* file descriptor is
+    // closed, all locks the process holds for that *file* are released
+    const auto it_success = locked_files.insert({fname, lhi});
+    if (it_success.second == false) {
+      mutex_locked_files.Unlock();
+      errno = ENOLCK;
+      LockHoldingInfo& prev_info = it_success.first->second;
+      // Note that the thread ID printed is the same one as the one in
+      // posix logger, but posix logger prints it hex format.
+      return IOError("lock hold by current process, acquire time " +
+                     ToString(prev_info.acquire_time) +
+                     " acquiring thread " +
+                     ToString(prev_info.acquiring_thread),
+                     fname, errno);
+    }
+
+    IOStatus result = IOStatus::OK();
+    int fd;
+    int flags = cloexec_flags(O_RDWR | O_CREAT, nullptr);
+
+    {
+      IOSTATS_TIMER_GUARD(open_nanos);
+      fd = open(fname.c_str(), flags, 0644);
+    }
+    if (fd < 0) {
+      result = IOError("while open a file for lock", fname, errno);
+    } else if (LockOrUnlock(fd, true) == -1) {
+      // if there is an error in locking, then remove the pathname from
+      // lockedfiles
+      locked_files.erase(fname);
+      result = IOError("While lock file", fname, errno);
+      close(fd);
+    } else {
+      SetFD_CLOEXEC(fd, nullptr);
+      PosixFileLock* my_lock = new PosixFileLock;
+      my_lock->fd_ = fd;
+      my_lock->filename = fname;
+      *lock = my_lock;
+    }
+
+    mutex_locked_files.Unlock();
+    return result;
   }
 
   IOStatus UnlockFile(FileLock* lock, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    std::cout << "UnlockFile has not been implemented" << std::endl;
-    return IOStatus::OK();
+    PosixFileLock* my_lock = reinterpret_cast<PosixFileLock*>(lock);
+    IOStatus result;
+    mutex_locked_files.Lock();
+    // If we are unlocking, then verify that we had locked it earlier,
+    // it should already exist in locked_files. Remove it from locked_files.
+    if (locked_files.erase(my_lock->filename) != 1) {
+      errno = ENOLCK;
+      result = IOError("unlock", my_lock->filename, errno);
+    } else if (LockOrUnlock(my_lock->fd_, false) == -1) {
+      result = IOError("unlock", my_lock->filename, errno);
+    }
+    close(my_lock->fd_);
+    delete my_lock;
+    mutex_locked_files.Unlock();
+    return result;
   }
 
   IOStatus GetAbsolutePath(const std::string& db_path,
@@ -946,8 +1016,9 @@ class RDMAFileSystem : public FileSystem {
 //  bool forceMmapOff_;  // do we override Env options?
 
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Remote_Bitmap;
-  std::unordered_map<ibv_mr*, In_Use_Array>* Local_Bitmap;
+  std::map<void*, In_Use_Array>* Remote_Bitmap;
+  std::map<void*, In_Use_Array>* Write_Bitmap;
+  std::map<void*, In_Use_Array>* Read_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -1036,14 +1107,17 @@ RDMAFileSystem::RDMAFileSystem()
       NULL,  /* server_name */
       19875, /* tcp_port */
       1,	 /* ib_port */
-      -1, /* gid_idx */
+      1, /* gid_idx */
       1024*1024*1024 /*initial local buffer size*/
   };
-  Remote_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  Local_Bitmap = new std::unordered_map<ibv_mr*, In_Use_Array>;
-  size_t block_size = 10*1024*1024;
-  size_t table_size = 20*1024*1024;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Local_Bitmap, block_size, table_size);
+  Remote_Bitmap = new std::map<void*, In_Use_Array>;
+  Write_Bitmap = new std::map<void*, In_Use_Array>;
+  Read_Bitmap = new std::map<void*, In_Use_Array>;
+  size_t read_block_size = 4*1024;
+  size_t write_block_size = 1*1024*1024;
+  size_t table_size = 4*1024*1024;
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
+                             table_size, write_block_size, read_block_size);
   rdma_mg->Client_Set_Up_Resources();
   auto myid = std::this_thread::get_id();
   std::stringstream ss;
@@ -1064,7 +1138,8 @@ RDMAFileSystem::RDMAFileSystem()
 }
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
   delete Remote_Bitmap;
-  delete Local_Bitmap;
+  delete Write_Bitmap;
+  delete Read_Bitmap;
   delete rdma_mg;
 }
 

@@ -215,6 +215,9 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,
                         IODebugContext* dbg) const override;
+  virtual IOStatus Read(uint64_t offset, const IOOptions& opts,
+                        Slice* result, char* scratch,
+                        IODebugContext* dbg) const;
   IOStatus Read_chunk(char*& buff_ptr, size_t size, ibv_mr* local_mr_pointer,
                       ibv_mr& remote_mr, size_t& chunk_offset,
                       SST_Metadata*& sst_meta_current,
@@ -239,6 +242,7 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
 };
 
 class RDMAWritableFile : public FSWritableFile {
+  using FSWritableFile::Append;
  protected:
   const bool use_direct_io_;
   uint64_t chunk_offset;
@@ -309,6 +313,7 @@ class RDMAWritableFile : public FSWritableFile {
   virtual size_t GetUniqueId(char* id, size_t max_size) const override;
 #endif
 
+  virtual IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override;
 };
 class PosixWritableFile_old : public FSWritableFile {
  protected:
@@ -345,6 +350,7 @@ class PosixWritableFile_old : public FSWritableFile {
                           IODebugContext* dbg) override {
     return Append(data, opts, dbg);
   }
+  virtual IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override {return IOStatus::NotSupported();}
   virtual IOStatus PositionedAppend(const Slice& data, uint64_t offset,
                                     const IOOptions& opts,
                                     IODebugContext* dbg) override;
@@ -446,6 +452,7 @@ class PosixMmapFile : public FSWritableFile {
                           IODebugContext* dbg) override {
     return Append(data, opts, dbg);
   }
+  virtual IOStatus Append(ibv_mr* local_mr_pointer, size_t msg_size) override {return IOStatus::NotSupported();}
   virtual IOStatus Flush(const IOOptions& opts, IODebugContext* dbg) override;
   virtual IOStatus Sync(const IOOptions& opts, IODebugContext* dbg) override;
   virtual IOStatus Fsync(const IOOptions& opts, IODebugContext* dbg) override;

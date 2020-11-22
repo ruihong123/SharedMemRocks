@@ -15,14 +15,16 @@ int main()
 {
   rocksdb::DB* db;
   rocksdb::Options options;
-//  rocksdb::Options::block_size =
+//  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
-  options.write_buffer_size = 4*1024*1024;
-//  options.block_size = 4*1024*1024;
+  options.write_buffer_size = 1*1024*1024;
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::HIGH);
   options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::LOW);
+  options.use_direct_reads = false;
+  options.use_direct_io_for_flush_and_compaction = false;
   rocksdb::BlockBasedTableOptions table_options;
   table_options.checksum= rocksdb::kCRC32c;
+//  table_options.block_size = 1024*1024;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 //  options.paranoid_file_checks=true;
 //  options.use_direct_reads = true;
@@ -34,18 +36,18 @@ int main()
 //  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
-//  assert(status.ok());
+  assert(status.ok());
   status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){
     // first create query pair for this thread.
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    auto* posix_tid = new std::string(ss.str());
-    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
-    rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
+//    auto myid = std::this_thread::get_id();
+//    std::stringstream ss;
+//    ss << myid;
+//    auto* posix_tid = new std::string(ss.str());
+//    rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+//    rocksdb::FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
     std::string value;
     std::string key;
     auto option_wr = rocksdb::WriteOptions();
@@ -76,7 +78,7 @@ int main()
 //
 ////     std::cout << "Delete iteration number " << i << std::endl;
 //   }
-   for (int i = 0; i<5000000; i++){
+   for (int i = 0; i<500000; i++){
      key = std::to_string(i);
      value = std::to_string(std::rand() % ( 30000001 ));
      s = db->Put(option_wr, key, value);

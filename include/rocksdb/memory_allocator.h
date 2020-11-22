@@ -5,9 +5,11 @@
 
 #pragma once
 
-#include "rocksdb/status.h"
-
+//#include <infiniband/verbs.h>
+//#include "include/rocksdb/file_system.h"
 #include <memory>
+
+#include "rocksdb/status.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -35,6 +37,7 @@ class MemoryAllocator {
     return allocation_size;
   }
 };
+
 
 struct JemallocAllocatorOptions {
   // Jemalloc tcache cache allocations by size class. For each size class,
