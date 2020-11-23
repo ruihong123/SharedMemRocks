@@ -951,6 +951,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   char* chunk_src = scratch;
 
   std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
+  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
+                          << chunk_offset << "size: " << n << std::endl;
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
                                      rdma_mg_->Read_Local_Mem_Bitmap)){
 //    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
@@ -1769,8 +1771,8 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   const char* src = data.data();
   size_t nbytes = data.size();
   char* chunk_src = const_cast<char*>(src);
-//  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
-//            << chunk_offset << "size: " << nbytes << std::endl;
+  std::cout << "Old Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
+            << chunk_offset << "size: " << nbytes << std::endl;
   IOStatus s = IOStatus::OK();
   ibv_mr* map_pointer = nullptr; // ibv_mr pointer key for unreference the memory block later
   ibv_mr* local_mr_pointer = nullptr;
