@@ -459,6 +459,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
     return IOStatus::OK();
   // two situations if position + n out of bound then only read data with in
   // file size
+  //TODO: Modify it to be able to read file larger than 1 block
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,

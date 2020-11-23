@@ -436,6 +436,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         (*p2mrpointer)->length /
         (chunk_size);  // here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, chunk_size, *p2mrpointer);
+    //TODO: Modify it to allocate the memory according to the memory chunk types
     if (chunk_size == Write_Block_Size){
 //        std::unique_lock<std::shared_mutex> l(write_pool_mutex);
       Write_Local_Mem_Bitmap->insert({(*p2mrpointer)->addr, in_use_array});
