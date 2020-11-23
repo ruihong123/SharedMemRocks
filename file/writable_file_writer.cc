@@ -41,6 +41,7 @@ IOStatus WritableFileWriter::Append(const Slice& data) {
   }
 
   // See whether we need to enlarge the buffer to avoid the flush
+  // In shared memory rocks, we no longer need to allocate new buffer.
 //  if (buf_.Capacity() - buf_.CurrentSize() < left) {
 //    for (size_t cap = buf_.Capacity();
 //         cap < max_buffer_size_;  // There is still room to increase
@@ -57,6 +58,8 @@ IOStatus WritableFileWriter::Append(const Slice& data) {
 //  }
 
   // Flush only when buffered I/O
+  // Here the flush will only triggered when the write size is over the write
+  // buffer size in the RDMA_Manager.
   if (!use_direct_io() && (buf_.Capacity() - buf_.CurrentSize()) < left) {
     if (buf_.CurrentSize() > 0) {
       s = Flush();
@@ -430,6 +433,7 @@ IOStatus WritableFileWriter::WriteBuffered(const char* data, size_t size) {
   buf_.Size(0);
   return s;
 }
+
 IOStatus WritableFileWriter::WriteBuffered(ibv_mr* mr, size_t size) {
   IOStatus s;
   assert(!use_direct_io());
@@ -437,7 +441,14 @@ IOStatus WritableFileWriter::WriteBuffered(ibv_mr* mr, size_t size) {
   size_t left = size;
 
   while (left > 0) {
-      size_t allowed = left;
+      size_t allowed;
+    if (rate_limiter_ != nullptr) {
+      allowed = rate_limiter_->RequestToken(
+          left, 0 /* alignment */, writable_file_->GetIOPriority(), stats_,
+          RateLimiter::OpType::kWrite);
+    } else {
+      allowed = left;
+    }
     {
       IOSTATS_TIMER_GUARD(write_nanos);
       TEST_SYNC_POINT("WritableFileWriter::Flush:BeforeAppend");
@@ -452,6 +463,7 @@ IOStatus WritableFileWriter::WriteBuffered(ibv_mr* mr, size_t size) {
       {
         auto prev_perf_level = GetPerfLevel();
         IOSTATS_CPU_TIMER_GUARD(cpu_write_nanos, env_);
+        // New append with mr.--------------RDMA modification------------------
         s = writable_file_->Append(mr, left);
         SetPerfLevel(prev_perf_level);
       }

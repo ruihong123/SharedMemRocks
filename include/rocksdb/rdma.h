@@ -268,6 +268,7 @@ class RDMA_Manager{
   ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local;
   ThreadLocalPtr* cq_local;
+  std::map<std::string, std::map<void*, In_Use_Array>*> name_to_mem_pool;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:

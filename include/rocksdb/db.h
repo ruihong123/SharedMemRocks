@@ -1647,6 +1647,7 @@ class DB {
     return Status::NotSupported("Supported only by secondary instance");
   }
 #endif  // !ROCKSDB_LITE
+//  Status RDMA_Init(Env* env);
 };
 
 // Destroy the contents of the specified database.
