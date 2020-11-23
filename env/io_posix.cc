@@ -1659,8 +1659,8 @@ IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
   //  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
   assert(msg_size <= rdma_mg_->Write_Block_Size);
-//  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
-//            << chunk_offset << "size: " << msg_size << std::endl;
+  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
+            << chunk_offset << "size: " << msg_size << std::endl;
   int flag;
   if (chunk_offset + msg_size >= rdma_mg_->Table_Size){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
