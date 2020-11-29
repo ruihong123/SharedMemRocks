@@ -15,11 +15,10 @@ int main()
       1,	 /* ib_port */
       1, /* gid_idx */
   0};
-  size_t write_block_size = 4*1024*1024;
-  size_t read_block_size = 4*1024;
+//  size_t write_block_size = 4*1024*1024;
+//  size_t read_block_size = 4*1024;
   size_t table_size = 10*1024*1024;
-  rocksdb::RDMA_Manager RDMA_manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap, table_size,
-                                     write_block_size, read_block_size);
+  rocksdb::RDMA_Manager RDMA_manager(config, Remote_Bitmap, table_size);
 
   RDMA_manager.Server_to_Client_Communication();
 
