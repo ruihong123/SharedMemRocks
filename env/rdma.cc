@@ -454,7 +454,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       break;
     }else{
-      printf("corrupt message from client.")
+      printf("corrupt message from client.");
     }
 
 
