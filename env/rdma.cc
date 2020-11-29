@@ -437,7 +437,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       ibv_mr* local_mr;
       int mr_flags =
           IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-      local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+      local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
       post_receive(local_mr,client_ip, buff_size);
       post_send<char>(recv_mr,client_ip);
       poll_completion(wc, 2, client_ip);
@@ -1996,7 +1996,7 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
   temp = temp + sizeof(size_t);
   for (auto iter: remote_mem_bitmap){
     void* p = iter.first;
-    memcpy(temp, p, sizeof(void*));
+    memcpy(temp, &p, sizeof(void*));
     temp = temp + sizeof(void*);
     size_t element_size = iter.second.get_element_size();
     size_t element_size_net = htonl(element_size);
@@ -2114,7 +2114,7 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   ibv_mr* local_mr;
-  local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+  local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
@@ -2168,7 +2168,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   if (buff_size!=0){
     buff = static_cast<char*>(malloc(buff_size));
     ibv_mr* local_mr;
-    local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+    local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
     post_receive(local_mr,"main", buff_size);
     // send a char to tell the shared memory that this computing node is ready to receive the data
     post_send<char>(res->mr_send, std::string("main"));

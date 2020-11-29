@@ -186,7 +186,7 @@ void serialization(char*& buff, int &size, std::string dbname, std::map<std::str
   temp = temp + sizeof(size_t);
   for (auto iter: Remote_Mem_Bitmap){
     void* p = iter.first;
-    memcpy(temp, p, sizeof(void*));
+    memcpy(temp, &p, sizeof(void*));
     temp = temp + sizeof(void*);
     size_t element_size = iter.second.get_element_size();
     size_t element_size_net = htonl(element_size);
