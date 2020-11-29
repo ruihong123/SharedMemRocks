@@ -164,6 +164,11 @@ class FileSystem {
 
   virtual ~FileSystem();
   RDMA_Manager* rdma_mg;
+  std::string db_name;
+  Status set_db_name(const std::string& name){
+    db_name = name;
+    return IOStatus::OK();
+  }
   virtual const char* Name() const = 0;
 
   static const char* Type() { return "FileSystem"; }

@@ -44,12 +44,30 @@
 #define MAX_POLL_CQ_TIMEOUT 1000000
 #define MSG "SEND operation "
 
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-//	static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
-//	static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
+template <typename T>
+  static inline T hton(T u) {
+  static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+
+  union
+  {
+    T u;
+    unsigned char u8[sizeof(T)];
+  } source, dest;
+
+  source.u = u;
+
+  for (size_t k = 0; k < sizeof(T); k++)
+    dest.u8[k] = source.u8[sizeof(T) - k - 1];
+
+  return dest.u;
+}
+//  static inline uint64_t htonll(uint64_t x) { return bswap_64(x); }
+//  static inline uint64_t ntohll(uint64_t x) { return bswap_64(x); }
 #elif __BYTE_ORDER == __BIG_ENDIAN
-	static inline uint64_t htonll(uint64_t x) { return x; }
-	static inline uint64_t ntohll(uint64_t x) { return x; }
+  static inline uint64_t htonll(uint64_t x) { return x; }
+  static inline uint64_t ntohll(uint64_t x) { return x; }
 #else
 #error __BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN
 #endif
@@ -68,10 +86,12 @@ struct registered_qp_config {
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
-enum RDMA_Command_Type {create_qp_, create_mr_};
+enum RDMA_Command_Type {create_qp_, create_mr_, save_serialized_data, retrieve_serialized_data};
+
 union RDMA_Command_Content{
   size_t mem_size;
   registered_qp_config qp_config;
+  int data_size;
 };
 struct computing_to_memory_msg
 {
@@ -88,7 +108,7 @@ struct SST_Metadata{
   ibv_mr* map_pointer;
   SST_Metadata* last_ptr = nullptr;
   SST_Metadata* next_ptr = nullptr;
-  size_t file_size = 0;
+  unsigned int file_size = 0;
 
 };
 template <typename T>
@@ -116,22 +136,26 @@ struct atomwrapper
 class In_Use_Array{
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
-      :size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori){
-    in_use = new std::atomic<bool>[size_];
-    for (size_t i = 0; i < size_; ++i){
-      in_use[i] = false;
+      : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori){
+    in_use_ = new std::atomic<bool>[element_size_];
+    for (size_t i = 0; i < element_size_; ++i){
+      in_use_[i] = false;
     }
 
   }
+  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori, std::atomic<bool>* in_use)
+      : element_size_(size), chunk_size_(chunk_size), in_use_(in_use), mr_ori_(mr_ori){
+
+  }
   int allocate_memory_slot(){
-    for (int i = 0; i < static_cast<int>(size_); ++i){
+    for (int i = 0; i < static_cast<int>(element_size_); ++i){
 //      auto start = std::chrono::high_resolution_clock::now();
-      bool temp = in_use[i];
+      bool temp = in_use_[i];
       if (temp == false) {
 //        auto stop = std::chrono::high_resolution_clock::now();
 //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //        std::printf("Compare and swap time duration is %ld \n", duration.count());
-        if(in_use[i].compare_exchange_strong(temp, true)){
+        if(in_use_[i].compare_exchange_strong(temp, true)){
 //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
 
           return i; // find the empty slot then return the index for the slot
@@ -146,10 +170,10 @@ class In_Use_Array{
   }
   bool deallocate_memory_slot(int index) {
     bool temp = true;
-    assert(in_use[index] == true);
+    assert(in_use_[index] == true);
 //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
 
-    return in_use[index].compare_exchange_strong(temp, false);
+    return in_use_[index].compare_exchange_strong(temp, false);
 
   }
   size_t get_chunk_size(){
@@ -158,10 +182,20 @@ class In_Use_Array{
   ibv_mr* get_mr_ori(){
     return mr_ori_;
   }
+  size_t get_element_size(){
+    return element_size_;
+  }
+  std::atomic<bool>* get_inuse_table(){
+    return in_use_;
+  }
+//  void deserialization(char*& temp, int& size){
+//
+//
+//  }
  private:
-  size_t size_;
+  size_t element_size_;
   size_t chunk_size_;
-  std::atomic<bool>* in_use;
+  std::atomic<bool>* in_use_;
   ibv_mr* mr_ori_;
 //  int type_;
 };
@@ -196,9 +230,7 @@ namespace ROCKSDB_NAMESPACE {
 class RDMA_Manager{
  public:
   RDMA_Manager(config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
-               std::map<void*, In_Use_Array>* Write_Bitmap, std::map<void*, In_Use_Array>* Read_Bitmap,
-               size_t table_size, size_t write_block_size,
-               size_t read_block_size);
+               size_t table_size);
 //  RDMA_Manager(config_t config) : rdma_config(config){
 //    res = new resources();
 //    res->sock = -1;
@@ -209,17 +241,26 @@ class RDMA_Manager{
   void Client_Set_Up_Resources();
   //Set up the socket connection to remote shared memory.
   bool Client_Connect_to_Server_RDMA();
-
-
+  // client function to retrieve serialized data.
+  bool client_retrieve_serialized_data(const std::string& db_name,
+                                      char*& buff,
+                                       size_t& buff_size);
+  // client function to save serialized data.
+  bool client_save_serialized_data(const std::string& db_name,
+                                   char* buff,
+                                   size_t buff_size);
   // this function is for the server.
   void Server_to_Client_Communication();
   void server_communication_thread(std::string client_ip, int socket_fd);
   // Local memory register will register RDMA memory in local machine,
   //Both Computing node and share memory will call this function.
   // it also push the new block bit map to the Remote_Mem_Bitmap
+
+  // Set the type of the memory pool. the mempool can be access by the pool name
+  bool Mempool_initialize(std::string pool_name, size_t size);
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
-      size_t chunk_size);// register the memory on the local side
+      std::string pool_name);// register the memory on the local side
   // Remote Memory registering will call RDMA send and receive to the remote memory
   // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
@@ -228,10 +269,10 @@ class RDMA_Manager{
   bool Remote_Query_Pair_Connection(
       std::string& qp_id);// Only called by client.
 
-  int RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, unsigned int send_flag,
+  int RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, size_t send_flag,
                 int poll_num);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
-                 std::string q_id, unsigned int send_flag,
+                 std::string q_id, size_t send_flag,
                  int poll_num);
   int RDMA_Send();
   int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id);
@@ -244,23 +285,30 @@ class RDMA_Manager{
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
   void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, ibv_mr*& map_pointer,
-                                std::string buffer_type);
+                                std::string pool_name);
+  // this function will determine whether the pointer is with in the registered memory
   bool CheckInsideLocalBuff(void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
                             std::map<void*, In_Use_Array>* Bitmap);
+  void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
+  void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
+  void fs_serialization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+  void fs_deserilization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+
+    //TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
 //  std::shared_mutex remote_pool_mutex;
-  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
-//  std::shared_mutex write_pool_mutex;
-  std::map<void*, In_Use_Array>* Read_Local_Mem_Bitmap = nullptr;
+//  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
+////  std::shared_mutex write_pool_mutex;
+//  std::map<void*, In_Use_Array>* Read_Local_Mem_Bitmap = nullptr;
 //  std::shared_mutex read_pool_mutex;
-  size_t Read_Block_Size;
-  size_t Write_Block_Size;
+//  size_t Read_Block_Size;
+//  size_t Write_Block_Size;
   uint64_t Table_Size;
   std::shared_mutex remote_mem_mutex;
-  std::shared_mutex local_mem_mutex;
+
   std::shared_mutex rw_mutex;
   std::shared_mutex main_qp_mutex;
   std::shared_mutex qp_cq_map_mutex;
@@ -268,7 +316,11 @@ class RDMA_Manager{
   ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local;
   ThreadLocalPtr* cq_local;
-  std::map<std::string, std::map<void*, In_Use_Array>*> name_to_mem_pool;
+  std::unordered_map<std::string, std::map<void*, In_Use_Array>> name_to_mem_pool;
+  std::unordered_map<std::string, size_t> name_to_size;
+  std::shared_mutex local_mem_mutex;
+  std::unordered_map<std::string, ibv_mr*> fs_image;
+  std::shared_mutex fs_image_mutex;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:
@@ -280,9 +332,11 @@ class RDMA_Manager{
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
   template <typename T>
   int post_send(ibv_mr* mr, std::string qp_id = "main");
+  int post_send(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
 //  int post_receives(int len);
   template <typename T>
   int post_receive(ibv_mr* mr, std::string qp_id = "main");
+  int post_receive(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
 
   int resources_create();
   int modify_qp_to_init(struct ibv_qp* qp);
@@ -293,6 +347,7 @@ class RDMA_Manager{
   int resources_destroy();
   void print_config(void);
   void usage(const char* argv0);
+
 
 };
 

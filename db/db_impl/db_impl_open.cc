@@ -1390,6 +1390,11 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
 
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   DBOptions db_options(options);
+  rocksdb::BlockBasedTableOptions table_option;
+  options.table_factory->Get_table_option(table_option);
+  options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size);
+  options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("write"), db_options.writable_file_max_buffer_size);
+  options.env->GetFileSystem()->set_db_name(dbname);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
   column_families.push_back(

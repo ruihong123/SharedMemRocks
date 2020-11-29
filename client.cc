@@ -18,8 +18,8 @@ int main()
 //  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
   options.write_buffer_size = 1*1024*1024;
-  options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::HIGH);
-  options.env->SetBackgroundThreads(5, rocksdb::Env::Priority::LOW);
+  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
+  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
   options.use_direct_reads = false;
   options.use_direct_io_for_flush_and_compaction = false;
   rocksdb::BlockBasedTableOptions table_options;

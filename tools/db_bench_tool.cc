@@ -3409,7 +3409,7 @@ class Benchmark {
       reporter_agent.reset(new ReporterAgent(FLAGS_env, FLAGS_report_file,
                                              FLAGS_report_interval_seconds));
     }
-
+    //n represent number of threads.
     ThreadArg* arg = new ThreadArg[n];
 
     for (int i = 0; i < n; i++) {

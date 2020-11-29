@@ -131,11 +131,11 @@ class RDMA_Allocator: public MemoryAllocator{
   void* Allocate(size_t size) override{
     ibv_mr* mr_;
     ibv_mr* map_mr_;
-    if (size <= FileSystem::Default()->rdma_mg->Read_Block_Size){
+    if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("read")){
       std::string buff_type_ = "read";
       FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
       return mr_->addr;
-    }else if (size <= FileSystem::Default()->rdma_mg->Write_Block_Size){
+    }else if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("write")){
       std::string buff_type_ = "write";
       FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
       return mr_->addr;

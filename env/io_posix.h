@@ -129,7 +129,7 @@ class RDMASequentialFile : public FSSequentialFile {
   bool use_direct_io_;
   size_t logical_sector_size_;
   RDMA_Manager* rdma_mg_;
-  size_t position_ = 0;
+  unsigned int position_ = 0;
 
  public:
   RDMASequentialFile(SST_Metadata* sst_meta, size_t logical_block_size,
@@ -245,7 +245,7 @@ class RDMAWritableFile : public FSWritableFile {
   using FSWritableFile::Append;
  protected:
   const bool use_direct_io_;
-  uint64_t chunk_offset;
+  size_t chunk_offset;
   size_t logical_sector_size_;
   SST_Metadata* sst_meta_head;
   SST_Metadata* sst_meta_current;

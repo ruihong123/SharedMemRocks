@@ -615,6 +615,8 @@ class TableFactory : public Configurable {
 
   // Return is delete range supported
   virtual bool IsDeleteRangeSupported() const { return false; }
+
+  void Get_table_option(rocksdb::BlockBasedTableOptions table_option) {};
 };
 
 #ifndef ROCKSDB_LITE

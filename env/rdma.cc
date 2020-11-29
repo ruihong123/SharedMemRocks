@@ -36,21 +36,19 @@ void UnrefHandle_cq(void* ptr){
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(
     config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
-                           std::map<void*, In_Use_Array>* Write_Bitmap,
-                           std::map<void*, In_Use_Array>* Read_Bitmap, size_t table_size,
-    size_t write_block_size, size_t read_block_size)
-    : Read_Block_Size(read_block_size), Write_Block_Size(write_block_size),Table_Size(table_size),
+                            size_t table_size)
+    : Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local(new ThreadLocalPtr(&UnrefHandle_cq)),
       rdma_config(config)
 {
-  assert(read_block_size <table_size);
+//  assert(read_block_size <table_size);
   res = new resources();
   //  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;
-  Write_Local_Mem_Bitmap = Write_Bitmap;
-  Read_Local_Mem_Bitmap = Read_Bitmap;
+//  Write_Local_Mem_Bitmap = Write_Bitmap;
+//  Read_Local_Mem_Bitmap = Read_Bitmap;
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -73,6 +71,9 @@ RDMA_Manager::~RDMA_Manager() {
   delete qp_local;
   delete  cq_local;
   delete t_local_1;
+//  for (auto & iter : name_to_mem_pool){
+//    delete iter.second;
+//  }
 //  if (res->mr_receive)
 //    if (ibv_dereg_mr(res->mr_receive)) {
 //      fprintf(stderr, "failed to deregister MR\n");
@@ -191,6 +192,7 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
       }
     }
     fprintf(stdout, "TCP connection was established\n");
+
   }
   sock_connect_exit:
   if (listenfd) close(listenfd);
@@ -309,12 +311,12 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
   ibv_mr* send_mr;
   char* send_buff;
-  if (!Local_Memory_Register(&send_buff, &send_mr, 1000, 0)) {
+  if (!Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
     fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
   }
   ibv_mr* recv_mr;
   char* recv_buff;
-  if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, 0)) {
+  if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
     fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
   }
   post_receive<computing_to_memory_msg>(recv_mr, client_ip);
@@ -329,26 +331,27 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
   // Computing node and share memory connection succeed.
   // Now is the communication through rdma.
-  computing_to_memory_msg* receive_pointer;
-  receive_pointer = (computing_to_memory_msg*)recv_buff;
-  //  receive_pointer->command = ntohl(receive_pointer->command);
-  //  receive_pointer->content.qp_config.qp_num = ntohl(receive_pointer->content.qp_config.qp_num);
-  //  receive_pointer->content.qp_config.lid = ntohs(receive_pointer->content.qp_config.lid);
-  ibv_wc wc[2] = {};
+  computing_to_memory_msg receive_msg_buf;
+  memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
+//  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
+  //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
+  //  receive_msg_buf->content.qp_config.qp_num = ntohl(receive_msg_buf->content.qp_config.qp_num);
+  //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
+  ibv_wc wc[3] = {};
   while (true) {
     poll_completion(wc, 1, client_ip);
     // copy the pointer of receive buf to a new place because
     // it is the same with send buff pointer.
-    if (receive_pointer->command == create_mr_) {
+    if (receive_msg_buf.command == create_mr_) {
       std::cout << "create memory region command receive for" << client_ip
                 << std::endl;
       ibv_mr* send_pointer = (ibv_mr*)send_buff;
       ibv_mr* mr;
       char* buff;
-      if (!Local_Memory_Register(&buff, &mr, receive_pointer->content.mem_size,
-                                 0)) {
+      if (!Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
+                                 std::string())) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
-                static_cast<unsigned>(receive_pointer->content.mem_size));
+                static_cast<unsigned>(receive_msg_buf.content.mem_size));
       }
 
       *send_pointer = *mr;
@@ -357,20 +360,20 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
           send_mr,
           client_ip);  // note here should be the mr point to the send buffer.
       poll_completion(wc, 1, client_ip);
-    } else if (receive_pointer->command == create_qp_) {
+    } else if (receive_msg_buf.command == create_qp_) {
       char gid_str[17];
       memset(gid_str,0,17);
-      memcpy(gid_str, receive_pointer->content.qp_config.gid, 16);
+      memcpy(gid_str, receive_msg_buf.content.qp_config.gid, 16);
       std::string new_qp_id =
           std::string(gid_str)+
-          std::to_string(receive_pointer->content.qp_config.lid) +
-          std::to_string(receive_pointer->content.qp_config.qp_num);
+          std::to_string(receive_msg_buf.content.qp_config.lid) +
+          std::to_string(receive_msg_buf.content.qp_config.qp_num);
       std::cout << "create query pair command receive for" << client_ip
                 << std::endl;
       fprintf(stdout, "Remote QP number=0x%x\n",
-              receive_pointer->content.qp_config.qp_num);
+              receive_msg_buf.content.qp_config.qp_num);
       fprintf(stdout, "Remote LID = 0x%x\n",
-              receive_pointer->content.qp_config.lid);
+              receive_msg_buf.content.qp_config.lid);
       registered_qp_config* send_pointer = (registered_qp_config*)send_buff;
       create_qp(new_qp_id);
       if (rdma_config.gid_idx >= 0) {
@@ -387,11 +390,70 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
       send_pointer->lid = res->port_attr.lid;
       memcpy(send_pointer->gid, &my_gid, 16);
-      connect_qp(receive_pointer->content.qp_config, new_qp_id);
+      connect_qp(receive_msg_buf.content.qp_config, new_qp_id);
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
+    }else if (receive_msg_buf.command == retrieve_serialized_data){
+      post_send<char>(send_mr,client_ip);
+      // prepare the receive for db name, the name should not exceed 1000byte
+      post_receive(recv_mr,client_ip, 1000);
+      poll_completion(wc, 2, client_ip);
+      std::string dbname;
+      // Here could be some problem.
+      dbname = std::string(recv_buff);
+      ibv_mr* local_mr;
+      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
+      if (fs_image.find(dbname)!= fs_image.end()){
+        local_mr = fs_image.at(dbname);
+        l.unlock();
+        *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
+        post_send<size_t>(send_mr,client_ip);
+        post_receive<char>(recv_mr,client_ip);
+        post_send(local_mr,client_ip, local_mr->length);
+        poll_completion(wc, 3, client_ip);
+      }else{
+        l.unlock();
+        *(reinterpret_cast<size_t*>(send_buff)) = 0;
+        post_send<size_t>(send_mr,client_ip);
+        poll_completion(wc, 1, client_ip);
+      }
+
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+    }else if (receive_msg_buf.command == save_serialized_data){
+      int buff_size = receive_msg_buf.content.data_size;
+      char* buff = static_cast<char*>(malloc(buff_size));
+      ibv_mr* local_mr;
+      int mr_flags =
+          IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+      local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+      post_receive(local_mr,client_ip, buff_size);
+      post_send<char>(recv_mr,client_ip);
+      poll_completion(wc, 2, client_ip);
+      char* temp = static_cast<char*>(local_mr->addr);
+      size_t namenumber_net;
+      memcpy(&namenumber_net, temp, sizeof(size_t));
+      size_t namenumber = htonl(namenumber_net);
+      temp = temp + sizeof(size_t);
+
+      char dbname_[namenumber+1];
+      memcpy(dbname_, temp, namenumber);
+      dbname_[namenumber] = '\0';
+      temp = temp + namenumber;
+      std::string db_name = std::string(dbname_);
+      if (fs_image.find(db_name)!= fs_image.end()){
+        void* to_delete = fs_image.at(db_name)->addr;
+        ibv_dereg_mr(fs_image.at(db_name));
+        free(to_delete);
+        fs_image.at(db_name) = local_mr;
+      }else{
+        fs_image.at(db_name) = local_mr;
+      }
+//      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      break;
     }
+
+
   }
   return;
   // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
@@ -406,7 +468,7 @@ void RDMA_Manager::Server_to_Client_Communication() {
 //    Register the memory through ibv_reg_mr on the local side. this function will be called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
-                                         size_t chunk_size) {
+                                         std::string pool_name) {
   int mr_flags = 0;
   *p2buffpointer = new char[size];
   if (!*p2buffpointer) {
@@ -428,41 +490,29 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
             mr_flags, size, local_mem_pool.size());
     return false;
-  } else if (rdma_config.server_name && chunk_size > 0) {  // for the send buffer and receive buffer they will not be
-    // If chunk size equals 0, which means that this buffer should not be add to Local Bit
-    // Map, will not be regulated by the RDMA manager.
+  } else if (rdma_config.server_name && pool_name != "") {  // for the send buffer and receive buffer they will not be
+    // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
     int placeholder_num =
         (*p2mrpointer)->length /
-        (chunk_size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, chunk_size, *p2mrpointer);
-    //TODO: Modify it to allocate the memory according to the memory chunk types
-    if (chunk_size == Write_Block_Size){
-//        std::unique_lock<std::shared_mutex> l(write_pool_mutex);
-      Write_Local_Mem_Bitmap->insert({(*p2mrpointer)->addr, in_use_array});
-//        l.unlock();
-    }
-    else if (chunk_size == Read_Block_Size){
-//        std::unique_lock<std::shared_mutex> l(read_pool_mutex);
-      Read_Local_Mem_Bitmap->insert({(*p2mrpointer)->addr, in_use_array});
-//        l.unlock();
-    }
+        (name_to_size.at(
+            pool_name));  // here we supposing the SSTables are 4 megabytes
+    In_Use_Array in_use_array(placeholder_num, name_to_size.at(pool_name),
+                              *p2mrpointer);
+    // TODO: Modify it to allocate the memory according to the memory chunk types
 
-    else
-      printf("RDma bitmap insert error");
-    fprintf(
+    name_to_mem_pool.at(pool_name).insert(
+        {(*p2mrpointer)->addr, in_use_array});
+  }
+  else
+    printf("RDMA bitmap insert error");
+  fprintf(
         stdout,
         "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
         (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
         mr_flags);
 
     return true;
-  }
-  fprintf(stdout,
-          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
-          (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags);
-  return true;
 };
 /******************************************************************************
 * Function: set_up_RDMA
@@ -595,8 +645,9 @@ int RDMA_Manager::resources_create() {
 //              static_cast<unsigned>(rdma_config.init_local_buffer_size));
 //    }
 //  }
-  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000, 0);
-  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000, 0);
+  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000, std::string());
+  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000,
+                        std::string());
   //        if(condition){
   //          fprintf(stderr, "Local memory registering failed\n");
   //
@@ -921,7 +972,7 @@ End of socket operations
 
 // return 0 means success
 int
-RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, unsigned int send_flag,
+RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, size_t send_flag,
                         int poll_num) {
 //  auto start = std::chrono::high_resolution_clock::now();
 
@@ -1010,7 +1061,7 @@ RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, st
   return rc;
 }
 int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
-                             size_t msg_size, std::string q_id, unsigned int send_flag,
+                             size_t msg_size, std::string q_id, size_t send_flag,
                              int poll_num) {
 //  auto start = std::chrono::high_resolution_clock::now();
   struct ibv_send_wr sr;
@@ -1444,6 +1495,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     memset(&my_gid, 0, sizeof my_gid);
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // lock should be here because from here on we will modify the send buffer.
+  //TODO: Try to understand whether this kind of memcopy without serialization is correct.
+  // Could be wrong on different machine, because of the alignment
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_qp_;
@@ -1548,175 +1601,89 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
 // A function try to allocat
 void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
                                             ibv_mr*& map_pointer,
-                                            std::string buffer_type) {
+                                            std::string pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
-  if (buffer_type == "write") {
-    chunk_size = Write_Block_Size;
-    if (Write_Local_Mem_Bitmap->empty()) {
-      std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-      if (Write_Local_Mem_Bitmap->empty()) {
-        ibv_mr* mr;
-        char* buff;
-        Local_Memory_Register(&buff, &mr, 256 * chunk_size, chunk_size);
-      }
-      mem_write_lock.unlock();
-    }
-    std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
-    auto ptr = Write_Local_Mem_Bitmap->begin();
-
-    while (ptr != Write_Local_Mem_Bitmap->end()) {
-      size_t region_chunk_size = ptr->second.get_chunk_size();
-      if (region_chunk_size != chunk_size) {
-        ptr++;
-        continue;
-      }
-      int block_index = ptr->second.allocate_memory_slot();
-      if (block_index >= 0) {
-        mr_input = new ibv_mr();
-        map_pointer = (ptr->second).get_mr_ori();
-        *(mr_input) = *((ptr->second).get_mr_ori());
-        mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
-                                            block_index * chunk_size);
-        mr_input->length = chunk_size;
-
-        return;
-      } else
-        ptr++;
-    }
-    mem_read_lock.unlock();
-    // if not find available Local block buffer then allocate a new buffer. then
-    // pick up one buffer from the new Local memory region.
-    // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
-    // TODO:: Because there are two many thread going on at the same time.
-    ibv_mr* mr_to_allocate = new ibv_mr();
-    char* buff = new char[chunk_size];
-
+    chunk_size = name_to_size.at(pool_name);
+  if (name_to_mem_pool.at(pool_name).empty()) {
     std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-    Local_Memory_Register(&buff, &mr_to_allocate, chunk_size * 32, chunk_size);
-
-
-    int block_index = Write_Local_Mem_Bitmap->at(mr_to_allocate->addr).allocate_memory_slot();
+    if (name_to_mem_pool.at(pool_name).empty()) {
+      ibv_mr* mr;
+      char* buff;
+      Local_Memory_Register(&buff, &mr, 128*chunk_size, pool_name);
+    }
     mem_write_lock.unlock();
+  }
+  std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
+  auto ptr = name_to_mem_pool.at(pool_name).begin();
+
+  while (ptr != name_to_mem_pool.at(pool_name).end()) {
+    size_t region_chunk_size = ptr->second.get_chunk_size();
+    if (region_chunk_size != chunk_size) {
+      ptr++;
+      continue;
+    }
+    int block_index = ptr->second.allocate_memory_slot();
     if (block_index >= 0) {
       mr_input = new ibv_mr();
-      map_pointer = mr_to_allocate;
-      *(mr_input) = *(mr_to_allocate);
+      map_pointer = (ptr->second).get_mr_ori();
+      *(mr_input) = *((ptr->second).get_mr_ori());
       mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
                                           block_index * chunk_size);
       mr_input->length = chunk_size;
-      //  mr_input.fname = file_name;
+
       return;
-    }
+    } else
+      ptr++;
   }
-  else if (buffer_type == "read"){
-    chunk_size = Read_Block_Size;
-    if (Read_Local_Mem_Bitmap->empty()) {
-      std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-      if (Read_Local_Mem_Bitmap->empty()) {
-        ibv_mr* mr;
-        char* buff;
-        Local_Memory_Register(&buff, &mr, 1024*256*chunk_size, chunk_size);
-      }
-      mem_write_lock.unlock();
-    }
-    std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
-    auto ptr = Read_Local_Mem_Bitmap->begin();
-    while (ptr != Read_Local_Mem_Bitmap->end()) {
-      size_t region_chunk_size = ptr->second.get_chunk_size();
-      if (region_chunk_size != chunk_size){
-        ptr++;
-        continue;
-      }
-      int block_index = ptr->second.allocate_memory_slot();
-      if (block_index >= 0) {
-        mr_input = new ibv_mr();
-        map_pointer = (ptr->second).get_mr_ori();
-        *(mr_input) = *((ptr->second).get_mr_ori());
-        mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
-                                            block_index * chunk_size);
+  mem_read_lock.unlock();
+  // if not find available Local block buffer then allocate a new buffer. then
+  // pick up one buffer from the new Local memory region.
+  // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
+  // TODO:: Because there are two many thread going on at the same time.
+  ibv_mr* mr_to_allocate = new ibv_mr();
+  char* buff = new char[chunk_size];
 
-        return;
+  std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
+  Local_Memory_Register(&buff, &mr_to_allocate, 128*chunk_size,
+                        pool_name);
 
-      } else
-        ptr++;
-    }
-    mem_read_lock.unlock();
-    // if not find available Local block buffer then allocate a new buffer. then
-    // pick up one buffer from the new Local memory region.
-    // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
-    // TODO:: Because there are two many thread going on at the same time.
-    ibv_mr* mr_to_allocate = new ibv_mr();
-    char* buff = new char[chunk_size];
 
-    std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-    Local_Memory_Register(&buff, &mr_to_allocate, chunk_size*512, chunk_size);
-    int block_index = Read_Local_Mem_Bitmap->at(mr_to_allocate->addr).allocate_memory_slot();
-    mem_write_lock.unlock();
-
-    if (block_index >= 0) {
-      mr_input = new ibv_mr();
-      map_pointer = mr_to_allocate;
-      *(mr_input) = *(mr_to_allocate);
-      mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
-                                          block_index * chunk_size);
-      //  mr_input.fname = file_name;
-      return;
-    }
-    else
-      printf("invalid buffer type");
-    // Need to develop a mechanism to preallocate the memory in advance.
-
+  int block_index = name_to_mem_pool.at(pool_name).at(mr_to_allocate->addr).allocate_memory_slot();
+  mem_write_lock.unlock();
+  if (block_index >= 0) {
+    mr_input = new ibv_mr();
+    map_pointer = mr_to_allocate;
+    *(mr_input) = *(mr_to_allocate);
+    mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
+                                        block_index * chunk_size);
+    mr_input->length = chunk_size;
+    //  mr_input.fname = file_name;
+    return;
   }
-#ifndef NDEBUG
-  else {
-    std::cout << "block registerration failed" << std::endl;
-  }
-#endif
+
 }
 // Remeber to delete the mr because it was created be new, otherwise memory leak.
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                               std::string buffer_type) {
   int buff_offset =
       static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
-  if (buffer_type == "read"){
-    assert(buff_offset % Read_Block_Size == 0);
-    std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-    return Read_Local_Mem_Bitmap->at(map_pointer->addr)
-        .deallocate_memory_slot(buff_offset / Read_Block_Size);
-  }
-  else if (buffer_type == "write"){
-    assert(buff_offset % Write_Block_Size == 0);
-    std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-    return Write_Local_Mem_Bitmap->at(map_pointer->addr)
-        .deallocate_memory_slot(buff_offset / Write_Block_Size);
-  }
-  return false;
-}
-bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
-
-  int buff_offset = static_cast<char*>(sst_meta->mr->addr) -
-                    static_cast<char*>(sst_meta->map_pointer->addr);
-  assert(buff_offset % Table_Size == 0);
-#ifndef NDEBUG
-//  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
-#endif
+  size_t chunksize = name_to_size.at(buffer_type);
+  assert(buff_offset % chunksize == 0);
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
-      .deallocate_memory_slot(buff_offset / Table_Size);
+  return name_to_mem_pool.at(buffer_type).at(map_pointer->addr)
+      .deallocate_memory_slot(buff_offset / chunksize);
+
+
 }
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  std::map<void*, In_Use_Array>* Bitmap = nullptr;
-  if (buff_type == "read") {
-    Bitmap = Read_Local_Mem_Bitmap;
-  }else if (buff_type == "write") {
-    Bitmap = Write_Local_Mem_Bitmap;
-  }
-  auto mr_iter = Bitmap->upper_bound(p);
-  if(mr_iter == Bitmap->begin()){
+  std::map<void*, In_Use_Array> Bitmap;
+  Bitmap = name_to_mem_pool.at(buff_type);
+  auto mr_iter = Bitmap.upper_bound(p);
+  if(mr_iter == Bitmap.begin()){
     return false;
-  }else if (mr_iter == Bitmap->end()){
+  }else if (mr_iter == Bitmap.end()){
     mr_iter--;
     size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
 //      assert(buff_offset>=0);
@@ -1731,15 +1698,27 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
       return mr_iter->second.deallocate_memory_slot(buff_offset / mr_iter->second.get_chunk_size());
   }
   return false;
-
-
-
 }
+
+bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
+
+  int buff_offset = static_cast<char*>(sst_meta->mr->addr) -
+                    static_cast<char*>(sst_meta->map_pointer->addr);
+  assert(buff_offset % Table_Size == 0);
+#ifndef NDEBUG
+//  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
+#endif
+  std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+  return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
+      .deallocate_memory_slot(buff_offset / Table_Size);
+}
+
 bool RDMA_Manager::CheckInsideLocalBuff(
     void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
     std::map<void*, In_Use_Array>* Bitmap) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  mr_iter = Bitmap->upper_bound(p);
+  if (Bitmap != nullptr){
+    mr_iter = Bitmap->upper_bound(p);
     if(mr_iter == Bitmap->begin()){
       return false;
     }else if (mr_iter == Bitmap->end()){
@@ -1756,8 +1735,416 @@ bool RDMA_Manager::CheckInsideLocalBuff(
       if (buff_offset < mr_iter->second.get_mr_ori()->length)
         return true;
     }
-
+  }else{
+    //TODO: Implement a iteration to check that address in all the mempool, in case that the block size has been changed.
+    return false;
+  }
     return false;
 }
 
+bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
+  std::map<void*, In_Use_Array> mem_sub_pool;
+  //check whether pool name has already exist.
+  if (name_to_mem_pool.find(pool_name) != name_to_mem_pool.end())
+    return false;
+  name_to_mem_pool.insert(std::pair<std::string, std::map<void*, In_Use_Array>>({pool_name, mem_sub_pool}));
+  name_to_size.insert({pool_name, size});
+  return true;
+}
+//serialization for Memory regions
+void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
+  void* p = mr->context;
+  //TODO: It can not be changed into net stream.
+//    void* p_net = htonll(p);
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  p = mr->pd;
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  p = mr->addr;
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  uint32_t rkey = mr->rkey;
+  uint32_t rkey_net = htonl(rkey);
+  memcpy(temp, &rkey_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  uint32_t lkey = mr->lkey;
+  uint32_t lkey_net = htonl(lkey);
+  memcpy(temp, &lkey_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  uint32_t handle = mr->handle;
+  uint32_t handle_net = htonl(handle);
+  memcpy(temp, &handle_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  size_t length_mr = mr->length;
+  size_t length_mr_net = htonl(length_mr);
+  memcpy(temp, &length_mr_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+
+}
+void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
+  void* context_p = nullptr;
+  //TODO: It can not be changed into net stream.
+
+  memcpy(&context_p, temp, sizeof(void*));
+//    void* p_net = htonll(context_p);
+  temp = temp + sizeof(void*);
+  void* pd_p = nullptr;
+  memcpy(&pd_p, temp, sizeof(void*));
+  temp = temp + sizeof(void*);
+  void* addr_p = nullptr;
+  memcpy(&addr_p, temp, sizeof(void*));
+  temp = temp + sizeof(void*);
+  uint32_t rkey_net;
+  memcpy(&rkey_net, temp, sizeof(uint32_t));
+  uint32_t rkey = htonl(rkey_net);
+  temp = temp + sizeof(uint32_t);
+
+  uint32_t lkey_net;
+  memcpy(&lkey_net, temp, sizeof(uint32_t));
+  uint32_t lkey = htonl(lkey_net);
+  temp = temp + sizeof(uint32_t);
+
+  uint32_t handle_net;
+  memcpy(&handle_net, temp,  sizeof(uint32_t));
+  uint32_t handle = htonl(handle_net);
+  temp = temp + sizeof(uint32_t);
+
+  size_t length_mr_net = 0;
+
+  memcpy(&length_mr_net, temp, sizeof(size_t));
+  size_t length_mr = htonl(length_mr_net);
+  temp = temp + sizeof(size_t);
+  mr = new ibv_mr;
+  mr->context = static_cast<ibv_context*>(context_p);
+  mr->pd = static_cast<ibv_pd*>(pd_p);
+  mr->addr = addr_p;
+  mr->rkey = rkey;
+  mr->lkey = lkey;
+  mr->handle = handle;
+  mr->length = length_mr;
+
+
+}
+void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
+  char* temp = buff;
+  size_t namenumber = db_name.size();
+  size_t namenumber_net = htonl(namenumber);
+  memcpy(temp, &namenumber_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+  memcpy(temp, db_name.c_str(), namenumber);
+  temp = temp + namenumber;
+  //serialize the filename map
+  {
+    size_t filenumber = file_to_sst_meta.size();
+    size_t filenumber_net = htonl(filenumber);
+    memcpy(temp, &filenumber_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    for (auto iter: file_to_sst_meta) {
+      size_t filename_length = iter.first.size();
+      size_t filename_length_net = htonl(filename_length);
+      memcpy(temp, &filename_length_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
+      memcpy(temp, iter.first.c_str(), filename_length);
+      temp = temp + filename_length;
+      unsigned int file_size = iter.second->file_size;
+      unsigned int file_size_net = htonl(file_size);
+      memcpy(temp, &file_size_net, sizeof(unsigned int));
+      temp = temp + sizeof(unsigned int);
+      // check how long is the list
+      SST_Metadata* meta_p = iter.second;
+      SST_Metadata* temp_meta = meta_p;
+      size_t list_len = 1;
+      while (temp_meta->next_ptr != nullptr) {
+        list_len++;
+        temp_meta = temp_meta->next_ptr;
+      }
+      size_t list_len_net = ntohl(list_len);
+      memcpy(temp, &list_len_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
+      meta_p = iter.second;
+      while (meta_p != nullptr) {
+        mr_serialization(temp, size, meta_p->mr);
+        size_t length_map = meta_p->map_pointer->length;
+        size_t length_map_net = htonl(length_map);
+        memcpy(temp, &length_map_net, sizeof(size_t));
+        temp = temp + sizeof(size_t);
+        meta_p = meta_p->next_ptr;
+      }
+    }
+  }
+  // Serialization for the bitmap
+  size_t bitmap_number = remote_mem_bitmap.size();
+  size_t bitmap_number_net = htonl(bitmap_number);
+  memcpy(temp, &bitmap_number_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+  for (auto iter: remote_mem_bitmap){
+    void* p = iter.first;
+    memcpy(temp, p, sizeof(void*));
+    temp = temp + sizeof(void*);
+    size_t element_size = iter.second.get_element_size();
+    size_t element_size_net = htonl(element_size);
+    memcpy(temp, &element_size_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    size_t chunk_size = iter.second.get_chunk_size();
+    size_t chunk_size_net = htonl(chunk_size);
+    memcpy(temp, &chunk_size_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    std::atomic<bool>* in_use = iter.second.get_inuse_table();
+    for (size_t i = 0; i<element_size; i++){
+
+      bool bit_temp = in_use[i];
+      memcpy(temp, &bit_temp, sizeof(bool));
+      temp = temp + sizeof(bool);
+    }
+    mr_serialization(temp, size, iter.second.get_mr_ori());
+
+  }
+  size = temp - buff;
+}
+void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_name, std::map<std::string,
+        SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap) {
+  char* temp = buff;
+  size_t namenumber_net;
+  memcpy(&namenumber_net, temp, sizeof(size_t));
+  size_t namenumber = htonl(namenumber_net);
+  temp = temp + sizeof(size_t);
+
+  char dbname_[namenumber+1];
+  memcpy(dbname_, temp, namenumber);
+  dbname_[namenumber] = '\0';
+  temp = temp + namenumber;
+  assert(db_name == std::string(dbname_));
+  size_t filenumber_net;
+  memcpy(&filenumber_net, temp, sizeof(size_t));
+  size_t filenumber = htonl(filenumber_net);
+  temp = temp + sizeof(size_t);
+  for (size_t i = 0; i < filenumber; i++) {
+    size_t filename_length_net;
+    memcpy(&filename_length_net, temp, sizeof(size_t));
+    size_t filename_length = ntohl(filename_length_net);
+    temp = temp + sizeof(size_t);
+    char filename[filename_length+1];
+    memcpy(filename, temp, filename_length);
+    filename[filename_length] = '\0';
+    temp = temp + filename_length;
+
+    unsigned int file_size_net = 0;
+    memcpy(&file_size_net, temp, sizeof(unsigned int));
+    unsigned int file_size = ntohl(file_size_net);
+    temp = temp + sizeof(unsigned int);
+    size_t list_len_net = 0;
+    memcpy(&list_len_net, temp, sizeof(size_t));
+    size_t list_len = htonl(list_len_net);
+    temp = temp + sizeof(size_t);
+    SST_Metadata* meta_head;
+    SST_Metadata* meta = new SST_Metadata();
+    meta->file_size = file_size;
+    meta_head = meta;
+    for (size_t j = 0; j<list_len; j++){
+      //below could be problematic.
+      meta->fname = std::string(filename);
+      mr_deserialization(temp, size, meta->mr);
+      size_t length_map_net = 0;
+      memcpy(&length_map_net, temp, sizeof(size_t));
+      size_t length_map = htonl(length_map_net);
+      temp = temp + sizeof(size_t);
+      meta->map_pointer = new ibv_mr;
+      *(meta->map_pointer) = *(meta->mr);
+      meta->map_pointer->length = length_map;
+      if (j!=list_len-1){
+        meta->next_ptr = new SST_Metadata();
+        meta = meta->next_ptr;
+      }
+
+    }
+    file_to_sst_meta.insert({std::string(filename), meta_head});
+  }
+  //desirialize the Bit map
+  size_t bitmap_number_net = 0;
+  memcpy(&bitmap_number_net, temp, sizeof(size_t));
+  size_t bitmap_number = htonl(bitmap_number_net);
+  temp = temp + sizeof(size_t);
+  for (size_t i = 0; i < bitmap_number; i++){
+    void* p_key;
+    memcpy(&p_key, temp, sizeof(void*));
+    temp = temp + sizeof(void*);
+    size_t element_size_net = 0;
+    memcpy(&element_size_net, temp, sizeof(size_t));
+    size_t element_size = htonl(element_size_net);
+    temp = temp + sizeof(size_t);
+    size_t chunk_size_net = 0;
+    memcpy(&chunk_size_net, temp, sizeof(size_t));
+    size_t chunk_size = htonl(chunk_size_net);
+    temp = temp + sizeof(size_t);
+    auto* in_use = new std::atomic<bool>[element_size];
+    bool bit_temp;
+    for (size_t j = 0; j < element_size; j++){
+      memcpy(&bit_temp, temp, sizeof(bool));
+      in_use[j] = bit_temp;
+      temp = temp + sizeof(bool);
+    }
+    ibv_mr* mr_inuse;
+    mr_deserialization(temp, size, mr_inuse);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse);
+    remote_mem_bitmap.insert({p_key, in_use_array});
+  }
+
+}
+bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
+                                               char* buff,
+                                               size_t buff_size) {
+
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  ibv_mr* local_mr;
+  local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  computing_to_memory_msg* send_pointer;
+  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  send_pointer->command = save_serialized_data;
+  send_pointer->content.data_size = buff_size;
+  //sync to make sure the shared memory has post the next receive
+  post_receive<char>(res->mr_receive, std::string("main"));
+  // post the command for saving the serialized data.
+  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+  ibv_wc wc[2] = {};
+  ibv_mr* remote_pointer;
+  if (!poll_completion(wc, 2, std::string("main"))) {  // poll the receive for 2 entires
+    post_send(local_mr, std::string("main"), buff_size);
+  }else
+    fprintf(stderr, "failed to poll receive for serialized message\n");
+  if (poll_completion(wc, 1, std::string("main"))) // poll the receive for 2 entires
+    fprintf(stderr, "failed to poll send for serialized data send\n");
+  ibv_dereg_mr(local_mr);
+  return false;
+}
+bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
+                                               char*& buff,
+                                                   size_t& buff_size) {
+
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  ibv_wc wc[2] = {};
+  computing_to_memory_msg* send_pointer;
+  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  send_pointer->command = retrieve_serialized_data;
+  //sync to make sure the shared memory has post the next receive for the dbname
+  post_receive<char>(res->mr_receive, std::string("main"));
+  // post the command for saving the serialized data.
+  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+  if (poll_completion(wc, 2, std::string("main"))) {
+    fprintf(stderr, "failed to poll receive for serialized message\n");
+    return false;
+  }
+  memcpy(res->send_buf, db_name.c_str(), db_name.size());
+  memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
+  //receive the size of the serialized data
+  post_receive<size_t>(res->mr_receive, std::string("main"));
+  post_send(res->mr_send,"main", db_name.size()+1);
+
+  if (poll_completion(wc, 2, std::string("main"))) {
+    fprintf(stderr, "failed to poll receive for serialized message\n");
+    return false;
+  }
+  buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
+  if (buff_size!=0){
+    buff = static_cast<char*>(malloc(buff_size));
+    ibv_mr* local_mr;
+    local_mr = ibv_reg_mr(res->pd, reinterpret_cast<void*>(*buff), buff_size, mr_flags);
+    post_receive(local_mr,"main", buff_size);
+    // send a char to tell the shared memory that this computing node is ready to receive the data
+    post_send<char>(res->mr_send, std::string("main"));
+  }
+  else
+    return false;
+  if (poll_completion(wc, 2, std::string("main"))) {
+    fprintf(stderr, "failed to poll receive for serialized message\n");
+    return false;
+  }else
+    return true;
+
+}
+int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
+  struct ibv_send_wr sr;
+  struct ibv_sge sge;
+  struct ibv_send_wr* bad_wr = NULL;
+  int rc;
+  if (!rdma_config.server_name) {
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = size;
+    sge.lkey = mr->lkey;
+  } else {
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)res->send_buf;
+    sge.length = size;
+    sge.lkey = res->mr_send->lkey;
+  }
+
+  /* prepare the send work request */
+  memset(&sr, 0, sizeof(sr));
+  sr.next = NULL;
+  sr.wr_id = 0;
+  sr.sg_list = &sge;
+  sr.num_sge = 1;
+  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+  sr.send_flags = IBV_SEND_SIGNALED;
+
+  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+  //*(start) = std::chrono::steady_clock::now();
+  // start = std::chrono::steady_clock::now();
+
+  if (rdma_config.server_name)
+    rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+  else
+    rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+  if (rc)
+    fprintf(stderr, "failed to post SR\n");
+  else {
+    fprintf(stdout, "Send Request was posted\n");
+  }
+  return rc;
+}
+int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id, size_t size) {
+  struct ibv_recv_wr rr;
+  struct ibv_sge sge;
+  struct ibv_recv_wr* bad_wr;
+  int rc;
+  if (!rdma_config.server_name) {
+    /* prepare the scatter/gather entry */
+
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = size;
+    sge.lkey = mr->lkey;
+
+  } else {
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)res->receive_buf;
+    sge.length = size;
+    sge.lkey = res->mr_receive->lkey;
+  }
+
+  /* prepare the receive work request */
+  memset(&rr, 0, sizeof(rr));
+  rr.next = NULL;
+  rr.wr_id = 0;
+  rr.sg_list = &sge;
+  rr.num_sge = 1;
+  /* post the Receive Request to the RQ */
+  if (rdma_config.server_name)
+    rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
+  else
+    rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
+  if (rc)
+    fprintf(stderr, "failed to post RR\n");
+  else
+    fprintf(stdout, "Receive Request was posted\n");
+  return rc;
+}
 }

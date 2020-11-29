@@ -1011,14 +1011,16 @@ class RDMAFileSystem : public FileSystem {
     return Status::OK();
   }
 #endif
+
  private:
 //  bool checkedDiskForMmap_;
 //  bool forceMmapOff_;  // do we override Env options?
 
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
   std::map<void*, In_Use_Array>* Remote_Bitmap;
-  std::map<void*, In_Use_Array>* Write_Bitmap;
-  std::map<void*, In_Use_Array>* Read_Bitmap;
+
+//  std::map<void*, In_Use_Array>* Write_Bitmap;
+//  std::map<void*, In_Use_Array>* Read_Bitmap;
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
@@ -1110,21 +1112,29 @@ RDMAFileSystem::RDMAFileSystem()
       1, /* gid_idx */
       1024*1024*1024 /*initial local buffer size*/
   };
-  Remote_Bitmap = new std::map<void*, In_Use_Array>;
-  Write_Bitmap = new std::map<void*, In_Use_Array>;
-  Read_Bitmap = new std::map<void*, In_Use_Array>;
+
+//  Write_Bitmap = new std::map<void*, In_Use_Array>;
+//  Read_Bitmap = new std::map<void*, In_Use_Array>;
   size_t read_block_size = 8*1024;
   size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Read_Bitmap,
-                             table_size, write_block_size, read_block_size);
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, table_size);
   rdma_mg->Client_Set_Up_Resources();
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  auto* posix_tid = new std::string(ss.str());
-  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
-  rdma_mg->t_local_1->Reset(posix_tid);
+  char* buff;
+  size_t size;
+  Remote_Bitmap = new std::map<void*, In_Use_Array>;
+  if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)==true){
+    rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+  }
+
+
+
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  auto* posix_tid = new std::string(ss.str());
+//  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+//  rdma_mg->t_local_1->Reset(posix_tid);
 #if defined(ROCKSDB_IOURING_PRESENT)
   // Test whether IOUring is supported, and if it does, create a managing
   // object for thread local point so that in the future thread-local
@@ -1137,9 +1147,13 @@ RDMAFileSystem::RDMAFileSystem()
 #endif
 }
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
+  char* buff = static_cast<char*>(malloc(1024*1024));
+  size_t size;
+  rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
+  rdma_mg->client_save_serialized_data(db_name, buff, size);
   delete Remote_Bitmap;
-  delete Write_Bitmap;
-  delete Read_Bitmap;
+//  delete Write_Bitmap;
+//  delete Read_Bitmap;
   delete rdma_mg;
 }
 

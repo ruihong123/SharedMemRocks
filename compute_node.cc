@@ -1,6 +1,6 @@
 #include <iostream>
 #include "rocksdb/rdma.h"
-
+#include <boost/serialization/map.hpp>
 void client_thread(rocksdb::RDMA_Manager* rdma_manager){
 
   auto myid = std::this_thread::get_id();
@@ -37,6 +37,258 @@ void client_thread(rocksdb::RDMA_Manager* rdma_manager){
   std::cout << "read buffer: " << (char*)mem_pool_table[1].addr << std::endl;
 
 }
+void initialization(SST_Metadata* meta1, ibv_mr** mr1, size_t size, int id) {
+
+  for(size_t i = 0; i < size; i++){
+    if(i ==0){
+      meta1[i].fname = std::string("meta") + std::to_string(id);
+      meta1[i].file_size = 6553600;
+
+    }else
+      meta1[i].last_ptr = &meta1[i-1];
+    if (i!=size-1)
+      meta1[i].next_ptr = &meta1[i+1];
+
+    mr1[i] = new ibv_mr();
+    meta1[i].mr = mr1[i];
+    meta1[i].map_pointer = mr1[i];
+    mr1[i]->rkey = 430;
+    mr1[i]->addr = &meta1[i];
+  }
+}
+//serialization for Memory regions
+void mr_serialization(char*& temp, int& size, ibv_mr* mr){
+  void* p = mr->context;
+  //TODO: It can not be changed into net stream.
+//    void* p_net = htonll(p);
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  p = mr->pd;
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  p = mr->addr;
+  memcpy(temp, &p, sizeof(void*));
+  temp = temp + sizeof(void*);
+  uint32_t rkey = mr->rkey;
+  uint32_t rkey_net = htonl(rkey);
+  memcpy(temp, &rkey_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  uint32_t lkey = mr->lkey;
+  uint32_t lkey_net = htonl(lkey);
+  memcpy(temp, &lkey_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  uint32_t handle = mr->handle;
+  uint32_t handle_net = htonl(handle);
+  memcpy(temp, &handle_net, sizeof(uint32_t));
+  temp = temp + sizeof(uint32_t);
+  size_t length_mr = mr->length;
+  size_t length_mr_net = htonl(length_mr);
+  memcpy(temp, &length_mr_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+
+}
+void mr_deserialization(char*& temp, int& size, ibv_mr*& mr){
+  void* context_p = nullptr;
+  //TODO: It can not be changed into net stream.
+
+  memcpy(&context_p, temp, sizeof(void*));
+//    void* p_net = htonll(context_p);
+  temp = temp + sizeof(void*);
+  void* pd_p = nullptr;
+  memcpy(&pd_p, temp, sizeof(void*));
+  temp = temp + sizeof(void*);
+  void* addr_p = nullptr;
+  memcpy(&addr_p, temp, sizeof(void*));
+  temp = temp + sizeof(void*);
+  uint32_t rkey_net;
+  memcpy(&rkey_net, temp, sizeof(uint32_t));
+  uint32_t rkey = htonl(rkey_net);
+  temp = temp + sizeof(uint32_t);
+
+  uint32_t lkey_net;
+  memcpy(&lkey_net, temp, sizeof(uint32_t));
+  uint32_t lkey = htonl(lkey_net);
+  temp = temp + sizeof(uint32_t);
+
+  uint32_t handle_net;
+  memcpy(&handle_net, temp,  sizeof(uint32_t));
+  uint32_t handle = htonl(handle_net);
+  temp = temp + sizeof(uint32_t);
+
+  size_t length_mr_net = 0;
+
+  memcpy(&length_mr_net, temp, sizeof(size_t));
+  size_t length_mr = htonl(length_mr_net);
+  temp = temp + sizeof(size_t);
+  mr = new ibv_mr;
+  mr->context = static_cast<ibv_context*>(context_p);
+  mr->pd = static_cast<ibv_pd*>(pd_p);
+  mr->addr = addr_p;
+  mr->rkey = rkey;
+  mr->lkey = lkey;
+  mr->handle = handle;
+  mr->length = length_mr;
+
+
+}
+
+void serialization(char*& buff, int &size, std::string dbname, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& Remote_Mem_Bitmap){
+  char* temp = buff;
+  size_t namenumber = dbname.size();
+  size_t namenumber_net = htonl(namenumber);
+  memcpy(temp, &namenumber_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+  memcpy(temp, dbname.c_str(), namenumber);
+  temp = temp + namenumber;
+  //serialize the filename map
+  {
+    size_t filenumber = file_to_sst_meta.size();
+    size_t filenumber_net = htonl(filenumber);
+    memcpy(temp, &filenumber_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    for (auto iter: file_to_sst_meta) {
+      size_t filename_length = iter.first.size();
+      size_t filename_length_net = htonl(filename_length);
+      memcpy(temp, &filename_length_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
+      memcpy(temp, iter.first.c_str(), filename_length);
+      temp = temp + filename_length;
+      int file_size = iter.second->file_size;
+      int file_size_net = htonl(file_size);
+      memcpy(temp, &file_size_net, sizeof(int));
+      temp = temp + sizeof(int);
+      // check how long is the list
+      SST_Metadata* meta_p = iter.second;
+      SST_Metadata* temp_meta = meta_p;
+      size_t list_len = 1;
+      while (temp_meta->next_ptr != nullptr) {
+        list_len++;
+        temp_meta = temp_meta->next_ptr;
+      }
+      size_t list_len_net = ntohl(list_len);
+      memcpy(temp, &list_len_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
+      meta_p = iter.second;
+      while (meta_p != nullptr) {
+        mr_serialization(temp, size, meta_p->mr);
+        size_t length_map = meta_p->map_pointer->length;
+        size_t length_map_net = htonl(length_map);
+        memcpy(temp, &length_map_net, sizeof(size_t));
+        temp = temp + sizeof(size_t);
+        meta_p = meta_p->next_ptr;
+      }
+    }
+  }
+  // Serialization for the bitmap
+  size_t bitmap_number = Remote_Mem_Bitmap.size();
+  size_t bitmap_number_net = htonl(bitmap_number);
+  memcpy(temp, &bitmap_number_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+  for (auto iter: Remote_Mem_Bitmap){
+    void* p = iter.first;
+    memcpy(temp, p, sizeof(void*));
+    temp = temp + sizeof(void*);
+    size_t element_size = iter.second.get_element_size();
+    size_t element_size_net = htonl(element_size);
+    memcpy(temp, &element_size_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    size_t chunk_size = iter.second.get_chunk_size();
+    size_t chunk_size_net = htonl(chunk_size);
+    memcpy(temp, &chunk_size_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    std::atomic<bool>* in_use = iter.second.get_inuse_table();
+    for (unsigned int i = 0; i<element_size; i++){
+
+      bool bit_temp = in_use[i];
+      memcpy(temp, &bit_temp, sizeof(bool));
+      temp = temp + sizeof(bool);
+    }
+    mr_serialization(temp, size, iter.second.get_mr_ori());
+
+  }
+  size = temp - buff;
+}
+void deserialization(char*& buff, int &size, std::string& db_name, std::map<std::string,
+    SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& Remote_Mem_Bitmap) {
+  char* temp = buff;
+
+
+  size_t filenumber_net;
+  memcpy(&filenumber_net, temp, sizeof(size_t));
+  size_t filenumber = htonl(filenumber_net);
+  temp = temp + sizeof(size_t);
+  for (size_t i = 0; i < filenumber; i++) {
+    size_t filename_length_net;
+    memcpy(&filename_length_net, temp, sizeof(size_t));
+    size_t filename_length = ntohl(filename_length_net);
+    temp = temp + sizeof(size_t);
+    char filename[filename_length+1];
+    memcpy(filename, temp, filename_length);
+    filename[filename_length] = '\0';
+    temp = temp + filename_length;
+
+    int file_size_net = 0;
+    memcpy(&file_size_net, temp, sizeof(int));
+    int file_size = ntohl(file_size_net);
+    temp = temp + sizeof(int);
+    size_t list_len_net = 0;
+    memcpy(&list_len_net, temp, sizeof(size_t));
+    size_t list_len = htonl(list_len_net);
+    temp = temp + sizeof(size_t);
+    SST_Metadata* meta_head;
+    SST_Metadata* meta = new SST_Metadata();
+    meta->file_size = file_size;
+    meta_head = meta;
+    for (size_t j = 0; j<list_len; j++){
+      //below could be problematic.
+      meta->fname = std::string(filename);
+      mr_deserialization(temp, size, meta->mr);
+      size_t length_map_net = 0;
+      memcpy(&length_map_net, temp, sizeof(size_t));
+      size_t length_map = htonl(length_map_net);
+      temp = temp + sizeof(size_t);
+      meta->map_pointer = new ibv_mr;
+      *(meta->map_pointer) = *(meta->mr);
+      meta->map_pointer->length = length_map;
+      if (j!=list_len-1){
+        meta->next_ptr = new SST_Metadata();
+        meta = meta->next_ptr;
+      }
+
+    }
+    file_to_sst_meta.insert({std::string(filename), meta_head});
+  }
+  //desirialize the Bit map
+  size_t bitmap_number_net = 0;
+  memcpy(&bitmap_number_net, temp, sizeof(size_t));
+  size_t bitmap_number = htonl(bitmap_number_net);
+  temp = temp + sizeof(size_t);
+  for (size_t i = 0; i < bitmap_number; i++){
+    void* p_key;
+    memcpy(&p_key, temp, sizeof(void*));
+    temp = temp + sizeof(void*);
+    size_t element_size_net = 0;
+    memcpy(&element_size_net, temp, sizeof(size_t));
+    size_t element_size = htonl(element_size_net);
+    temp = temp + sizeof(size_t);
+    size_t chunk_size_net = 0;
+    memcpy(&chunk_size_net, temp, sizeof(size_t));
+    size_t chunk_size = htonl(chunk_size_net);
+    temp = temp + sizeof(size_t);
+    auto* in_use = new std::atomic<bool>[element_size];
+    bool bit_temp;
+    for (size_t j = 0; j < element_size; j++){
+      memcpy(&bit_temp, temp, sizeof(bool));
+      in_use[j] = bit_temp;
+      temp = temp + sizeof(bool);
+    }
+    ibv_mr* mr_inuse;
+    mr_deserialization(temp, size, mr_inuse);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse);
+    Remote_Mem_Bitmap.insert({p_key, in_use_array});
+  }
+
+}
 int main()
 {
   struct config_t config = {
@@ -47,17 +299,46 @@ int main()
       1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
   };
+
+
   auto Remote_Bitmap = new std::map<void*, In_Use_Array>;
-  auto Read_Bitmap = new std::map<void*, In_Use_Array>;
-  auto Write_Bitmap = new std::map<void*, In_Use_Array>;
-  size_t read_block_size = 4*1024;
-  size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;
-  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(config, Remote_Bitmap, Write_Bitmap, Remote_Bitmap,
-                             table_size, write_block_size, read_block_size);//  RDMA_Manager rdma_manager(config, Remote_Bitmap, Local_Bitmap);
+  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(config, Remote_Bitmap,
+                             table_size);
+  rdma_manager->Mempool_initialize(std::string("read"), 8*1024);
+  rdma_manager->Mempool_initialize(std::string("write"), 1024*1024);
+
   rdma_manager->Client_Set_Up_Resources();
-  std::thread thread_object(client_thread, rdma_manager);
-  while(1);
+
+  ibv_mr* mr = new ibv_mr;
+  In_Use_Array in_use(100,4096,mr);
+  Remote_Bitmap->insert({static_cast<void*>(&rdma_manager), in_use});
+
+
+  std::map<std::string, SST_Metadata*> file_to_sst_meta;
+  SST_Metadata meta1[10] = {};
+  ibv_mr* mr1[10];
+  initialization(meta1, mr1, 10, 1);
+  SST_Metadata meta2[3] = {};
+  ibv_mr* mr2[3];
+  initialization(meta2, mr2, 3, 2);
+  SST_Metadata meta3[2] = {};
+  ibv_mr* mr3[2];
+  initialization(meta3, mr3, 2, 3);
+  file_to_sst_meta.insert({meta1[0].fname, meta1});
+  file_to_sst_meta.insert({meta2[0].fname, meta2});
+  file_to_sst_meta.insert({meta3[0].fname, meta3});
+  int size;
+  char* buff = static_cast<char*>(malloc(1024*1024));
+  std::string dbname_for_test("database");
+  serialization(buff, size, dbname_for_test, file_to_sst_meta, *Remote_Bitmap);
+  auto Remote_Bitmap_reopen = new std::map<void*, In_Use_Array>;
+  std::map<std::string, SST_Metadata*> file_to_sst_meta_reopen;
+  std::string dbname_return;
+  deserialization(buff, size, dbname_return, file_to_sst_meta_reopen, *Remote_Bitmap_reopen);
+  std::cout << file_to_sst_meta_reopen.at("meta3")->file_size << std::endl;
+  std::cout << file_to_sst_meta_reopen.at("meta3")->fname << std::endl;
+  //  while(1);
 
   return 0;
 }

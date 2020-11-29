@@ -182,12 +182,12 @@ inline void ThreadPoolImpl::Impl::LowerCPUPriority(CpuPriority pri) {
 void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   bool low_io_priority = false;
   CpuPriority current_cpu_priority = CpuPriority::kNormal;
-  auto myid = std::this_thread::get_id();
-  std::stringstream ss;
-  ss << myid;
-  auto* posix_tid = new std::string(ss.str());
-  FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
-  FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
+//  auto myid = std::this_thread::get_id();
+//  std::stringstream ss;
+//  ss << myid;
+//  auto* posix_tid = new std::string(ss.str());
+//  FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
+//  FileSystem::Default()->rdma_mg->t_local_1->Reset(posix_tid);
   while (true) {
     // Wait until there is an item that is ready to run
     std::unique_lock<std::mutex> lock(mu_);

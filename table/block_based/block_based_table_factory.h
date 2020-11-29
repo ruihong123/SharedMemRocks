@@ -69,7 +69,7 @@ class BlockBasedTableFactory : public TableFactory {
   bool IsDeleteRangeSupported() const override { return true; }
 
   TailPrefetchStats* tail_prefetch_stats() { return &tail_prefetch_stats_; }
-
+  void Get_table_option(BlockBasedTableOptions & table_options) { table_options = table_options_;}
  protected:
   const void* GetOptionsPtr(const std::string& name) const override;
 #ifndef ROCKSDB_LITE

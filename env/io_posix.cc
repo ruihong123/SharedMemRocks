@@ -463,7 +463,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   if (position_ + n >= sst_meta_->file_size){
     int n_real = sst_meta_->file_size - position_;
     flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, n_real,
-                               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())), IBV_SEND_SIGNALED,1);
+                               std::string("") , IBV_SEND_SIGNALED,1);
     position_ +=  sst_meta_->file_size - position_;
     memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n_real);
     *result = Slice(scratch, n_real);
@@ -954,12 +954,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
-                                     rdma_mg_->Read_Local_Mem_Bitmap)){
+                                     &rdma_mg_->name_to_mem_pool.at("read"))){
 //    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
     ibv_mr local_mr;
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
-    assert(n <= rdma_mg_->Read_Block_Size);
+    assert(n <= rdma_mg_->name_to_size.at("read"));
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
@@ -1032,12 +1032,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Read Memory allocate, time elapse : (%ld)\n", duration.count());
 //  auto start = std::chrono::high_resolution_clock::now();
-    while (n > rdma_mg_->Read_Block_Size){
-      Read_chunk(chunk_src, rdma_mg_->Read_Block_Size, local_mr_pointer, remote_mr,
+    while (n > rdma_mg_->name_to_size.at("read")){
+      Read_chunk(chunk_src, rdma_mg_->name_to_size.at("read"), local_mr_pointer, remote_mr,
                  chunk_offset, sst_meta_current, thread_id);
-//    chunk_src += rdma_mg_->Read_Block_Size;
-      n -= rdma_mg_->Read_Block_Size;
-//    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + rdma_mg_->Read_Block_Size);
+//    chunk_src += rdma_mg_->name_to_size.at("read");
+      n -= rdma_mg_->name_to_size.at("read");
+//    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + rdma_mg_->name_to_size.at("read"));
 
     }
     Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
@@ -1074,7 +1074,7 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
                                           std::string& thread_id) const {
 //  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
-  assert(size <= rdma_mg_->Read_Block_Size);
+  assert(size <= rdma_mg_->name_to_size.at("read"));
 
   if (size + chunk_offset >= rdma_mg_->Table_Size ){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
@@ -1652,7 +1652,7 @@ RDMAWritableFile::~RDMAWritableFile() {
 IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
   const std::unique_lock<std::shared_mutex> lock(
       sst_meta_head->file_lock);
-  assert(msg_size <= rdma_mg_->Write_Block_Size);
+  assert(msg_size <= rdma_mg_->name_to_size.at("write"));
   ibv_mr remote_mr = {}; //
   remote_mr = *(sst_meta_current->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(sst_meta_current->mr->addr) + chunk_offset);
@@ -1660,7 +1660,7 @@ IOStatus RDMAWritableFile::Append(ibv_mr* local_mr_pointer, size_t msg_size) {
   std::string thread_id;
   //  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
-  assert(msg_size <= rdma_mg_->Write_Block_Size);
+  assert(msg_size <= rdma_mg_->name_to_size.at("write"));
 //  std::cout << "Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
 //            << chunk_offset << "size: " << msg_size << std::endl;
   int flag;
@@ -1789,11 +1789,11 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 //  printf("Write Memory allocate, time elapse: %ld\n", duration.count());
 //  start = std::chrono::high_resolution_clock::now();
   std::string thread_id;
-  while (nbytes > rdma_mg_->Write_Block_Size){
-    Append_chunk(chunk_src, rdma_mg_->Write_Block_Size, local_mr_pointer, remote_mr,
+  while (nbytes > rdma_mg_->name_to_size.at("write")){
+    Append_chunk(chunk_src, rdma_mg_->name_to_size.at("write"), local_mr_pointer, remote_mr,
                  thread_id);
 //                 *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
-    nbytes -= rdma_mg_->Write_Block_Size;
+    nbytes -= rdma_mg_->name_to_size.at("write");
 
   }
   Append_chunk(chunk_src, nbytes, local_mr_pointer, remote_mr,
@@ -1825,7 +1825,7 @@ IOStatus RDMAWritableFile::Append_chunk(char*& buff_ptr, size_t size,
                                         std::string& thread_id) {
 //  auto start = std::chrono::high_resolution_clock::now();
   IOStatus s = IOStatus::OK();
-  assert(size <= rdma_mg_->Write_Block_Size);
+  assert(size <= rdma_mg_->name_to_size.at("write"));
   int flag;
   if (chunk_offset + size >= rdma_mg_->Table_Size){
     // if block write accross two SSTable chunks, seperate it into 2 steps.
