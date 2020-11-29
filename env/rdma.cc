@@ -319,7 +319,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
     fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
   }
-  post_receive<registered_qp_config>(res->mr_receive, client_ip);
+  post_receive<int>(recv_mr, client_ip);
 
 
   post_receive<computing_to_memory_msg>(recv_mr, client_ip);
@@ -331,7 +331,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     fprintf(stderr, "sync error after QPs are were moved to RTS\n");
     rc = 1;
   }
-  post_send<computing_to_memory_msg>(res->mr_send, client_ip);
+  post_send<int>(res->mr_send, client_ip);
   ibv_wc wc[3] = {};
   if(poll_completion(wc, 2, client_ip))
     printf("The main qp not create correctly");
@@ -717,6 +717,7 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
   fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
   fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
   connect_qp(remote_con_data, qp_id);
+  post_receive<int>(res->mr_receive, std::string("main"));
   if (sock_sync_data(res->sock_map["main"], 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
   {
@@ -725,8 +726,8 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
   }
 
   // sync the communication by rdma.
-  post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
-  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+
+  post_send<int>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
   if(!poll_completion(wc, 2, std::string("main"))){
     return true;
@@ -1301,13 +1302,13 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
     sge.lkey = mr->lkey;
 
   }
-//  else {
-//    /* prepare the scatter/gather entry */
-//    memset(&sge, 0, sizeof(sge));
-//    sge.addr = (uintptr_t)res->receive_buf;
-//    sge.length = sizeof(T);
-//    sge.lkey = res->mr_receive->lkey;
-//  }
+  else {
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)res->receive_buf;
+    sge.length = sizeof(T);
+    sge.lkey = res->mr_receive->lkey;
+  }
 
   /* prepare the receive work request */
   memset(&rr, 0, sizeof(rr));
