@@ -459,7 +459,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
         free(to_delete);
         fs_image.at(db_name) = local_mr;
       }else{
-        fs_image.at(db_name) = local_mr;
+        fs_image[db_name] = local_mr;
       }
 //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       break;
