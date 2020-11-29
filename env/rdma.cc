@@ -395,9 +395,10 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
     }else if (receive_msg_buf.command == retrieve_serialized_data){
+      post_receive(recv_mr,client_ip, 1000);
       post_send<char>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
-      post_receive(recv_mr,client_ip, 1000);
+
       poll_completion(wc, 2, client_ip);
       std::string dbname;
       // Here could be some problem.
@@ -2035,7 +2036,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   // post the command for saving the serialized data.
   post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   if (poll_completion(wc, 2, std::string("main"))) {
-    fprintf(stderr, "failed to poll receive for serialized message\n");
+    fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
     return false;
   }
   memcpy(res->send_buf, db_name.c_str(), db_name.size());
@@ -2045,7 +2046,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   post_send(res->mr_send,"main", db_name.size()+1);
 
   if (poll_completion(wc, 2, std::string("main"))) {
-    fprintf(stderr, "failed to poll receive for serialized message\n");
+    fprintf(stderr, "failed to poll receive for serialized data size <retrieve>\n");
     return false;
   }
   buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
