@@ -395,6 +395,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
     }else if (receive_msg_buf.command == retrieve_serialized_data){
+      printf("retrieve_serialized_data message received successfully");
       post_receive(recv_mr,client_ip, 1000);
       post_send<int>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
@@ -505,8 +506,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     name_to_mem_pool.at(pool_name).insert(
         {(*p2mrpointer)->addr, in_use_array});
   }
-  else
-    printf("RDMA bitmap insert error");
+//  else
+//    printf("RDMA bitmap insert error");
   fprintf(
         stdout,
         "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
@@ -1360,13 +1361,16 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
     /* CQE found */
     // fprintf(stdout, "completion was found in CQ with status 0x%x\n", wc.status);
     /* check the completion status (here we don't care about the completion opcode */
-    if (wc_p->status != IBV_WC_SUCCESS)  // TODO:: could be modified into check all the entries in the array
-    {
-      fprintf(stderr,
-              "got bad completion with status: 0x%x, vendor syndrome: 0x%x\n",
-              wc_p->status, wc_p->vendor_err);
-      rc = 1;
+    for (auto i = 0; i< num_entries; i++){
+      if (wc_p[i].status != IBV_WC_SUCCESS)  // TODO:: could be modified into check all the entries in the array
+      {
+        fprintf(stderr,
+                "number %d got bad completion with status: 0x%x, vendor syndrome: 0x%x\n",
+                i, wc_p[i].status, wc_p[i].vendor_err);
+        rc = 1;
+      }
     }
+
   }
   return rc;
 }
