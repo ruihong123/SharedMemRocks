@@ -396,7 +396,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       poll_completion(wc, 1, client_ip);
     }else if (receive_msg_buf.command == retrieve_serialized_data){
       post_receive(recv_mr,client_ip, 1000);
-      post_send<char>(send_mr,client_ip);
+      post_send<int>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
 
       poll_completion(wc, 2, client_ip);
@@ -1212,13 +1212,14 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id) {
     sge.addr = (uintptr_t)mr->addr;
     sge.length = sizeof(T);
     sge.lkey = mr->lkey;
-  } else {
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)res->send_buf;
-    sge.length = sizeof(T);
-    sge.lkey = res->mr_send->lkey;
   }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->send_buf;
+//    sge.length = sizeof(T);
+//    sge.lkey = res->mr_send->lkey;
+//  }
 
   /* prepare the send work request */
   memset(&sr, 0, sizeof(sr));
@@ -1275,13 +1276,14 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
     sge.length = sizeof(T);
     sge.lkey = mr->lkey;
 
-  } else {
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)res->receive_buf;
-    sge.length = sizeof(T);
-    sge.lkey = res->mr_receive->lkey;
   }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->receive_buf;
+//    sge.length = sizeof(T);
+//    sge.lkey = res->mr_receive->lkey;
+//  }
 
   /* prepare the receive work request */
   memset(&rr, 0, sizeof(rr));
@@ -2032,7 +2034,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->command = retrieve_serialized_data;
   //sync to make sure the shared memory has post the next receive for the dbname
-  post_receive<char>(res->mr_receive, std::string("main"));
+  post_receive<int>(res->mr_receive, std::string("main"));
   // post the command for saving the serialized data.
   post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   if (poll_completion(wc, 2, std::string("main"))) {
@@ -2078,13 +2080,14 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
     sge.addr = (uintptr_t)mr->addr;
     sge.length = size;
     sge.lkey = mr->lkey;
-  } else {
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)res->send_buf;
-    sge.length = size;
-    sge.lkey = res->mr_send->lkey;
   }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->send_buf;
+//    sge.length = size;
+//    sge.lkey = res->mr_send->lkey;
+//  }
 
   /* prepare the send work request */
   memset(&sr, 0, sizeof(sr));
@@ -2123,13 +2126,14 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id, size_t size) {
     sge.length = size;
     sge.lkey = mr->lkey;
 
-  } else {
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)res->receive_buf;
-    sge.length = size;
-    sge.lkey = res->mr_receive->lkey;
   }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->receive_buf;
+//    sge.length = size;
+//    sge.lkey = res->mr_receive->lkey;
+//  }
 
   /* prepare the receive work request */
   memset(&rr, 0, sizeof(rr));
