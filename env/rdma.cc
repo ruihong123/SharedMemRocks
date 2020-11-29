@@ -251,6 +251,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
               this->server_communication_thread(client_ip, socket_fd);
             },
             std::string(address.sa_data), sockfd));
+        thread_pool.back().detach();
       }
     }
   }
