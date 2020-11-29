@@ -320,10 +320,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
   }
   post_receive<registered_qp_config>(res->mr_receive, client_ip);
-  post_send<computing_to_memory_msg>(res->mr_send, client_ip);
-  ibv_wc wc[3] = {};
-  if(poll_completion(wc, 2, client_ip))
-    printf("The main qp not create correctly");
+
+
   post_receive<computing_to_memory_msg>(recv_mr, client_ip);
 
   // sync after send & recv buffer creation and receive request posting.
@@ -333,7 +331,10 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     fprintf(stderr, "sync error after QPs are were moved to RTS\n");
     rc = 1;
   }
-
+  post_send<computing_to_memory_msg>(res->mr_send, client_ip);
+  ibv_wc wc[3] = {};
+  if(poll_completion(wc, 2, client_ip))
+    printf("The main qp not create correctly");
   // Computing node and share memory connection succeed.
   // Now is the communication through rdma.
   computing_to_memory_msg receive_msg_buf;
