@@ -1229,19 +1229,21 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id) {
   struct ibv_send_wr* bad_wr = NULL;
   int rc;
   if (!rdma_config.server_name) {
+    // server side.
     /* prepare the scatter/gather entry */
     memset(&sge, 0, sizeof(sge));
     sge.addr = (uintptr_t)mr->addr;
     sge.length = sizeof(T);
     sge.lkey = mr->lkey;
   }
-//  else {
-//    /* prepare the scatter/gather entry */
-//    memset(&sge, 0, sizeof(sge));
-//    sge.addr = (uintptr_t)res->send_buf;
-//    sge.length = sizeof(T);
-//    sge.lkey = res->mr_send->lkey;
-//  }
+  else {
+    //client side
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)res->send_buf;
+    sge.length = sizeof(T);
+    sge.lkey = res->mr_send->lkey;
+  }
 
   /* prepare the send work request */
   memset(&sr, 0, sizeof(sr));
