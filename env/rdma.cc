@@ -1380,22 +1380,22 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
   struct ibv_sge sge;
   struct ibv_recv_wr* bad_wr;
   int rc;
-  if (!rdma_config.server_name) {
-    /* prepare the scatter/gather entry */
+//  if (!rdma_config.server_name) {
+//    /* prepare the scatter/gather entry */
 
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)mr->addr;
-    sge.length = sizeof(T);
-    sge.lkey = mr->lkey;
+  memset(&sge, 0, sizeof(sge));
+  sge.addr = (uintptr_t)mr->addr;
+  sge.length = sizeof(T);
+  sge.lkey = mr->lkey;
 
-  }
-  else {
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)res->receive_buf;
-    sge.length = sizeof(T);
-    sge.lkey = res->mr_receive->lkey;
-  }
+//  }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->receive_buf;
+//    sge.length = sizeof(T);
+//    sge.lkey = res->mr_receive->lkey;
+//  }
 
   /* prepare the receive work request */
   memset(&rr, 0, sizeof(rr));
