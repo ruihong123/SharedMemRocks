@@ -443,7 +443,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_receive(local_mr,client_ip, buff_size);
       post_send<char>(recv_mr,client_ip);
       poll_completion(wc, 2, client_ip);
-      printf("receive the serialized data");
+
       char* temp = static_cast<char*>(local_mr->addr);
       size_t namenumber_net;
       memcpy(&namenumber_net, temp, sizeof(size_t));
@@ -455,6 +455,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       dbname_[namenumber] = '\0';
       temp = temp + namenumber;
       std::string db_name = std::string(dbname_);
+      std::cout << "db_name is: " << db_name <<std::endl;
       if (fs_image.find(db_name)!= fs_image.end()){
         void* to_delete = fs_image.at(db_name)->addr;
         ibv_dereg_mr(fs_image.at(db_name));
