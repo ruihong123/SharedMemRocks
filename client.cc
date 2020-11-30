@@ -37,7 +37,7 @@ int main()
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
   assert(status.ok());
-  status = db->SetDBOptions({{"max_background_jobs", "12"}});
+//  status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){

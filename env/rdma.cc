@@ -2128,12 +2128,15 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
   post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
   ibv_mr* remote_pointer;
-  if (!poll_completion(wc, 2, std::string("main"))) {  // poll the receive for 2 entires
+  if (!poll_completion(wc, 2, std::string("main"))) {
     post_send(local_mr, std::string("main"), buff_size);
   }else
     fprintf(stderr, "failed to poll receive for serialized message\n");
-  if (poll_completion(wc, 1, std::string("main"))) // poll the receive for 2 entires
+  if (!poll_completion(wc, 1, std::string("main")))
+    printf("serialized data sent successfully");
+  else
     fprintf(stderr, "failed to poll send for serialized data send\n");
+  sleep(100);
   ibv_dereg_mr(local_mr);
   return false;
 }
