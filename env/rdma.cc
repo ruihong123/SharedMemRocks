@@ -433,6 +433,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
     }else if (receive_msg_buf.command == save_serialized_data){
+      printf("save_serialized_data message received successfully\n");
       int buff_size = receive_msg_buf.content.data_size;
       char* buff = static_cast<char*>(malloc(buff_size));
       ibv_mr* local_mr;
