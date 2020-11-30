@@ -169,6 +169,7 @@ class FileSystem {
     db_name = name;
     return IOStatus::OK();
   }
+  void fs_initialization(){};
   virtual const char* Name() const = 0;
 
   static const char* Type() { return "FileSystem"; }

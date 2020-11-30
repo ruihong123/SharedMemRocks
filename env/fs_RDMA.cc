@@ -1076,6 +1076,15 @@ class RDMAFileSystem : public FileSystem {
   static size_t GetLogicalBlockSizeForWriteIfNeeded(const EnvOptions& options,
                                                     const std::string& fname,
                                                     int fd);
+  void fs_initialization(){
+    char* buff;
+    size_t size;
+
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
+      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+    }
+
+  }
 };
 
 #ifdef OS_LINUX
@@ -1127,12 +1136,6 @@ RDMAFileSystem::RDMAFileSystem()
 //  auto* posix_tid = new std::string(ss.str());
 //  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
 //  rdma_mg->t_local_1->Reset(posix_tid);
-  char* buff;
-  size_t size;
-
-  if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)==true){
-    rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
-  }
 
 
 

@@ -247,11 +247,11 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
           break;
         }
         thread_pool.push_back(std::thread(
-            [this](std::string client_ip, int socket_fd) {
-              this->server_communication_thread(client_ip, socket_fd);
+            [this](std::string client_ip, int socketfd) {
+              this->server_communication_thread(client_ip, socketfd);
             },
             std::string(address.sa_data), sockfd));
-        thread_pool.back().detach();
+//        thread_pool.back().detach();
       }
     }
   }
@@ -271,6 +271,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
 }
 void RDMA_Manager::server_communication_thread(std::string client_ip,
                                                int socket_fd) {
+  printf("A new shared memory thread start\n");
   char temp_receive[2];
   char temp_send[] = "Q";
   struct registered_qp_config local_con_data;

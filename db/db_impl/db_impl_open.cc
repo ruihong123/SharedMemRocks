@@ -1395,6 +1395,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size);
   options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("write"), db_options.writable_file_max_buffer_size);
   options.env->GetFileSystem()->set_db_name(dbname);
+  options.env->GetFileSystem()->fs_initialization();
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
   column_families.push_back(
