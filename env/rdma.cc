@@ -414,6 +414,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       std::string dbname;
       // Here could be some problem.
       dbname = std::string(recv_buff);
+      std::cout << "retrieve db_name is: " << dbname <<std::endl;
       ibv_mr* local_mr;
       std::shared_lock<std::shared_mutex> l(fs_image_mutex);
       if (fs_image.find(dbname)!= fs_image.end()){
@@ -455,7 +456,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       dbname_[namenumber] = '\0';
       temp = temp + namenumber;
       std::string db_name = std::string(dbname_);
-      std::cout << "db_name is: " << db_name <<std::endl;
+      std::cout << "save db_name is: " << db_name <<std::endl;
       if (fs_image.find(db_name)!= fs_image.end()){
         void* to_delete = fs_image.at(db_name)->addr;
         ibv_dereg_mr(fs_image.at(db_name));
