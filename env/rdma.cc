@@ -2137,7 +2137,7 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
     printf("serialized data sent successfully");
   else
     fprintf(stderr, "failed to poll send for serialized data send\n");
-  sleep(100);
+//  sleep(100);
   ibv_dereg_mr(local_mr);
   return false;
 }
