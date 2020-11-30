@@ -2162,7 +2162,8 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   if (poll_completion(wc, 2, std::string("main"))) {
     fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
     return false;
-  }
+  }else
+    printf("retrieve message was sent successfully");
   memcpy(res->send_buf, db_name.c_str(), db_name.size());
   memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
   //receive the size of the serialized data
