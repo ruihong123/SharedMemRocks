@@ -165,11 +165,21 @@ class FileSystem {
   virtual ~FileSystem();
   RDMA_Manager* rdma_mg;
   std::string db_name;
+  std::map<std::string, SST_Metadata*> file_to_sst_meta;
+  std::map<void*, In_Use_Array>* Remote_Bitmap;
   Status set_db_name(const std::string& name){
     db_name = name;
     return IOStatus::OK();
   }
-  void fs_initialization(){};
+  void fs_initialization(){
+    char* buff;
+    size_t size;
+
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
+      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+    }
+    return;
+  }
   virtual const char* Name() const = 0;
 
   static const char* Type() { return "FileSystem"; }

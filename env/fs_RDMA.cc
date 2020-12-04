@@ -644,9 +644,30 @@ class RDMAFileSystem : public FileSystem {
       return IOStatus::OK();
     }
   }
-//TODO: Modify this function.
+//  find file in RDMA file system.
+//  IOStatus FileExists_RDMA(const std::string& fname, const IOOptions& /*opts*/,
+//                      IODebugContext* /*dbg*/) {
+//    if(file_to_sst_meta.find(fname) != file_to_sst_meta.end())
+//      return IOStatus::OK();
+//    else
+//      return IOStatus::NotFound();
+//
+//  }
+  // Get all the files in RDMA file system.
+//  IOStatus GetChildren_RDMA(const std::string& dir, const IOOptions& /*opts*/,
+//                       std::vector<std::string>* result,
+//                       IODebugContext* /*dbg*/)  {
+//    auto iter = file_to_sst_meta.begin();
+//    while (iter != file_to_sst_meta.end() ) {
+//      result->push_back(iter->first);
+//    }
+//    return IOStatus::OK();
+//  }
+  // Combine Posix file system and RDMA file system together
   IOStatus FileExists(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
+    if(file_to_sst_meta.find(fname) != file_to_sst_meta.end())
+      return IOStatus::OK();
     int result = access(fname.c_str(), F_OK);
 
     if (result == 0) {
@@ -667,7 +688,7 @@ class RDMAFileSystem : public FileSystem {
                                  ") accessing file `" + fname + "' ");
     }
   }
-
+  //Combine Posix file system and RDMA file system together.
   IOStatus GetChildren(const std::string& dir, const IOOptions& /*opts*/,
                        std::vector<std::string>* result,
                        IODebugContext* /*dbg*/) override {
@@ -684,10 +705,16 @@ class RDMAFileSystem : public FileSystem {
       }
     }
     struct dirent* entry;
+    // First search the disk
     while ((entry = readdir(d)) != nullptr) {
       result->push_back(entry->d_name);
     }
     closedir(d);
+    // Then search in the remote memory
+    auto iter = file_to_sst_meta.begin();
+    while (iter != file_to_sst_meta.end() ) {
+      result->push_back(iter->first);
+    }
     return IOStatus::OK();
   }
 // First try to delete file in the disk file system, if not found then delete in
@@ -1011,13 +1038,19 @@ class RDMAFileSystem : public FileSystem {
     return Status::OK();
   }
 #endif
+  void fs_initialization(){
+    char* buff;
+    size_t size;
 
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
+      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+    }
+
+  }
  private:
 //  bool checkedDiskForMmap_;
 //  bool forceMmapOff_;  // do we override Env options?
 
-  std::map<std::string, SST_Metadata*> file_to_sst_meta;
-  std::map<void*, In_Use_Array>* Remote_Bitmap;
 
 //  std::map<void*, In_Use_Array>* Write_Bitmap;
 //  std::map<void*, In_Use_Array>* Read_Bitmap;
@@ -1076,15 +1109,7 @@ class RDMAFileSystem : public FileSystem {
   static size_t GetLogicalBlockSizeForWriteIfNeeded(const EnvOptions& options,
                                                     const std::string& fname,
                                                     int fd);
-  void fs_initialization(){
-    char* buff;
-    size_t size;
 
-    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
-      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
-    }
-
-  }
 };
 
 #ifdef OS_LINUX
