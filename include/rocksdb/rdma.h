@@ -291,7 +291,9 @@ class RDMA_Manager{
                             std::map<void*, In_Use_Array>* Bitmap);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
+
   void fs_serialization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+  //Deserialization for linked file is problematic because different file may link to the same SSTdata
   void fs_deserilization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
 
     //TODO: Make all the variable more smart pointers.

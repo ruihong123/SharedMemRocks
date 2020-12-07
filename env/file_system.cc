@@ -128,7 +128,7 @@ IOStatus ReadFileToString_RDMA(FileSystem* fs, const std::string& fname,
   if (!s.ok()) {
     return s;
   }
-  static const int kBufferSize = 4096;
+  static const int kBufferSize = fs->rdma_mg->name_to_size.at("read");
   char* space = new char[kBufferSize];
   while (true) {
     Slice fragment;

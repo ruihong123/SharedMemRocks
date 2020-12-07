@@ -35,6 +35,7 @@ class DBBasicTest : public DBTestBase {
 TEST_F(DBBasicTest, OpenWhenOpen) {
   Options options = CurrentOptions();
   options.env = env_;
+
   ROCKSDB_NAMESPACE::DB* db2 = nullptr;
   ROCKSDB_NAMESPACE::Status s = DB::Open(options, dbname_, &db2);
 

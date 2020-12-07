@@ -1390,12 +1390,7 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
 
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   DBOptions db_options(options);
-  rocksdb::BlockBasedTableOptions table_option;
-  options.table_factory->Get_table_option(table_option);
-  options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size);
-  options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("write"), db_options.writable_file_max_buffer_size);
-  options.env->GetFileSystem()->set_db_name(dbname);
-  options.env->GetFileSystem()->fs_initialization();
+//  options.table_factory;
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
   column_families.push_back(
@@ -1477,6 +1472,13 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
                     const std::vector<ColumnFamilyDescriptor>& column_families,
                     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
                     const bool seq_per_batch, const bool batch_per_txn) {
+  rocksdb::BlockBasedTableOptions table_option;
+  // TODO: All the column family tends to has the same block size,this maay not the correct logic
+  column_families.begin()->options.table_factory->Get_table_option(table_option);
+  db_options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size);
+  db_options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("write"), db_options.writable_file_max_buffer_size);
+  db_options.env->GetFileSystem()->set_db_name(dbname);
+  db_options.env->GetFileSystem()->fs_initialization();
   Status s = ValidateOptionsByTable(db_options, column_families);
   if (!s.ok()) {
 #ifndef NDEBUG

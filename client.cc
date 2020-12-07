@@ -36,6 +36,8 @@ int main()
 //  rocksdb::FileSystem::Default()->rdma_mg->Remote_Query_Pair_Connection(posix_tid_main);
   rocksdb::Status status =
       rocksdb::DB::Open(options, "/tmp/testdb", &db);
+  if (!status.ok())
+    std::cerr << status.ToString() << std::endl;
   assert(status.ok());
 //  status = db->SetDBOptions({{"max_background_jobs", "12"}});
   if (!status.ok()) std::cerr << status.ToString() << std::endl;

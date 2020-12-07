@@ -147,6 +147,10 @@ class RDMASequentialFile : public FSSequentialFile {
   virtual size_t GetRequiredBufferAlignment() const override {
     return logical_sector_size_;
   }
+  IOStatus Read_chunk(char*& buff_ptr, size_t size, ibv_mr* local_mr_pointer,
+                      ibv_mr& remote_mr, size_t& chunk_offset,
+                      SST_Metadata*& sst_meta_current,
+                      std::string& thread_id) const;
 };
 
 class PosixSequentialFile : public FSSequentialFile {

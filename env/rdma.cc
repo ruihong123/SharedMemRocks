@@ -1991,7 +1991,11 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
         size_t length_map_net = htonl(length_map);
         memcpy(temp, &length_map_net, sizeof(size_t));
         temp = temp + sizeof(size_t);
+        void* p = meta_p->map_pointer->addr;
+        memcpy(temp, &p, sizeof(void*));
+        temp = temp + sizeof(void*);
         meta_p = meta_p->next_ptr;
+
       }
     }
   }
@@ -2073,7 +2077,11 @@ void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_
       temp = temp + sizeof(size_t);
       meta->map_pointer = new ibv_mr;
       *(meta->map_pointer) = *(meta->mr);
+      void* start_key;
+      memcpy(&start_key, temp, sizeof(void*));
+      temp = temp + sizeof(void*);
       meta->map_pointer->length = length_map;
+      meta->map_pointer->addr = start_key;
       if (j!=list_len-1){
         meta->next_ptr = new SST_Metadata();
         meta = meta->next_ptr;
@@ -2108,7 +2116,7 @@ void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_
     }
     ibv_mr* mr_inuse;
     mr_deserialization(temp, size, mr_inuse);
-    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
   }
 

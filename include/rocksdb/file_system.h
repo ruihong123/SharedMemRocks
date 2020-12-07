@@ -166,6 +166,7 @@ class FileSystem {
   RDMA_Manager* rdma_mg;
   std::string db_name;
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
+  std::shared_mutex fs_mutex;
   std::map<void*, In_Use_Array>* Remote_Bitmap;
   Status set_db_name(const std::string& name){
     db_name = name;

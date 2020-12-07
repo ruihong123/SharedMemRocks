@@ -1,6 +1,6 @@
 #include <iostream>
 #include "rocksdb/rdma.h"
-#include <boost/serialization/map.hpp>
+//#include <boost/serialization/map.hpp>
 void client_thread(rocksdb::RDMA_Manager* rdma_manager){
 
   auto myid = std::this_thread::get_id();
@@ -53,7 +53,7 @@ void initialization(SST_Metadata* meta1, ibv_mr** mr1, size_t size, int id) {
     meta1[i].mr = mr1[i];
     meta1[i].map_pointer = mr1[i];
     mr1[i]->rkey = 430;
-    mr1[i]->addr = &meta1[i];
+    mr1[i]->addr = reinterpret_cast<void*>(0x47906);
   }
 }
 //serialization for Memory regions
@@ -134,6 +134,7 @@ void mr_deserialization(char*& temp, int& size, ibv_mr*& mr){
 
 void serialization(char*& buff, int &size, std::string dbname, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& Remote_Mem_Bitmap){
   char* temp = buff;
+  // deserailize the name
   size_t namenumber = dbname.size();
   size_t namenumber_net = htonl(namenumber);
   memcpy(temp, &namenumber_net, sizeof(size_t));
@@ -175,6 +176,9 @@ void serialization(char*& buff, int &size, std::string dbname, std::map<std::str
         size_t length_map_net = htonl(length_map);
         memcpy(temp, &length_map_net, sizeof(size_t));
         temp = temp + sizeof(size_t);
+        void* p = meta_p->map_pointer->addr;
+        memcpy(temp, &p, sizeof(void*));
+        temp = temp + sizeof(void*);
         meta_p = meta_p->next_ptr;
       }
     }
@@ -200,6 +204,7 @@ void serialization(char*& buff, int &size, std::string dbname, std::map<std::str
     for (unsigned int i = 0; i<element_size; i++){
 
       bool bit_temp = in_use[i];
+      std::cout<< "serial" << in_use[i] << std::endl;
       memcpy(temp, &bit_temp, sizeof(bool));
       temp = temp + sizeof(bool);
     }
@@ -211,8 +216,18 @@ void serialization(char*& buff, int &size, std::string dbname, std::map<std::str
 void deserialization(char*& buff, int &size, std::string& db_name, std::map<std::string,
     SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& Remote_Mem_Bitmap) {
   char* temp = buff;
+  //deserialize the name.
+  size_t namenumber_net;
+  memcpy(&namenumber_net, temp, sizeof(size_t));
+  size_t namenumber = htonl(namenumber_net);
+  temp = temp + sizeof(size_t);
 
-
+  char dbname_[namenumber+1];
+  memcpy(dbname_, temp, namenumber);
+  dbname_[namenumber] = '\0';
+  temp = temp + namenumber;
+  assert(db_name == std::string(dbname_));
+//deserialize the fs.
   size_t filenumber_net;
   memcpy(&filenumber_net, temp, sizeof(size_t));
   size_t filenumber = htonl(filenumber_net);
@@ -247,9 +262,13 @@ void deserialization(char*& buff, int &size, std::string& db_name, std::map<std:
       memcpy(&length_map_net, temp, sizeof(size_t));
       size_t length_map = htonl(length_map_net);
       temp = temp + sizeof(size_t);
+      void* start_key;
+      memcpy(&start_key, temp, sizeof(void*));
+      temp = temp + sizeof(void*);
       meta->map_pointer = new ibv_mr;
       *(meta->map_pointer) = *(meta->mr);
       meta->map_pointer->length = length_map;
+      meta->map_pointer->addr = start_key;
       if (j!=list_len-1){
         meta->next_ptr = new SST_Metadata();
         meta = meta->next_ptr;
@@ -280,11 +299,12 @@ void deserialization(char*& buff, int &size, std::string& db_name, std::map<std:
     for (size_t j = 0; j < element_size; j++){
       memcpy(&bit_temp, temp, sizeof(bool));
       in_use[j] = bit_temp;
+      std::cout<< "deserial"<<in_use[j] << std::endl;
       temp = temp + sizeof(bool);
     }
     ibv_mr* mr_inuse;
     mr_deserialization(temp, size, mr_inuse);
-    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     Remote_Mem_Bitmap.insert({p_key, in_use_array});
   }
 
@@ -302,6 +322,10 @@ int main()
 
 
   auto Remote_Bitmap = new std::map<void*, In_Use_Array>;
+//  ibv_mr inuse_mr;
+//  inuse_mr.length = 559;
+//  In_Use_Array inuse_a(100, 1000, &inuse_mr);
+//  Remote_Bitmap->insert({nullptr, inuse_a});
   size_t table_size = 8*1024*1024;
   rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(config, Remote_Bitmap,
                              table_size);
@@ -311,10 +335,19 @@ int main()
   rdma_manager->Client_Set_Up_Resources();
 
   ibv_mr* mr = new ibv_mr;
-  In_Use_Array in_use(100,4096,mr);
+  In_Use_Array in_use(10,4096,mr);
+  for (int i = 0; i<5; i++)
+    in_use.allocate_memory_slot();
   Remote_Bitmap->insert({static_cast<void*>(&rdma_manager), in_use});
-
-
+  size_t buff_size = 1024*1024*1014;
+  char* test_buff = static_cast<char*>(malloc(buff_size));
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+//  auto start = std::chrono::high_resolution_clock::now();
+//  ibv_reg_mr(rdma_manager->res->pd, test_buff, buff_size, mr_flags);
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  std::printf("RDMA memory register %ld \n", duration.count());
   std::map<std::string, SST_Metadata*> file_to_sst_meta;
   SST_Metadata meta1[10] = {};
   ibv_mr* mr1[10];
@@ -334,10 +367,14 @@ int main()
   serialization(buff, size, dbname_for_test, file_to_sst_meta, *Remote_Bitmap);
   auto Remote_Bitmap_reopen = new std::map<void*, In_Use_Array>;
   std::map<std::string, SST_Metadata*> file_to_sst_meta_reopen;
-  std::string dbname_return;
+  std::string dbname_return("database");
   deserialization(buff, size, dbname_return, file_to_sst_meta_reopen, *Remote_Bitmap_reopen);
   std::cout << file_to_sst_meta_reopen.at("meta3")->file_size << std::endl;
-  std::cout << file_to_sst_meta_reopen.at("meta3")->fname << std::endl;
+  std::cout << file_to_sst_meta_reopen.at("meta3")->mr->addr << std::endl;
+  std::cout << file_to_sst_meta_reopen.at("meta1") << std::endl;
+  std::cout << Remote_Bitmap_reopen->begin()->second.get_mr_ori()->length << std::endl;
+  std::cout << Remote_Bitmap_reopen->begin()->second.get_inuse_table()[2] << std::endl;
+
   //  while(1);
 
   return 0;
