@@ -198,6 +198,7 @@ class RDMAFileSystem : public FileSystem {
     while (file_meta->next_ptr != nullptr){
       next_file_meta = file_meta->next_ptr;
       rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+
       delete file_meta->mr;
       delete file_meta;
       file_meta = next_file_meta;
