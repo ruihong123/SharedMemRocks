@@ -505,8 +505,8 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
 //        "While RDMA Local Buffer Deallocate failed " + ToString(position_) + " len " + ToString(n),
 //        sst_meta_->fname, flag);
 //  return s;
-  if (n>=sst_meta_->file_size)
-    n = sst_meta_->file_size;
+  if (n + position_>=sst_meta_->file_size)
+    n = sst_meta_->file_size - position_;
   size_t n_original = n;
   while (n > rdma_mg_->name_to_size.at("read")){
     Read_chunk(chunk_src, rdma_mg_->name_to_size.at("read"), local_mr_pointer, remote_mr,
@@ -514,7 +514,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
 //    chunk_src += rdma_mg_->name_to_size.at("read");
     n -= rdma_mg_->name_to_size.at("read");
 //    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + rdma_mg_->name_to_size.at("read"));
-    position_ = position_+ rdma_mg_->name_to_size.at("read");
+    position_ = position_ + rdma_mg_->name_to_size.at("read");
   }
   Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
              sst_meta_current, thread_id);

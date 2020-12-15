@@ -25,7 +25,6 @@
 #include <vector>
 #include "rocksdb/status.h"
 #include "rocksdb/thread_status.h"
-
 #ifdef _WIN32
 // Windows API macro interference
 #undef DeleteFile
@@ -1203,7 +1202,9 @@ extern Status ReadFileToString(Env* env, const std::string& fname,
 class EnvWrapper : public Env {
  public:
   // Initialize an EnvWrapper that delegates all calls to *t
-  explicit EnvWrapper(Env* t) : target_(t) {}
+  explicit EnvWrapper(Env* t) : target_(t){
+    file_system_.reset(t->GetFileSystem().get());
+  }
   ~EnvWrapper() override;
 
   // Return the target to which this Env forwards all calls
@@ -1441,7 +1442,9 @@ class EnvWrapper : public Env {
   void SanitizeEnvOptions(EnvOptions* env_opts) const override {
     target_->SanitizeEnvOptions(env_opts);
   }
-
+  const std::shared_ptr<FileSystem>& GetFileSystem() const {
+    return target_->GetFileSystem();
+  }
  private:
   Env* target_;
 };

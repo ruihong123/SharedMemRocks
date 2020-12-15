@@ -224,7 +224,8 @@ DEFINE_int32(
     "number of column families. After finishing all the writes to them, "
     "create new set of column families and insert to them. Only used "
     "when num_column_families > 1.");
-
+DEFINE_bool(isolated_cf, false,
+            "When true, multiple thread will write to differnt column family ");
 DEFINE_string(column_family_distribution, "",
               "Comma-separated list of percentages, where the ith element "
               "indicates the probability of an op using the ith column family. "
@@ -4462,11 +4463,14 @@ class Benchmark {
 #endif  //  ROCKSDB_LITE
         } else if (FLAGS_num_column_families <= 1) {
           batch.Put(key, val);
-        } else {
+        } else if(!FLAGS_isolated_cf){
           // We use same rand_num as seed for key and column family so that we
           // can deterministically find the cfh corresponding to a particular
           // key while reading the key.
           batch.Put(db_with_cfh->GetCfh(rand_num), key,
+                    val);
+        }else{
+          batch.Put(db_with_cfh->GetCfh(thread->tid), key,
                     val);
         }
         batch_bytes += val.size() + key_size_ + user_timestamp_size_;
