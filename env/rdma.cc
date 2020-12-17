@@ -333,6 +333,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     fprintf(stderr, "sync error after QPs are were moved to RTS\n");
     rc = 1;
   }
+  shutdown(socket_fd, 2);
+  close(socket_fd);
 //  post_send<int>(res->mr_send, client_ip);
   ibv_wc wc[3] = {};
 //  if(poll_completion(wc, 2, client_ip))
