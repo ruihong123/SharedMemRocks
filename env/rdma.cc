@@ -283,6 +283,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
   union ibv_gid my_gid;
   if (rdma_config.gid_idx >= 0) {
+    printf("checkpoint0");
     rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx,
                        &my_gid);
     if (rc) {
