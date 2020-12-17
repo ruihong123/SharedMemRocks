@@ -202,6 +202,7 @@ class In_Use_Array{
 /* structure of system resources */
 struct resources
 {
+  union ibv_gid my_gid;
   struct ibv_device_attr device_attr;
   /* Device attributes */
   struct ibv_sge* sge = nullptr;
