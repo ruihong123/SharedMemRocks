@@ -293,10 +293,13 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   } else
     memset(&my_gid, 0, sizeof my_gid);
   /* exchange using TCP sockets info required to connect QPs */
+  printf("checkpoint1");
   create_qp(client_ip);
   local_con_data.qp_num = htonl(res->qp_map[client_ip]->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &my_gid, 16);
+  printf("checkpoint2");
+
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
   if (sock_sync_data(socket_fd, sizeof(struct registered_qp_config),
                      (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
