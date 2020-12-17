@@ -990,8 +990,10 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data,
             rc);
   else
     rc = 0;
+  printf("total bytes: %d", xfer_size);
   while (!rc && total_read_bytes < xfer_size) {
     read_bytes = read(sock, remote_data, xfer_size);
+    printf("read byte: %d", read_bytes);
     if (read_bytes > 0)
       total_read_bytes += read_bytes;
     else
