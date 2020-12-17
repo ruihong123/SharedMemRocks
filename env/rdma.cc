@@ -240,7 +240,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
       listen(listenfd, 20);
       while (1) {
         sockfd = accept(listenfd, &address, &len);
-        std::cout << "connection built up from" << address.sa_data << std::endl;
+        std::cout << "connection built up from" << inet_ntoa(((struct sockaddr_in*)(&address))->sin_addr) << std::endl;
         std::cout << "connection family is " << address.sa_family << std::endl;
         if (sockfd < 0) {
           fprintf(stderr, "Connection accept error, erron: %d\n", errno);
