@@ -281,24 +281,14 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   //  std::string qp_id = "main";
   int rc = 0;
 
-  union ibv_gid my_gid;
-  if (rdma_config.gid_idx >= 0) {
-    printf("checkpoint0");
-    rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx,
-                       &my_gid);
-    if (rc) {
-      fprintf(stderr, "could not get gid for port %d, index %d\n",
-              rdma_config.ib_port, rdma_config.gid_idx);
-      return;
-    }
-  } else
-    memset(&my_gid, 0, sizeof my_gid);
+
+
   /* exchange using TCP sockets info required to connect QPs */
   printf("checkpoint1");
   create_qp(client_ip);
   local_con_data.qp_num = htonl(res->qp_map[client_ip]->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
-  memcpy(local_con_data.gid, &my_gid, 16);
+  memcpy(local_con_data.gid, &res->my_gid, 16);
   printf("checkpoint2");
 
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
@@ -396,18 +386,18 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       create_qp(new_qp_id);
       if (rdma_config.gid_idx >= 0) {
         rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port,
-                           rdma_config.gid_idx, &my_gid);
+                           rdma_config.gid_idx, &(res->my_gid));
         if (rc) {
           fprintf(stderr, "could not get gid for port %d, index %d\n",
                   rdma_config.ib_port, rdma_config.gid_idx);
           return;
         }
       } else
-        memset(&my_gid, 0, sizeof my_gid);
+        memset(&(res->my_gid), 0, sizeof (res->my_gid));
       /* exchange using TCP sockets info required to connect QPs */
       send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
       send_pointer->lid = res->port_attr.lid;
-      memcpy(send_pointer->gid, &my_gid, 16);
+      memcpy(send_pointer->gid, &(res->my_gid), 16);
       connect_qp(receive_msg_buf.content.qp_config, new_qp_id);
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<registered_qp_config>(send_mr, client_ip);
@@ -488,6 +478,18 @@ void RDMA_Manager::Server_to_Client_Communication() {
   if (resources_create()) {
     fprintf(stderr, "failed to create resources\n");
   }
+  int rc;
+  if (rdma_config.gid_idx >= 0) {
+    printf("checkpoint0");
+    rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx,
+                       &(res->my_gid));
+    if (rc) {
+      fprintf(stderr, "could not get gid for port %d, index %d\n",
+              rdma_config.ib_port, rdma_config.gid_idx);
+      return;
+    }
+  } else
+    memset(&(res->my_gid), 0, sizeof res->my_gid);
   server_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
 }
 
