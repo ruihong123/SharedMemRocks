@@ -240,8 +240,10 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
       listen(listenfd, 20);
       while (1) {
         sockfd = accept(listenfd, &address, &len);
-        std::cout << "connection built up from" << inet_ntoa(((struct sockaddr_in*)(&address))->sin_addr)
-                  << ((struct sockaddr_in*)(&address))->sin_port << std::endl;
+        std::string client_id = std::string(inet_ntoa(((struct sockaddr_in*)(&address))->sin_addr))
+                                + std::to_string(((struct sockaddr_in*)(&address))->sin_port);
+        //Client id must be composed of ip address and port number.
+        std::cout << "connection built up from" << client_id << std::endl;
         std::cout << "connection family is " << address.sa_family << std::endl;
         if (sockfd < 0) {
           fprintf(stderr, "Connection accept error, erron: %d\n", errno);
@@ -346,6 +348,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   //  receive_msg_buf->content.qp_config.qp_num = ntohl(receive_msg_buf->content.qp_config.qp_num);
   //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
 //  ibv_wc wc[3] = {};
+  //TODO: implement a heart beat mechanism.
   while (true) {
     poll_completion(wc, 1, client_ip);
     memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
@@ -1456,17 +1459,19 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   int poll_result;
   int poll_num = 0;
   int rc = 0;
+  ibv_cq* cq;
   /* poll the completion for a while before giving up of doing it .. */
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
   std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
-  ibv_cq* cq_l =  static_cast<ibv_cq*>(cq_local->Get());
-
+  if (q_id != "")
+    cq =  res->cq_map.at(q_id);
+  else
+    cq =  static_cast<ibv_cq*>(cq_local->Get());
+  l.unlock();
   do {
-    if (q_id != "")
-      poll_result = ibv_poll_cq(res->cq_map.at(q_id), num_entries, wc_p);
-    else
-      poll_result = ibv_poll_cq(cq_l, num_entries, wc_p);
+
+    poll_result = ibv_poll_cq(cq, num_entries, wc_p);
     if (poll_result < 0)
       break;
     else
