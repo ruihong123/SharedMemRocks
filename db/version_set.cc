@@ -4021,7 +4021,7 @@ Status VersionSet::ProcessManifestWrites(
                         s.ToString().c_str());
       }
     }
-
+    fs_->fs_meta_save();
     // If we just created a new descriptor file, install it by writing a
     // new CURRENT file that points to it.
     if (s.ok() && new_descriptor_log) {

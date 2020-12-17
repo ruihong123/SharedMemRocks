@@ -225,6 +225,8 @@ class RDMAFileSystem : public FileSystem {
         // std container always copy the value to the container, Don't worry.
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
+//        write_lock.unlock();
+//        fs_meta_save();
         return IOStatus::OK();
       } else {
         //Rewrite the file
@@ -247,6 +249,8 @@ class RDMAFileSystem : public FileSystem {
 
         file_to_sst_meta[file_name]->next_ptr = nullptr;
         sst_meta = file_to_sst_meta[file_name];
+//        write_lock.unlock();
+//        fs_meta_save();
         return IOStatus::OK();      }
     }
     if(type == rwtype) {
@@ -255,6 +259,8 @@ class RDMAFileSystem : public FileSystem {
         // std container always copy the value to the container, Don't worry.
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
         file_to_sst_meta[file_name] = sst_meta;
+//        write_lock.unlock();
+//        fs_meta_save();
         return IOStatus::OK();
       } else {
         sst_meta = file_to_sst_meta[file_name];
@@ -800,7 +806,22 @@ class RDMAFileSystem : public FileSystem {
     }
     return IOStatus::OK();
   }
-
+  bool EmptyDir_RDMA(const std::string& name, const IOOptions& /*opts*/,
+                     IODebugContext* /*dbg*/) {
+    auto ptr = file_to_sst_meta.begin();
+    std::regex express(std::string("^") + name);
+    std::smatch results1;
+    bool flag = false;
+    while(ptr != file_to_sst_meta.end())
+    {
+      if(std::regex_match(ptr->first, results1, express)){
+        file_to_sst_meta.erase(ptr);
+        flag = true;
+      }
+      ptr++;
+    }
+    return flag;
+  }
   IOStatus GetFileSize(const std::string& fname, const IOOptions& /*opts*/,
                        uint64_t* size, IODebugContext* /*dbg*/) override {
     struct stat sbuf;
@@ -1079,6 +1100,7 @@ class RDMAFileSystem : public FileSystem {
     }
 
   }
+
  private:
 //  bool checkedDiskForMmap_;
 //  bool forceMmapOff_;  // do we override Env options?
@@ -1208,11 +1230,7 @@ RDMAFileSystem::RDMAFileSystem()
 #endif
 }
 rocksdb::RDMAFileSystem::~RDMAFileSystem() {
-  char* buff = static_cast<char*>(malloc(1024*1024));
-  size_t size;
-  rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
-  printf("Serialized data size: %zu", size);
-  rdma_mg->client_save_serialized_data(db_name, buff, size);
+  fs_meta_save();
   delete Remote_Bitmap;
 //  delete Write_Bitmap;
 //  delete Read_Bitmap;

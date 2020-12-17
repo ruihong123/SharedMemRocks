@@ -178,8 +178,17 @@ class FileSystem {
 
     if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
       rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+      printf("Serialized data size: %zu", size);
     }
     return;
+  }
+  void fs_meta_save(){
+    std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
+    char* buff = static_cast<char*>(malloc(1024*1024));
+    size_t size;
+    rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
+    printf("Serialized data size: %zu", size);
+    rdma_mg->client_save_serialized_data(db_name, buff, size);
   }
   virtual const char* Name() const = 0;
 

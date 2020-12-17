@@ -466,8 +466,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       }else{
         fs_image[db_name] = local_mr;
       }
-//      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      break;
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      break;
     }else{
       printf("corrupt message from client.");
     }
