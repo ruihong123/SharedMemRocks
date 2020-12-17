@@ -273,6 +273,7 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
 void RDMA_Manager::server_communication_thread(std::string client_ip,
                                                int socket_fd) {
   printf("A new shared memory thread start\n");
+  printf("checkpoint1");
   char temp_receive[2];
   char temp_send[] = "Q";
   struct registered_qp_config local_con_data;
