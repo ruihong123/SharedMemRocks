@@ -17,9 +17,15 @@ int main()
   rocksdb::Options options;
 //  rocksdb::Options::block_size = 1024*1024;
   options.create_if_missing = true;
-  options.write_buffer_size = 1*1024*1024;
-  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
-  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
+  options.write_buffer_size = 128*1024*1024;
+  options.compression = rocksdb::kNoCompression;
+  options.level_compaction_dynamic_level_bytes = true;
+  options.target_file_size_base = 128*1024*1024;
+  options.delete_obsolete_files_period_micros = 62914560;
+  options.disable_auto_compactions=true;
+//  options.allow_concurrent_memtable_write = true;
+//  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::HIGH);
+//  options.env->SetBackgroundThreads(1, rocksdb::Env::Priority::LOW);
   options.use_direct_reads = false;
   options.use_direct_io_for_flush_and_compaction = false;
   rocksdb::BlockBasedTableOptions table_options;
@@ -39,7 +45,10 @@ int main()
   if (!status.ok())
     std::cerr << status.ToString() << std::endl;
   assert(status.ok());
-//  status = db->SetDBOptions({{"max_background_jobs", "12"}});
+  status = db->SetDBOptions({{"max_background_jobs", "48"}});
+//  status = db->SetDBOptions({{"max_write_buffer_number", "8"}});
+//  status = db->SetDBOptions({{"allow_concurrent_memtable_write", "true"}});
+
   if (!status.ok()) std::cerr << status.ToString() << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   auto f = [=](int dislocation){
@@ -80,9 +89,11 @@ int main()
 //
 ////     std::cout << "Delete iteration number " << i << std::endl;
 //   }
-   for (int i = 0; i<500000; i++){
+   for (int i = 0; i<4500000; i++){
      key = std::to_string(i);
-     value = std::to_string(std::rand() % ( 30000001 ));
+     key.insert(0, 20 - key.length(), '0');
+     value = std::to_string(std::rand() % ( 4500001 ));
+     value.insert(0, 400 - value.length(), '0');
      s = db->Put(option_wr, key, value);
      if (!s.ok()){
        std::cerr << s.ToString() << std::endl;

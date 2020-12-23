@@ -223,7 +223,10 @@ class RDMAFileSystem : public FileSystem {
       std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
+        write_lock.unlock();
+        // temporarily release the lock to avoid deadlock.
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+        write_lock.lock();
         file_to_sst_meta[file_name] = sst_meta;
 //        write_lock.unlock();
 //        fs_meta_save();
@@ -257,7 +260,9 @@ class RDMAFileSystem : public FileSystem {
       std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
+        write_lock.unlock();
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+        write_lock.lock();
         file_to_sst_meta[file_name] = sst_meta;
 //        write_lock.unlock();
 //        fs_meta_save();
@@ -1091,15 +1096,17 @@ class RDMAFileSystem : public FileSystem {
     return Status::OK();
   }
 #endif
-  void fs_initialization(){
-    char* buff;
-    size_t size;
-
-    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
-      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
-    }
-
-  }
+//  void fs_initialization(){
+//    char* buff;
+//    size_t size;
+//
+//    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size,
+//                                                 <#initializer #>)){
+//      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta,
+//                                 *Remote_Bitmap, 0);
+//    }
+//
+//  }
 
  private:
 //  bool checkedDiskForMmap_;
@@ -1207,7 +1214,9 @@ RDMAFileSystem::RDMAFileSystem()
 //  size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;
   Remote_Bitmap = new std::map<void*, In_Use_Array>;
-  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, table_size);
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, table_size, &db_name,
+                             &file_to_sst_meta,
+                             &fs_mutex);
   rdma_mg->Client_Set_Up_Resources();
 //  auto myid = std::this_thread::get_id();
 //  std::stringstream ss;

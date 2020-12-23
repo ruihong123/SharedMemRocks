@@ -133,6 +133,8 @@ struct atomwrapper
     _a.store(other._a.load());
   }
 };
+
+
 class In_Use_Array{
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
@@ -231,7 +233,9 @@ namespace ROCKSDB_NAMESPACE {
 class RDMA_Manager{
  public:
   RDMA_Manager(config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
-               size_t table_size);
+               size_t table_size, std::string* db_name,
+               std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta,
+               std::shared_mutex* fs_mutex);
 //  RDMA_Manager(config_t config) : rdma_config(config){
 //    res = new resources();
 //    res->sock = -1;
@@ -243,9 +247,8 @@ class RDMA_Manager{
   //Set up the socket connection to remote shared memory.
   bool Client_Connect_to_Server_RDMA();
   // client function to retrieve serialized data.
-  bool client_retrieve_serialized_data(const std::string& db_name,
-                                      char*& buff,
-                                       size_t& buff_size);
+  bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
+                                       size_t& buff_size, ibv_mr*& local_mr);
   // client function to save serialized data.
   bool client_save_serialized_data(const std::string& db_name,
                                    char* buff,
@@ -281,7 +284,14 @@ class RDMA_Manager{
                                   std::string buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, std::string buff_type);
   bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
-
+  void fs_meta_save(){
+    std::shared_lock<std::shared_mutex> read_lock(*fs_mutex_);
+    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow.
+    char* buff = static_cast<char*>(malloc(1024*1024));
+    size_t size_dummy;
+    fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
+    printf("Serialized data size: %zu", size_dummy);
+    client_save_serialized_data(*db_name_, buff, size_dummy);}
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
@@ -293,15 +303,20 @@ class RDMA_Manager{
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
 
-  void fs_serialization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+  void fs_serialization(char*& buff, size_t& size, std::string& db_name,
+      std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
   //Deserialization for linked file is problematic because different file may link to the same SSTdata
-  void fs_deserilization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+  void fs_deserilization(char*& buff, size_t& size, std::string& db_name,
+      std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
+                         std::map<void*, In_Use_Array>& remote_mem_bitmap,
+                         ibv_mr* local_mr);
 
     //TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
+
 //  std::shared_mutex remote_pool_mutex;
 //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
 ////  std::shared_mutex write_pool_mutex;
@@ -329,7 +344,10 @@ class RDMA_Manager{
  private:
 
   config_t rdma_config;
-
+  // three variables below are from rdma file system.
+  std::string* db_name_;
+  std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta_;
+  std::shared_mutex* fs_mutex_;
   int client_sock_connect(const char* servername, int port);
   int server_sock_connect(const char* servername, int port);
   int sock_sync_data(int sock, int xfer_size, char* local_data, char* remote_data);
@@ -353,7 +371,125 @@ class RDMA_Manager{
 
 
 };
-
+//class Hash_Map{
+//  Hash_Map(size_t size, RDMA_Manager* rdma_mg, size_t bucket_size = 16*1024):
+//            region_size_(size), bucket_size_(bucket_size), rdma_mg_(rdma_mg) {
+//    void* temp_p = malloc(1*1024*1024);
+//    int mr_flags =
+//        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+//    mr = ibv_reg_mr(rdma_mg_->res->pd, static_cast<void*>(temp_p), region_size_, mr_flags);
+//    memory_region = static_cast<char*>(mr->addr);
+//  }
+//  bool insert(std::string& filename, SST_Metadata* sst_p){
+//    std::hash<std::string> hash;
+//    size_t hash_value = hash(filename);
+//    return false;
+//  }
+//  bool serialize_one_file(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
+//    char* temp_p = start_position;
+//    size_t filename_length = filename.size();
+//    size_t filename_length_net = htonl(filename_length);
+//    memcpy(temp_p, &filename_length_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    memcpy(temp_p, filename.c_str(), filename_length);
+//    temp_p = temp_p + filename_length;
+//    unsigned int file_size = sst_p->file_size;
+//    unsigned int file_size_net = htonl(file_size);
+//    memcpy(temp_p, &file_size_net, sizeof(unsigned int));
+//    temp_p = temp_p + sizeof(unsigned int);
+//    // check how long is the list
+//    SST_Metadata* meta_p = sst_p;
+//    SST_Metadata* temp_meta = meta_p;
+//    size_t list_len = 1;
+//    while (temp_meta->next_ptr != nullptr) {
+//      list_len++;
+//      temp_meta = temp_meta->next_ptr;
+//    }
+//    size_t list_len_net = ntohl(list_len);
+//    memcpy(temp_p, &list_len_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    meta_p = sst_p;
+//    size_t length_map = meta_p->map_pointer->length;
+//    size_t length_map_net = htonl(length_map);
+//    memcpy(temp_p, &length_map_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    size_t dummy_size;
+//    while (meta_p != nullptr) {
+//
+//      rdma_mg_->mr_serialization(temp_p, dummy_size, meta_p->mr);
+//      // TODO: minimize the size of the serialized data. For exe, could we save
+//      // TODO: the mr length only once?
+//
+//      void* p = meta_p->map_pointer->addr;
+//      memcpy(temp_p, &p, sizeof(void*));
+//      temp_p = temp_p + sizeof(void*);
+//      meta_p = meta_p->next_ptr;
+//
+//
+//    }
+//    size_delta = temp_p - start_position;
+//    return true;
+//  }
+//  bool search_in_bucket(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
+//    char* temp = start_position;
+//    size_t filenumber_net;
+//    memcpy(&filenumber_net, temp, sizeof(size_t));
+//    size_t filenumber = htonl(filenumber_net);
+//    temp = temp + sizeof(size_t);
+//    for (size_t i = 0; i < filenumber; i++) {
+//      size_t filename_length_net;
+//      memcpy(&filename_length_net, temp, sizeof(size_t));
+//      size_t filename_length = ntohl(filename_length_net);
+//      temp = temp + sizeof(size_t);
+//      char filename[filename_length+1];
+//      memcpy(filename, temp, filename_length);
+//      filename[filename_length] = '\0';
+//      temp = temp + filename_length;
+//
+//      unsigned int file_size_net = 0;
+//      memcpy(&file_size_net, temp, sizeof(unsigned int));
+//      unsigned int file_size = ntohl(file_size_net);
+//      temp = temp + sizeof(unsigned int);
+//      size_t list_len_net = 0;
+//      memcpy(&list_len_net, temp, sizeof(size_t));
+//      size_t list_len = htonl(list_len_net);
+//      temp = temp + sizeof(size_t);
+//      SST_Metadata* meta_head;
+//      SST_Metadata* meta = new SST_Metadata();
+//      meta->file_size = file_size;
+//      meta_head = meta;
+//      size_t length_map_net = 0;
+//      memcpy(&length_map_net, temp, sizeof(size_t));
+//      size_t length_map = htonl(length_map_net);
+//      temp = temp + sizeof(size_t);
+//      for (size_t j = 0; j<list_len; j++){
+//        //below could be problematic.
+//        meta->fname = std::string(filename);
+//        mr_deserialization(temp, size, meta->mr);
+//        meta->map_pointer = new ibv_mr;
+//        *(meta->map_pointer) = *(meta->mr);
+//        void* start_key;
+//        memcpy(&start_key, temp, sizeof(void*));
+//        temp = temp + sizeof(void*);
+//        meta->map_pointer->length = length_map;
+//        meta->map_pointer->addr = start_key;
+//        if (j!=list_len-1){
+//          meta->next_ptr = new SST_Metadata();
+//          meta = meta->next_ptr;
+//        }
+//
+//      }
+//      file_to_sst_meta.insert({std::string(filename), meta_head});
+//    }
+//  }
+// private:
+//  size_t region_size_;
+//  size_t bucket_size_;
+//  RDMA_Manager* rdma_mg_;
+//  ibv_mr* mr;
+//  char* memory_region;
+//  size_t number_element = 0;
+//};
 //#ifdef __cplusplus
 //}
 //#endif

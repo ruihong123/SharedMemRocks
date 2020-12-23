@@ -36,12 +36,18 @@ void UnrefHandle_cq(void* ptr){
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(
     config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
-                            size_t table_size)
+    size_t table_size, std::string* db_name,
+    std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta,
+    std::shared_mutex* fs_mutex)
     : Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local(new ThreadLocalPtr(&UnrefHandle_cq)),
-      rdma_config(config)
+      rdma_config(config),
+      db_name_(db_name),
+      file_to_sst_meta_(file_to_sst_meta),
+      fs_mutex_(fs_mutex)
+
 {
 //  assert(read_block_size <table_size);
   res = new resources();
@@ -1607,6 +1613,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
     fprintf(stderr, "failed to poll receive for remote memory register\n");
     return false;
   }
+//  l.unlock();
 
   return true;
 }
@@ -1689,6 +1696,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024);
+      fs_meta_save();
     }
     mem_write_lock.unlock();
   }
@@ -1722,6 +1730,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
   Remote_Memory_Register(1 * 1024 * 1024 * 1024);
+  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
   int sst_index = Remote_Mem_Bitmap->at(mr_last->addr).allocate_memory_slot();
@@ -1964,7 +1973,9 @@ void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
 
 
 }
-void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name, std::map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
+void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name,
+    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
+  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
   size_t namenumber = db_name.size();
   size_t namenumber_net = htonl(namenumber);
@@ -2001,11 +2012,14 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
       memcpy(temp, &list_len_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
       meta_p = iter.second;
+      size_t length_map = meta_p->map_pointer->length;
+      size_t length_map_net = htonl(length_map);
+      memcpy(temp, &length_map_net, sizeof(size_t));
       while (meta_p != nullptr) {
         mr_serialization(temp, size, meta_p->mr);
-        size_t length_map = meta_p->map_pointer->length;
-        size_t length_map_net = htonl(length_map);
-        memcpy(temp, &length_map_net, sizeof(size_t));
+        // TODO: minimize the size of the serialized data. For exe, could we save
+        // TODO: the mr length only once?
+
         temp = temp + sizeof(size_t);
         void* p = meta_p->map_pointer->addr;
         memcpy(temp, &p, sizeof(void*));
@@ -2043,9 +2057,15 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
 
   }
   size = temp - buff;
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("fs serialization time elapse: %ld\n", duration.count());
 }
-void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_name, std::map<std::string,
-        SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap) {
+void RDMA_Manager::fs_deserilization(
+    char*& buff, size_t& size, std::string& db_name,
+    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
+    std::map<void*, In_Use_Array>& remote_mem_bitmap, ibv_mr* local_mr) {
+  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
   size_t namenumber_net;
   memcpy(&namenumber_net, temp, sizeof(size_t));
@@ -2083,14 +2103,14 @@ void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_
     SST_Metadata* meta = new SST_Metadata();
     meta->file_size = file_size;
     meta_head = meta;
+    size_t length_map_net = 0;
+    memcpy(&length_map_net, temp, sizeof(size_t));
+    size_t length_map = htonl(length_map_net);
+    temp = temp + sizeof(size_t);
     for (size_t j = 0; j<list_len; j++){
       //below could be problematic.
       meta->fname = std::string(filename);
       mr_deserialization(temp, size, meta->mr);
-      size_t length_map_net = 0;
-      memcpy(&length_map_net, temp, sizeof(size_t));
-      size_t length_map = htonl(length_map_net);
-      temp = temp + sizeof(size_t);
       meta->map_pointer = new ibv_mr;
       *(meta->map_pointer) = *(meta->mr);
       void* start_key;
@@ -2135,11 +2155,18 @@ void RDMA_Manager::fs_deserilization(char*& buff, size_t& size, std::string& db_
     In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
   }
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("fs pure deserialization time elapse: %ld\n", duration.count());
+  ibv_dereg_mr(local_mr);
+  free(buff);
+
 
 }
 bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
                                                char* buff,
                                                size_t buff_size) {
+  auto start = std::chrono::high_resolution_clock::now();
 
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -2165,13 +2192,18 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
   else
     fprintf(stderr, "failed to poll send for serialized data send\n");
 //  sleep(100);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("fs meta data save communication time elapse: %ld\n", duration.count());
   ibv_dereg_mr(local_mr);
+  free(buff);
   return false;
 }
 bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
-                                               char*& buff,
-                                                   size_t& buff_size) {
-
+                                                   char*& buff,
+                                                   size_t& buff_size,
+                                                   ibv_mr*& local_mr) {
+  auto start = std::chrono::high_resolution_clock::now();
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
@@ -2201,7 +2233,6 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
   if (buff_size!=0){
     buff = static_cast<char*>(malloc(buff_size));
-    ibv_mr* local_mr;
     local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
     post_receive(local_mr,"main", buff_size);
     // send a char to tell the shared memory that this computing node is ready to receive the data
@@ -2212,8 +2243,14 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   if (poll_completion(wc, 2, std::string("main"))) {
     fprintf(stderr, "failed to poll receive for serialized message\n");
     return false;
-  }else
+  }else{
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
     return true;
+  }
+
+
 
 }
 

@@ -4021,7 +4021,6 @@ Status VersionSet::ProcessManifestWrites(
                         s.ToString().c_str());
       }
     }
-    fs_->fs_meta_save();
     // If we just created a new descriptor file, install it by writing a
     // new CURRENT file that points to it.
     if (s.ok() && new_descriptor_log) {
@@ -4032,6 +4031,7 @@ Status VersionSet::ProcessManifestWrites(
       }
       TEST_SYNC_POINT("VersionSet::ProcessManifestWrites:AfterNewManifest");
     }
+    fs_->fs_meta_save();
 
     if (s.ok()) {
       // find offset in manifest file where this version is stored.

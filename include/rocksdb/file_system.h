@@ -165,7 +165,7 @@ class FileSystem {
   virtual ~FileSystem();
   RDMA_Manager* rdma_mg;
   std::string db_name;
-  std::map<std::string, SST_Metadata*> file_to_sst_meta;
+  std::unordered_map<std::string, SST_Metadata*> file_to_sst_meta;
   std::shared_mutex fs_mutex;
   std::map<void*, In_Use_Array>* Remote_Bitmap;
   Status set_db_name(const std::string& name){
@@ -175,20 +175,25 @@ class FileSystem {
   void fs_initialization(){
     char* buff;
     size_t size;
+    ibv_mr* local_mr;
 
-    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size)){
-      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta, *Remote_Bitmap);
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size,
+                                                 local_mr)){
+      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta,
+                                 *Remote_Bitmap, local_mr);
       printf("Serialized data size: %zu", size);
     }
     return;
   }
   void fs_meta_save(){
     std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
+    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow.
     char* buff = static_cast<char*>(malloc(1024*1024));
     size_t size;
     rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
     printf("Serialized data size: %zu", size);
     rdma_mg->client_save_serialized_data(db_name, buff, size);
+    return;
   }
   virtual const char* Name() const = 0;
 

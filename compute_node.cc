@@ -327,8 +327,9 @@ int main()
 //  In_Use_Array inuse_a(100, 1000, &inuse_mr);
 //  Remote_Bitmap->insert({nullptr, inuse_a});
   size_t table_size = 8*1024*1024;
-  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(config, Remote_Bitmap,
-                             table_size);
+  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(
+      config, Remote_Bitmap, table_size, nullptr,
+      std::unordered_map<std::string, SST_Metadata*>(), nullptr);
   rdma_manager->Mempool_initialize(std::string("read"), 8*1024);
   rdma_manager->Mempool_initialize(std::string("write"), 1024*1024);
 
