@@ -2015,12 +2015,13 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
       size_t length_map = meta_p->map_pointer->length;
       size_t length_map_net = htonl(length_map);
       memcpy(temp, &length_map_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
       while (meta_p != nullptr) {
         mr_serialization(temp, size, meta_p->mr);
         // TODO: minimize the size of the serialized data. For exe, could we save
         // TODO: the mr length only once?
 
-        temp = temp + sizeof(size_t);
+
         void* p = meta_p->map_pointer->addr;
         memcpy(temp, &p, sizeof(void*));
         temp = temp + sizeof(void*);
