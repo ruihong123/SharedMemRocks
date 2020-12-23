@@ -310,7 +310,7 @@ class RDMA_Manager{
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
                          std::map<void*, In_Use_Array>& remote_mem_bitmap,
                          ibv_mr* local_mr);
-
+//  void mem_pool_serialization
     //TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
