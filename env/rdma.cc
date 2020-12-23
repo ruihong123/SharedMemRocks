@@ -1900,15 +1900,8 @@ bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
 }
 //serialization for Memory regions
 void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
-  void* p = mr->context;
-  //TODO: It can not be changed into net stream.
-//    void* p_net = htonll(p);
-  memcpy(temp, &p, sizeof(void*));
-  temp = temp + sizeof(void*);
-  p = mr->pd;
-  memcpy(temp, &p, sizeof(void*));
-  temp = temp + sizeof(void*);
-  p = mr->addr;
+
+  void* p = mr->addr;
   memcpy(temp, &p, sizeof(void*));
   temp = temp + sizeof(void*);
   uint32_t rkey = mr->rkey;
@@ -1919,14 +1912,7 @@ void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
   uint32_t lkey_net = htonl(lkey);
   memcpy(temp, &lkey_net, sizeof(uint32_t));
   temp = temp + sizeof(uint32_t);
-  uint32_t handle = mr->handle;
-  uint32_t handle_net = htonl(handle);
-  memcpy(temp, &handle_net, sizeof(uint32_t));
-  temp = temp + sizeof(uint32_t);
-  size_t length_mr = mr->length;
-  size_t length_mr_net = htonl(length_mr);
-  memcpy(temp, &length_mr_net, sizeof(size_t));
-  temp = temp + sizeof(size_t);
+
 
 }
 void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
@@ -2015,6 +2001,23 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
       size_t length_map = meta_p->map_pointer->length;
       size_t length_map_net = htonl(length_map);
       memcpy(temp, &length_map_net, sizeof(size_t));
+      //Here we put context pd handle and length outside the serialization because we do not need
+      void* p = meta_p->mr->context;
+      //TODO: It can not be changed into net stream.
+//    void* p_net = htonll(p);
+      memcpy(temp, &p, sizeof(void*));
+      temp = temp + sizeof(void*);
+      p = meta_p->mr->pd;
+      memcpy(temp, &p, sizeof(void*));
+      temp = temp + sizeof(void*);
+      uint32_t handle = meta_p->mr->handle;
+      uint32_t handle_net = htonl(handle);
+      memcpy(temp, &handle_net, sizeof(uint32_t));
+      temp = temp + sizeof(uint32_t);
+      size_t length_mr = meta_p->mr->length;
+      size_t length_mr_net = htonl(length_mr);
+      memcpy(temp, &length_mr_net, sizeof(size_t));
+      temp = temp + sizeof(size_t);
       while (meta_p != nullptr) {
         mr_serialization(temp, size, meta_p->mr);
         // TODO: minimize the size of the serialized data. For exe, could we save
