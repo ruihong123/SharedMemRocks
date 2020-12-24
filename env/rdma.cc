@@ -1917,13 +1917,15 @@ void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
 }
 
 void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name,
-    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
+                                    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
   auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
+
   size_t namenumber = db_name.size();
   size_t namenumber_net = htonl(namenumber);
   memcpy(temp, &namenumber_net, sizeof(size_t));
   temp = temp + sizeof(size_t);
+
   memcpy(temp, db_name.c_str(), namenumber);
   temp = temp + namenumber;
   //serialize the filename map
@@ -1932,17 +1934,21 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
     size_t filenumber_net = htonl(filenumber);
     memcpy(temp, &filenumber_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
+
     for (auto iter: file_to_sst_meta) {
       size_t filename_length = iter.first.size();
       size_t filename_length_net = htonl(filename_length);
       memcpy(temp, &filename_length_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
+
       memcpy(temp, iter.first.c_str(), filename_length);
       temp = temp + filename_length;
+
       unsigned int file_size = iter.second->file_size;
       unsigned int file_size_net = htonl(file_size);
       memcpy(temp, &file_size_net, sizeof(unsigned int));
       temp = temp + sizeof(unsigned int);
+
       // check how long is the list
       SST_Metadata* meta_p = iter.second;
       SST_Metadata* temp_meta = meta_p;
@@ -1954,28 +1960,34 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
       size_t list_len_net = ntohl(list_len);
       memcpy(temp, &list_len_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
+
       meta_p = iter.second;
       size_t length_map = meta_p->map_pointer->length;
       size_t length_map_net = htonl(length_map);
       memcpy(temp, &length_map_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
+
       //Here we put context pd handle and length outside the serialization because we do not need
       void* p = meta_p->mr->context;
       //TODO: It can not be changed into net stream.
 //    void* p_net = htonll(p);
       memcpy(temp, &p, sizeof(void*));
       temp = temp + sizeof(void*);
+
       p = meta_p->mr->pd;
       memcpy(temp, &p, sizeof(void*));
       temp = temp + sizeof(void*);
+
       uint32_t handle = meta_p->mr->handle;
       uint32_t handle_net = htonl(handle);
       memcpy(temp, &handle_net, sizeof(uint32_t));
       temp = temp + sizeof(uint32_t);
+
       size_t length_mr = meta_p->mr->length;
       size_t length_mr_net = htonl(length_mr);
       memcpy(temp, &length_mr_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
+
       while (meta_p != nullptr) {
         mr_serialization(temp, size, meta_p->mr);
         // TODO: minimize the size of the serialized data. For exe, could we save
@@ -2025,6 +2037,7 @@ void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
   void* addr_p = nullptr;
   memcpy(&addr_p, temp, sizeof(void*));
   temp = temp + sizeof(void*);
+
   uint32_t rkey_net;
   memcpy(&rkey_net, temp, sizeof(uint32_t));
   uint32_t rkey = htonl(rkey_net);
@@ -2054,16 +2067,19 @@ void RDMA_Manager::fs_deserilization(
   memcpy(dbname_, temp, namenumber);
   dbname_[namenumber] = '\0';
   temp = temp + namenumber;
+
   assert(db_name == std::string(dbname_));
   size_t filenumber_net;
   memcpy(&filenumber_net, temp, sizeof(size_t));
   size_t filenumber = htonl(filenumber_net);
   temp = temp + sizeof(size_t);
+
   for (size_t i = 0; i < filenumber; i++) {
     size_t filename_length_net;
     memcpy(&filename_length_net, temp, sizeof(size_t));
     size_t filename_length = ntohl(filename_length_net);
     temp = temp + sizeof(size_t);
+
     char filename[filename_length+1];
     memcpy(filename, temp, filename_length);
     filename[filename_length] = '\0';
@@ -2073,23 +2089,29 @@ void RDMA_Manager::fs_deserilization(
     memcpy(&file_size_net, temp, sizeof(unsigned int));
     unsigned int file_size = ntohl(file_size_net);
     temp = temp + sizeof(unsigned int);
+
     size_t list_len_net = 0;
     memcpy(&list_len_net, temp, sizeof(size_t));
     size_t list_len = htonl(list_len_net);
     temp = temp + sizeof(size_t);
+
     SST_Metadata* meta_head;
     SST_Metadata* meta = new SST_Metadata();
+
     meta->file_size = file_size;
+
     meta_head = meta;
     size_t length_map_net = 0;
     memcpy(&length_map_net, temp, sizeof(size_t));
     size_t length_map = htonl(length_map_net);
     temp = temp + sizeof(size_t);
+
     void* context_p = nullptr;
     //TODO: It can not be changed into net stream.
     memcpy(&context_p, temp, sizeof(void*));
 //    void* p_net = htonll(context_p);
     temp = temp + sizeof(void*);
+
     void* pd_p = nullptr;
     memcpy(&pd_p, temp, sizeof(void*));
     temp = temp + sizeof(void*);
@@ -2103,6 +2125,7 @@ void RDMA_Manager::fs_deserilization(
     memcpy(&length_mr_net, temp, sizeof(size_t));
     size_t length_mr = htonl(length_mr_net);
     temp = temp + sizeof(size_t);
+
     for (size_t j = 0; j<list_len; j++){
       meta->mr = new ibv_mr;
       meta->mr->context = static_cast<ibv_context*>(context_p);
@@ -2114,9 +2137,11 @@ void RDMA_Manager::fs_deserilization(
       mr_deserialization(temp, size, meta->mr);
       meta->map_pointer = new ibv_mr;
       *(meta->map_pointer) = *(meta->mr);
+
       void* start_key;
       memcpy(&start_key, temp, sizeof(void*));
       temp = temp + sizeof(void*);
+
       meta->map_pointer->length = length_map;
       meta->map_pointer->addr = start_key;
       if (j!=list_len-1){
@@ -2151,7 +2176,7 @@ void RDMA_Manager::fs_deserilization(
       in_use[j] = bit_temp;
       temp = temp + sizeof(bool);
     }
-    ibv_mr* mr_inuse;
+    auto* mr_inuse = new ibv_mr{0};
     mr_deserialization(temp, size, mr_inuse);
     In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
