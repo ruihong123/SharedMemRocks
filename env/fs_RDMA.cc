@@ -223,10 +223,10 @@ class RDMAFileSystem : public FileSystem {
       std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        write_lock.unlock();
+//        write_lock.unlock();
         // temporarily release the lock to avoid deadlock.
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
-        write_lock.lock();
+//        write_lock.lock();
         file_to_sst_meta[file_name] = sst_meta;
 //        write_lock.unlock();
 //        fs_meta_save();
@@ -260,9 +260,9 @@ class RDMAFileSystem : public FileSystem {
       std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
         // std container always copy the value to the container, Don't worry.
-        write_lock.unlock();
+//        write_lock.unlock();
         rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
-        write_lock.lock();
+//        write_lock.lock();
         file_to_sst_meta[file_name] = sst_meta;
 //        write_lock.unlock();
 //        fs_meta_save();
