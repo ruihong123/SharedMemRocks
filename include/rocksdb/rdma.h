@@ -369,7 +369,8 @@ class RDMA_Manager{
   void print_config(void);
   void usage(const char* argv0);
 
-
+  int post_receive(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
+  int post_send(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
 };
 //class Hash_Map{
 //  Hash_Map(size_t size, RDMA_Manager* rdma_mg, size_t bucket_size = 16*1024):

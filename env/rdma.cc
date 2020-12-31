@@ -1343,6 +1343,97 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
   }
   return rc;
 }
+int RDMA_Manager::post_send(ibv_mr** mr_list, size_t sge_size,
+                            std::string qp_id) {
+  struct ibv_send_wr sr;
+  struct ibv_sge sge[sge_size];
+  struct ibv_send_wr* bad_wr = NULL;
+  int rc;
+//  if (!rdma_config.server_name) {
+  /* prepare the scatter/gather entry */
+  for(size_t i = 0; i < sge_size; i++){
+    memset(&sge[i], 0, sizeof(sge));
+    sge[i].addr = (uintptr_t)mr_list[i]->addr;
+    sge[i].length = mr_list[i]->length;
+    sge[i].lkey = mr_list[i]->lkey;
+  }
+
+//  }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->send_buf;
+//    sge.length = size;
+//    sge.lkey = res->mr_send->lkey;
+//  }
+
+  /* prepare the send work request */
+  memset(&sr, 0, sizeof(sr));
+  sr.next = NULL;
+  sr.wr_id = 0;
+  sr.sg_list = sge;
+  sr.num_sge = sge_size;
+  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+  sr.send_flags = IBV_SEND_SIGNALED;
+
+  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+  //*(start) = std::chrono::steady_clock::now();
+  // start = std::chrono::steady_clock::now();
+
+  if (rdma_config.server_name)
+    rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+  else
+    rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+  if (rc)
+    fprintf(stderr, "failed to post SR\n");
+  else {
+    fprintf(stdout, "Send Request was posted\n");
+  }
+  return rc;
+}
+int RDMA_Manager::post_receive(ibv_mr** mr_list, size_t sge_size,
+                               std::string qp_id) {
+  struct ibv_recv_wr rr;
+  struct ibv_sge sge[sge_size];
+  struct ibv_recv_wr* bad_wr;
+  int rc;
+//  if (!rdma_config.server_name) {
+  /* prepare the scatter/gather entry */
+
+  for(size_t i = 0; i < sge_size; i++){
+    memset(&sge[i], 0, sizeof(sge));
+    sge[i].addr = (uintptr_t)mr_list[i]->addr;
+    sge[i].length = mr_list[i]->length;
+    sge[i].lkey = mr_list[i]->lkey;
+  }
+
+//  }
+//  else {
+//    /* prepare the scatter/gather entry */
+//    memset(&sge, 0, sizeof(sge));
+//    sge.addr = (uintptr_t)res->receive_buf;
+//    sge.length = size;
+//    sge.lkey = res->mr_receive->lkey;
+//  }
+
+  /* prepare the receive work request */
+  memset(&rr, 0, sizeof(rr));
+  rr.next = NULL;
+  rr.wr_id = 0;
+  rr.sg_list = sge;
+  rr.num_sge = sge_size;
+  /* post the Receive Request to the RQ */
+  if (rdma_config.server_name)
+    rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
+  else
+    rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
+  if (rc)
+    fprintf(stderr, "failed to post RR\n");
+  else
+    fprintf(stdout, "Receive Request was posted\n");
+  return rc;
+}
+
 int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id, size_t size) {
   struct ibv_recv_wr rr;
   struct ibv_sge sge;
