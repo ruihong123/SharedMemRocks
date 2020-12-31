@@ -2281,12 +2281,7 @@ void RDMA_Manager::fs_deserilization(
     size_t chunk_size = htonl(chunk_size_net);
     temp = temp + sizeof(size_t);
     auto* in_use = new std::atomic<bool>[element_size];
-    bool bit_temp;
-    for (size_t j = 0; j < element_size; j++){
-      memcpy(&bit_temp, temp, sizeof(bool));
-      in_use[j] = bit_temp;
-      temp = temp + sizeof(bool);
-    }
+
     void* context_p = nullptr;
     //TODO: It can not be changed into net stream.
     memcpy(&context_p, temp, sizeof(void*));
@@ -2311,6 +2306,13 @@ void RDMA_Manager::fs_deserilization(
     mr_inuse->pd = static_cast<ibv_pd*>(pd_p);
     mr_inuse->handle = handle;
     mr_inuse->length = length_mr;
+    bool bit_temp;
+    for (size_t j = 0; j < element_size; j++){
+      memcpy(&bit_temp, temp, sizeof(bool));
+      in_use[j] = bit_temp;
+      temp = temp + sizeof(bool);
+    }
+
 
 
     mr_deserialization(temp, size, mr_inuse);
