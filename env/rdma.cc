@@ -2109,6 +2109,26 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
     memcpy(temp, &chunk_size_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
     std::atomic<bool>* in_use = iter.second.get_inuse_table();
+    auto mr = iter.second.get_mr_ori();
+    p = mr->context;
+    //TODO: It can not be changed into net stream.
+//    void* p_net = htonll(p);
+    memcpy(temp, &p, sizeof(void*));
+    temp = temp + sizeof(void*);
+
+    p = mr->pd;
+    memcpy(temp, &p, sizeof(void*));
+    temp = temp + sizeof(void*);
+
+    uint32_t handle = mr->handle;
+    uint32_t handle_net = htonl(handle);
+    memcpy(temp, &handle_net, sizeof(uint32_t));
+    temp = temp + sizeof(uint32_t);
+
+    size_t length_mr = mr->length;
+    size_t length_mr_net = htonl(length_mr);
+    memcpy(temp, &length_mr_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
     for (size_t i = 0; i<element_size; i++){
 
       bool bit_temp = in_use[i];
@@ -2267,7 +2287,32 @@ void RDMA_Manager::fs_deserilization(
       in_use[j] = bit_temp;
       temp = temp + sizeof(bool);
     }
+    void* context_p = nullptr;
+    //TODO: It can not be changed into net stream.
+    memcpy(&context_p, temp, sizeof(void*));
+//    void* p_net = htonll(context_p);
+    temp = temp + sizeof(void*);
+
+    void* pd_p = nullptr;
+    memcpy(&pd_p, temp, sizeof(void*));
+    temp = temp + sizeof(void*);
+
+    uint32_t handle_net;
+    memcpy(&handle_net, temp,  sizeof(uint32_t));
+    uint32_t handle = htonl(handle_net);
+    temp = temp + sizeof(uint32_t);
+
+    size_t length_mr_net = 0;
+    memcpy(&length_mr_net, temp, sizeof(size_t));
+    size_t length_mr = htonl(length_mr_net);
+    temp = temp + sizeof(size_t);
     auto* mr_inuse = new ibv_mr{0};
+    mr_inuse->context = static_cast<ibv_context*>(context_p);
+    mr_inuse->pd = static_cast<ibv_pd*>(pd_p);
+    mr_inuse->handle = handle;
+    mr_inuse->length = length_mr;
+
+
     mr_deserialization(temp, size, mr_inuse);
     In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
