@@ -1,6 +1,6 @@
 #include <iostream>
 #include "rocksdb/rdma.h"
-//#include <boost/serialization/map.hpp>
+//#include <boost/bucket_serialization/map.hpp>
 void client_thread(rocksdb::RDMA_Manager* rdma_manager){
 
   auto myid = std::this_thread::get_id();
@@ -56,7 +56,7 @@ void initialization(SST_Metadata* meta1, ibv_mr** mr1, size_t size, int id) {
     mr1[i]->addr = reinterpret_cast<void*>(0x47906);
   }
 }
-//serialization for Memory regions
+//bucket_serialization for Memory regions
 void mr_serialization(char*& temp, int& size, ibv_mr* mr){
   void* p = mr->context;
   //TODO: It can not be changed into net stream.
@@ -321,25 +321,26 @@ int main()
   };
 
 
-  auto Remote_Bitmap = new std::map<void*, In_Use_Array>;
+
 //  ibv_mr inuse_mr;
 //  inuse_mr.length = 559;
 //  In_Use_Array inuse_a(100, 1000, &inuse_mr);
 //  Remote_Bitmap->insert({nullptr, inuse_a});
   size_t table_size = 8*1024*1024;
-  rocksdb::RDMA_Manager* rdma_manager = new rocksdb::RDMA_Manager(
-      config, Remote_Bitmap, table_size, nullptr,
-      std::unordered_map<std::string, SST_Metadata*>(), nullptr);
+  std::string dbname_for_test("database");
+  rocksdb::RDMA_Manager* rdma_manager =
+      new rocksdb::RDMA_Manager(config, table_size, &dbname_for_test);
   rdma_manager->Mempool_initialize(std::string("read"), 8*1024);
   rdma_manager->Mempool_initialize(std::string("write"), 1024*1024);
 
   rdma_manager->Client_Set_Up_Resources();
-
+  auto Remote_Bitmap = new rocksdb::RDMA_extensible_hash<void*, SST_Metadata*>(rdma_manager, 1024, dbname_for_test, 1);
+  auto  file_to_sst_meta = new rocksdb::RDMA_extensible_hash<std::string, SST_Metadata*>(rdma_manager, 1024, dbname_for_test, 1);
   ibv_mr* mr = new ibv_mr;
   In_Use_Array in_use(10,4096,mr);
   for (int i = 0; i<5; i++)
     in_use.allocate_memory_slot();
-  Remote_Bitmap->insert({static_cast<void*>(&rdma_manager), in_use});
+  Remote_Bitmap->insert(static_cast<void*>(&rdma_manager), in_use);
   size_t buff_size = 1024*1024*1014;
   char* test_buff = static_cast<char*>(malloc(buff_size));
   int mr_flags =
@@ -349,7 +350,7 @@ int main()
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("RDMA memory register %ld \n", duration.count());
-  std::map<std::string, SST_Metadata*> file_to_sst_meta;
+
   SST_Metadata meta1[10] = {};
   ibv_mr* mr1[10];
   initialization(meta1, mr1, 10, 1);
@@ -364,7 +365,7 @@ int main()
   file_to_sst_meta.insert({meta3[0].fname, meta3});
   int size;
   char* buff = static_cast<char*>(malloc(1024*1024));
-  std::string dbname_for_test("database");
+
   serialization(buff, size, dbname_for_test, file_to_sst_meta, *Remote_Bitmap);
   auto Remote_Bitmap_reopen = new std::map<void*, In_Use_Array>;
   std::map<std::string, SST_Metadata*> file_to_sst_meta_reopen;

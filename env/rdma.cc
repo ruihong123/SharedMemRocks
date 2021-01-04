@@ -34,25 +34,22 @@ void UnrefHandle_cq(void* ptr){
 * Description
 * Initialize the resource for RDMA.
 ******************************************************************************/
-RDMA_Manager::RDMA_Manager(
-    config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
-    size_t table_size, std::string* db_name,
-    std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta,
-    std::shared_mutex* fs_mutex)
+RDMA_Manager::RDMA_Manager(config_t config, size_t table_size,
+                           std::string* db_name)
     : Table_Size(table_size),
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local(new ThreadLocalPtr(&UnrefHandle_cq)),
       rdma_config(config),
-      db_name_(db_name),
-      file_to_sst_meta_(file_to_sst_meta),
-      fs_mutex_(fs_mutex)
+      db_name_(db_name)
+//      file_to_sst_meta_(file_to_sst_meta),
+//      fs_mutex_(fs_mutex)
 
 {
 //  assert(read_block_size <table_size);
   res = new resources();
   //  res->sock = -1;
-  Remote_Mem_Bitmap = Remote_Bitmap;
+//  Remote_Mem_Bitmap = Remote_Bitmap;
 //  Write_Local_Mem_Bitmap = Write_Bitmap;
 //  Read_Local_Mem_Bitmap = Read_Bitmap;
 }
@@ -431,16 +428,19 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
         *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
         post_send<size_t>(send_mr,client_ip);
         post_receive<char>(recv_mr,client_ip);
+        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         post_send(local_mr,client_ip, local_mr->length);
         poll_completion(wc, 3, client_ip);
       }else{
         l.unlock();
         *(reinterpret_cast<size_t*>(send_buff)) = 0;
+        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         post_send<size_t>(send_mr,client_ip);
+
         poll_completion(wc, 1, client_ip);
       }
 
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+
     }else if (receive_msg_buf.command == save_serialized_data){
       printf("save_serialized_data message received successfully\n");
       int buff_size = receive_msg_buf.content.data_size;
@@ -450,6 +450,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
           IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
       local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
       post_receive(local_mr,client_ip, buff_size);
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<char>(recv_mr,client_ip);
       poll_completion(wc, 2, client_ip);
 
@@ -473,9 +474,77 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       }else{
         fs_image[db_name] = local_mr;
       }
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+
 //      break;
-    }else{
+    }else if(receive_msg_buf.command == remote_hash_region_change){
+      printf("remote_hash_region_change message received successfully\n");
+      int depth = receive_msg_buf.content.bucket_change_command.global_depth;
+      size_t bucket_size = receive_msg_buf.content.bucket_change_command.bucket_size;
+      int hash_id = receive_msg_buf.content.bucket_change_command.hash_id;
+      post_receive(recv_mr,client_ip, 1000);
+      post_send<int>(send_mr,client_ip);
+      poll_completion(wc, 2, client_ip);
+      std::string dbname;
+      // Here could be some problem.
+      dbname = std::string(recv_buff);
+      std::string key =  dbname + std::to_string(hash_id);
+      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+      char* buff;
+      ibv_mr* mr_to_send;
+      if (depth == 0){
+        buff = (char*) malloc(bucket_size);
+        int mr_flags =
+            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+        mr_to_send = ibv_reg_mr(res->pd, static_cast<void*>(buff), bucket_size, mr_flags);
+        hash_buckets_image.insert({key, mr_to_send});
+      }else{
+        buff = (char*)realloc(hash_buckets_image.at(key)->addr, (1 << depth)*bucket_size);
+        int mr_flags =
+            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+        mr_to_send = ibv_reg_mr(res->pd, static_cast<void*>(buff), (1 << depth)*bucket_size, mr_flags);
+        ibv_dereg_mr(hash_buckets_image.at(key));
+        free(hash_buckets_image.at(key)->addr);
+        hash_buckets_image.erase(key);
+        hash_buckets_image.insert({key, mr_to_send});
+      }
+      ibv_mr* send_pointer = (ibv_mr*)send_buff;
+      *send_pointer = *mr_to_send;
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      post_send<ibv_mr>(
+          send_mr,
+          client_ip);  // note here should be the mr point to the send buffer.
+      poll_completion(wc, 1, client_ip);
+    }else if(receive_msg_buf.command == hash_directory_update){
+
+      int hash_id = receive_msg_buf.content.dir_change.hash_id;
+      size_t directory_size = receive_msg_buf.content.dir_change.directory_size;
+      post_receive(recv_mr,client_ip, 1000);
+
+      post_send<char>(recv_mr,client_ip);
+      poll_completion(wc, 2, client_ip);
+
+
+      std::string dbname;
+      // Here could be some problem.
+      dbname = std::string(recv_buff);
+      std::string key =  dbname + std::to_string(hash_id);
+      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+      char* buff;
+      ibv_mr* directory_mr;
+      if ( hash_directory_image.find(key) == hash_directory_image.end() ) {
+         buff = (char*) malloc(directory_size);
+        int mr_flags =
+            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+        directory_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), directory_size, mr_flags);
+      } else {
+        directory_mr = hash_directory_image.at(key);
+      }
+      post_receive(directory_mr, client_ip, directory_size);
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      post_send<char>(recv_mr,client_ip);
+
+    }
+    else{
       printf("corrupt message from client.");
     }
 
@@ -536,7 +605,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         (name_to_size.at(
             pool_name));  // here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, name_to_size.at(pool_name),
-                              *p2mrpointer);
+                              *p2mrpointer, 0);
     // TODO: Modify it to allocate the memory according to the memory chunk types
 
     name_to_mem_pool.at(pool_name).insert(
@@ -1693,13 +1762,51 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
 
     // push the bitmap of the new registed buffer to the bitmap vector in resource.
     int placeholder_num =static_cast<int>(temp_pointer->length) /(Table_Size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
+    In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer, 0);
 //    std::unique_lock l(remote_pool_mutex);
     Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
 //    l.unlock();
 
     // NOTICE: Couold be problematic because the pushback may not an absolute
     //   value copy. it could raise a segment fault(Double check it)
+  } else {
+    fprintf(stderr, "failed to poll receive for remote memory register\n");
+    return false;
+  }
+//  l.unlock();
+
+  return true;
+}
+bool RDMA_Manager::Remote_Memory_Register(size_t size, ibv_mr*& remote_mr) {
+  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  // register the memory block from the remote memory
+  computing_to_memory_msg* send_pointer;
+  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  send_pointer->command = create_mr_;
+  send_pointer->content.mem_size = size;
+  ibv_mr* receive_pointer;
+  receive_pointer = (ibv_mr*)res->receive_buf;
+  post_receive<ibv_mr>(res->mr_receive, std::string("main"));
+  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+  ibv_wc wc[2] = {};
+  //  while(wc.opcode != IBV_WC_RECV){
+  //    poll_completion(&wc);
+  //    if (wc.status != 0){
+  //      fprintf(stderr, "Work completion status is %d \n", wc.status);
+  //    }
+  //
+  //  }
+  //  assert(wc.opcode == IBV_WC_RECV);
+  printf("Remote memory registeration, size: %zu", size);
+  if (!poll_completion(wc, 2, std::string("main"))) {  // poll the receive for 2 entires
+    auto* temp_pointer = new ibv_mr();
+    // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
+    // Please remember to delete it when diregistering mem region from the remote memory
+    *temp_pointer = *receive_pointer;  // create a new ibv_mr for storing the new remote memory region handler
+    remote_mem_pool.push_back(temp_pointer);  // push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
+    remote_mr = temp_pointer;
+
+
   } else {
     fprintf(stderr, "failed to poll receive for remote memory register\n");
     return false;
@@ -1731,7 +1838,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     memset(&my_gid, 0, sizeof my_gid);
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // lock should be here because from here on we will modify the send buffer.
-  //TODO: Try to understand whether this kind of memcopy without serialization is correct.
+  //TODO: Try to understand whether this kind of memcopy without bucket_serialization is correct.
   // Could be wrong on different machine, because of the alignment
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
@@ -1989,7 +2096,7 @@ bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
   name_to_size.insert({pool_name, size});
   return true;
 }
-//serialization for Memory regions
+//bucket_serialization for Memory regions
 void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
 
   void* p = mr->addr;
@@ -2058,7 +2165,7 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
       memcpy(temp, &length_map_net, sizeof(size_t));
       temp = temp + sizeof(size_t);
 
-      //Here we put context pd handle and length outside the serialization because we do not need
+      //Here we put context pd handle and length outside the bucket_serialization because we do not need
       void* p = meta_p->mr->context;
       //TODO: It can not be changed into net stream.
 //    void* p_net = htonll(p);
@@ -2141,7 +2248,7 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
   size = temp - buff;
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("fs serialization time elapse: %ld\n", duration.count());
+  printf("fs bucket_serialization time elapse: %ld\n", duration.count());
 }
 void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
 
@@ -2316,7 +2423,7 @@ void RDMA_Manager::fs_deserilization(
 
 
     mr_deserialization(temp, size, mr_inuse);
-    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use, 0);
     remote_mem_bitmap.insert({p_key, in_use_array});
   }
   auto stop = std::chrono::high_resolution_clock::now();
@@ -2417,5 +2524,53 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
 
 
 }
+//void RDMA_Manager::remote_bucket_change(int hash_id, int global_depth,
+//                                        size_t bucket_size,
+//                                        ibv_mr*& remote_bucket_mr,
+//                                        std::string& db_name) {
+//  delete(remote_bucket_mr);
+//  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+//  ibv_wc wc[2] = {};
+//  computing_to_memory_msg* send_pointer;
+//  send_pointer = (computing_to_memory_msg*)res->send_buf;
+//  send_pointer->command = remote_hash_region_change;
+//  send_pointer->content.bucket_change_command.hash_id = hash_id;
+//  send_pointer->content.bucket_change_command.global_depth = global_depth;
+//  send_pointer->content.bucket_change_command.bucket_size = bucket_size;
+//  post_receive<int>(res->mr_receive, std::string("main"));
+//
+//
+//  // post the command for saving the serialized data.
+//  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+//  memcpy(res->send_buf, db_name.c_str(), db_name.size());
+//  memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
+//  post_send(res->mr_send,"main", db_name.size()+1);
+//  post_receive<ibv_mr>(res->mr_receive, std::string("main"));
+//  if (poll_completion(wc, 2, std::string("main"))) {
+//    fprintf(stderr, "failed to poll receive for serialized data size <retrieve>\n");
+//  }
+//  remote_bucket_mr = new ibv_mr();
+//  *remote_bucket_mr = *((ibv_mr*)res->mr_receive);
+//
+//
+//}
 
+template <typename K, typename V>
+void RDMA_extensible_hash<K, V>::Bucket::bucket_serialization(char*& buff,
+                                                       size_t& size) {
+  char* temp = buff;
+
+  size_t element_num = contents.size();
+  size_t element_num_net = htonl(element_num);
+  memcpy(temp, &element_num_net, sizeof(size_t));
+  temp = temp + sizeof(size_t);
+  for (auto itr : contents)
+    itr.second->serialization(temp,size);
+  size = temp - buff;
+
+
+}
+template <typename K, typename V>
+void RDMA_extensible_hash<K, V>::Bucket::bucket_deserialization(char*& buff,
+                                                                size_t size) {}
 }
