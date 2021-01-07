@@ -122,6 +122,7 @@ class WritableFileWriter {
   std::string file_name_;
   FSWritableFilePtr writable_file_;
   Env* env_;
+  // RDMA Buffer, all the data inside will be flushed to Remote RDMA.
   RDMA_buffer buf_;
   size_t max_buffer_size_;
   // Actually written data size can be used for truncate

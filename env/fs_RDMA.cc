@@ -176,37 +176,74 @@ class RDMAFileSystem : public FileSystem {
     // other file name link to the same file. If it is the last one, unpin the region in the
     // remote buffer pool.
     std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
-    SST_Metadata* file_meta = file_to_sst_meta.at(fname);
-    int erasenum = file_to_sst_meta.erase(fname);// delete this file name
-    if (erasenum==0) return 0; // the file name should only have one entry
+    if (file_to_sst_meta.find(fname) != file_to_sst_meta.end()){
+      SST_Metadata* file_meta = file_to_sst_meta.at(fname);
+      int erasenum = file_to_sst_meta.erase(fname);// delete this file name
+      if (erasenum==0) return 0; // the file name should only have one entry
 //    else if (erasenum>1) return 2;
-    auto ptr = file_to_sst_meta.begin();
-    while(ptr != file_to_sst_meta.end())
-    // check whether there is other filename link to the same file
-    {
-      // Check if value of this entry matches with given value
-      if(ptr->second == file_meta)
-        return 2;// if find then return.
-      // Go to next entry in map
-      ptr++;
-    }
-    //if not find other filename, then make the all the remote memory slots
-    // related to that file not in use (delete the file)
+      auto ptr = file_to_sst_meta.begin();
+      while(ptr != file_to_sst_meta.end())
+        // check whether there is other filename link to the same file
+      {
+        // Check if value of this entry matches with given value
+        if(ptr->second == file_meta)
+          return 2;// if find then return.
+        // Go to next entry in map
+        ptr++;
+      }
+      //if not find other filename, then make the all the remote memory slots
+      // related to that file not in use (delete the file)
 
       // delete remove the flage sucessfully
-    SST_Metadata* next_file_meta;
-    while (file_meta->next_ptr != nullptr){
-      next_file_meta = file_meta->next_ptr;
-      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+      SST_Metadata* next_file_meta;
+      while (file_meta->next_ptr != nullptr){
+        next_file_meta = file_meta->next_ptr;
+        rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
 
+        delete file_meta->mr;
+        delete file_meta;
+        file_meta = next_file_meta;
+      }
+      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
       delete file_meta->mr;
       delete file_meta;
-      file_meta = next_file_meta;
+      return 1;
+    }else if(log_files.find(fname) != log_files.end()){
+      SST_Metadata* file_meta = log_files.at(fname);
+      int erasenum = log_files.erase(fname);// delete this file name
+      if (erasenum==0) return 0; // the file name should only have one entry
+//    else if (erasenum>1) return 2;
+      auto ptr = log_files.begin();
+      while(ptr != log_files.end())
+        // check whether there is other filename link to the same file
+      {
+        // Check if value of this entry matches with given value
+        if(ptr->second == file_meta)
+          return 2;// if find then return.
+        // Go to next entry in map
+        ptr++;
+      }
+      //if not find other filename, then make the all the remote memory slots
+      // related to that file not in use (delete the file)
+
+      // delete remove the flage sucessfully
+      SST_Metadata* next_file_meta;
+      while (file_meta->next_ptr != nullptr){
+        next_file_meta = file_meta->next_ptr;
+        rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+
+        delete file_meta->mr;
+        delete file_meta;
+        file_meta = next_file_meta;
+      }
+      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+      delete file_meta->mr;
+      delete file_meta;
+      return 1;
     }
-    rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
-    delete file_meta->mr;
-    delete file_meta;
-    return 1;
+    else
+      return 0;
+
 
 
 
@@ -219,70 +256,139 @@ class RDMAFileSystem : public FileSystem {
     //create a new one
     //for read&write type, try to find in the map table first, if missing then create a
     //new one
-    if(type == write_new){
-      std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
-      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
-        // std container always copy the value to the container, Don't worry.
-//        write_lock.unlock();
-        // temporarily release the lock to avoid deadlock.
-        rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
-//        write_lock.lock();
-        file_to_sst_meta[file_name] = sst_meta;
-//        write_lock.unlock();
-//        fs_meta_save();
-        return IOStatus::OK();
-      } else {
-        //Rewrite the file
-        file_to_sst_meta[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
+    if(file_name.substr(file_name.size()-4, 4) == ".log"){
+      if(type == write_new){
+        std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
+        if (log_files.find(file_name) == log_files.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        write_lock.unlock();
+          // temporarily release the lock to avoid deadlock.
+          rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+          //        write_lock.lock();
+          log_files[file_name] = sst_meta;
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();
+        } else {
+          //Rewrite the file
+          log_files[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
 
-        if(file_to_sst_meta[file_name]->next_ptr != nullptr){
-          SST_Metadata* file_meta = file_to_sst_meta[file_name]->next_ptr;
-          SST_Metadata* next_file_meta;
-          while (file_meta->next_ptr != nullptr){
-            next_file_meta = file_meta->next_ptr;
+          if(log_files[file_name]->next_ptr != nullptr){
+            SST_Metadata* file_meta = log_files[file_name]->next_ptr;
+            SST_Metadata* next_file_meta;
+            while (file_meta->next_ptr != nullptr){
+              next_file_meta = file_meta->next_ptr;
+              rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+              delete file_meta->mr;
+              delete file_meta;
+              file_meta = next_file_meta;
+            }
             rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
             delete file_meta->mr;
             delete file_meta;
-            file_meta = next_file_meta;
           }
-          rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
-          delete file_meta->mr;
-          delete file_meta;
-        }
 
-        file_to_sst_meta[file_name]->next_ptr = nullptr;
-        sst_meta = file_to_sst_meta[file_name];
-//        write_lock.unlock();
-//        fs_meta_save();
-        return IOStatus::OK();      }
-    }
-    if(type == rwtype) {
-      std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
-      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
-        // std container always copy the value to the container, Don't worry.
-//        write_lock.unlock();
-        rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
-//        write_lock.lock();
-        file_to_sst_meta[file_name] = sst_meta;
-//        write_lock.unlock();
-//        fs_meta_save();
-        return IOStatus::OK();
-      } else {
-        sst_meta = file_to_sst_meta[file_name];
-        return IOStatus::OK();
+          log_files[file_name]->next_ptr = nullptr;
+          sst_meta = log_files[file_name];
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();      }
+      }
+      if(type == rwtype) {
+        std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
+        if (log_files.find(file_name) == log_files.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        write_lock.unlock();
+          rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+          //        write_lock.lock();
+          log_files[file_name] = sst_meta;
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();
+        } else {
+          sst_meta = log_files[file_name];
+          return IOStatus::OK();
+        }
+      }
+      if(type == write_reopen || type == readtype){
+        std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
+        if (log_files.find(file_name) == log_files.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        errno = ENOENT;
+          return IOError("While open a file for random read", file_name, errno);
+        } else {
+          sst_meta = log_files[file_name];
+          return IOStatus::OK();
+        }
       }
     }
-    if(type == write_reopen || type == readtype){
-      std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
-      if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
-        // std container always copy the value to the container, Don't worry.
-//        errno = ENOENT;
-        return IOError("While open a file for random read", file_name, errno);
-      } else {
-        sst_meta = file_to_sst_meta[file_name];
-        return IOStatus::OK();
+    else{
+      if(type == write_new){
+        std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
+        if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        write_lock.unlock();
+          // temporarily release the lock to avoid deadlock.
+          rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+          //        write_lock.lock();
+          file_to_sst_meta[file_name] = sst_meta;
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();
+        } else {
+          //Rewrite the file
+          file_to_sst_meta[file_name]->file_size = 0;// truncate the existing file (need concurrency control)
+
+          if(file_to_sst_meta[file_name]->next_ptr != nullptr){
+            SST_Metadata* file_meta = file_to_sst_meta[file_name]->next_ptr;
+            SST_Metadata* next_file_meta;
+            while (file_meta->next_ptr != nullptr){
+              next_file_meta = file_meta->next_ptr;
+              rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+              delete file_meta->mr;
+              delete file_meta;
+              file_meta = next_file_meta;
+            }
+            rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+            delete file_meta->mr;
+            delete file_meta;
+          }
+
+          file_to_sst_meta[file_name]->next_ptr = nullptr;
+          sst_meta = file_to_sst_meta[file_name];
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();      }
+      }
+      if(type == rwtype) {
+        std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
+        if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        write_lock.unlock();
+          rdma_mg->Allocate_Remote_RDMA_Slot(file_name, sst_meta);
+          //        write_lock.lock();
+          file_to_sst_meta[file_name] = sst_meta;
+          //        write_lock.unlock();
+          //        fs_meta_save();
+          return IOStatus::OK();
+        } else {
+          sst_meta = file_to_sst_meta[file_name];
+          return IOStatus::OK();
+        }
+      }
+      if(type == write_reopen || type == readtype){
+        std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
+        if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {
+          // std container always copy the value to the container, Don't worry.
+          //        errno = ENOENT;
+          return IOError("While open a file for random read", file_name, errno);
+        } else {
+          sst_meta = file_to_sst_meta[file_name];
+          return IOStatus::OK();
+        }
       }
     }
+
     return IOStatus::OK();
   }
 
@@ -708,7 +814,7 @@ class RDMAFileSystem : public FileSystem {
   // Combine Posix file system and RDMA file system together
   IOStatus FileExists(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
-    if(file_to_sst_meta.find(fname) != file_to_sst_meta.end())
+    if(file_to_sst_meta.find(fname) != file_to_sst_meta.end() || log_files.find(fname) != log_files.end())
       return IOStatus::OK();
     int result = access(fname.c_str(), F_OK);
 
@@ -755,6 +861,11 @@ class RDMAFileSystem : public FileSystem {
     // Then search in the remote memory
     auto iter = file_to_sst_meta.begin();
     while (iter != file_to_sst_meta.end() ) {
+      result->push_back(iter->first);
+      iter++;
+    }
+    iter = log_files.begin();
+    while (iter != log_files.end() ) {
       result->push_back(iter->first);
       iter++;
     }
@@ -836,6 +947,10 @@ class RDMAFileSystem : public FileSystem {
     }
     else if (file_to_sst_meta.find(fname) != file_to_sst_meta.end()){
       SST_Metadata* meta = file_to_sst_meta[fname];
+      *size = meta->file_size;
+    }
+    else if(log_files.find(fname) != log_files.end()){
+      SST_Metadata* meta = log_files[fname];
       *size = meta->file_size;
     }
     else

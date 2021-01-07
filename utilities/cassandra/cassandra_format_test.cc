@@ -26,7 +26,7 @@ TEST(ColumnTest, Column) {
   EXPECT_EQ(c.Timestamp(), timestamp);
   EXPECT_EQ(c.Size(), 14 + sizeof(data));
 
-  // Verify the serialization.
+  // Verify the bucket_serialization.
   std::string dest;
   dest.reserve(c.Size() * 2);
   c.Serialize(&dest);
@@ -79,7 +79,7 @@ TEST(ExpiringColumnTest, ExpiringColumn) {
   EXPECT_EQ(c.Timestamp(), timestamp);
   EXPECT_EQ(c.Size(), 18 + sizeof(data));
 
-  // Verify the serialization.
+  // Verify the bucket_serialization.
   std::string dest;
   dest.reserve(c.Size() * 2);
   c.Serialize(&dest);
@@ -148,7 +148,7 @@ TEST(TombstoneTest, Tombstone) {
   EXPECT_EQ(c.Timestamp(), marked_for_delete_at);
   EXPECT_EQ(c.Size(), 14);
 
-  // Verify the serialization.
+  // Verify the bucket_serialization.
   std::string dest;
   dest.reserve(c.Size() * 2);
   c.Serialize(&dest);
@@ -195,7 +195,7 @@ TEST(RowValueTest, RowTombstone) {
   EXPECT_EQ(r.IsTombstone(), true);
   EXPECT_EQ(r.LastModifiedTime(), marked_for_delete_at);
 
-  // Verify the serialization.
+  // Verify the bucket_serialization.
   std::string dest;
   dest.reserve(r.Size() * 2);
   r.Serialize(&dest);
@@ -253,7 +253,7 @@ TEST(RowValueTest, RowWithColumns) {
   EXPECT_EQ(r.IsTombstone(), false);
   EXPECT_EQ(r.LastModifiedTime(), last_modified_time);
 
-  // Verify the serialization.
+  // Verify the bucket_serialization.
   std::string dest;
   dest.reserve(r.Size() * 2);
   r.Serialize(&dest);

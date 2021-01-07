@@ -86,18 +86,27 @@ struct registered_qp_config {
   uint16_t lid;	/* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
-enum RDMA_Command_Type {create_qp_, create_mr_, save_serialized_data, retrieve_serialized_data};
-
+enum RDMA_Command_Type {create_qp_, create_mr_,
+  save_fs_serialized_data,
+  retrieve_fs_serialized_data, save_log_serialized_data,
+  retrieve_log_serialized_data
+};
+enum file_type {log, others};
+struct fs_sync_command{
+  int data_size;
+  file_type type;
+};
 union RDMA_Command_Content{
   size_t mem_size;
   registered_qp_config qp_config;
-  int data_size;
+  fs_sync_command fs_sync_command;
 };
+
 struct computing_to_memory_msg
 {
   RDMA_Command_Type command;
   RDMA_Command_Content content;
-};
+} __attribute__((packed));
 
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
@@ -227,7 +236,16 @@ struct resources
   std::map<std::string, ibv_mr*> mr_send_map;
 
 };
-
+struct IBV_Deleter {
+  //Called by unique_ptr to destroy/free the Resource
+  void operator()(ibv_mr* r) {
+    if(r){
+      void* pointer = r->addr;
+      ibv_dereg_mr(r);
+      free(pointer);
+    }
+  }
+};
 namespace ROCKSDB_NAMESPACE {
 /* structure of test parameters */
 class RDMA_Manager{
@@ -248,11 +266,12 @@ class RDMA_Manager{
   bool Client_Connect_to_Server_RDMA();
   // client function to retrieve serialized data.
   bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
-                                       size_t& buff_size, ibv_mr*& local_mr);
+                                       size_t& buff_size, ibv_mr*& local_mr,
+                                       file_type type);
   // client function to save serialized data.
-  bool client_save_serialized_data(const std::string& db_name,
-                                   char* buff,
-                                   size_t buff_size);
+  bool client_save_serialized_data(const std::string& db_name, char* buff,
+                                   size_t buff_size, file_type type,
+                                   ibv_mr* local_mr);
   // this function is for the server.
   void Server_to_Client_Communication();
   void server_communication_thread(std::string client_ip, int socket_fd);
@@ -291,7 +310,7 @@ class RDMA_Manager{
     size_t size_dummy;
     fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
     printf("Serialized data size: %zu", size_dummy);
-    client_save_serialized_data(*db_name_, buff, size_dummy);}
+    client_save_serialized_data(*db_name_, buff, size_dummy, log, nullptr);}
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
@@ -338,6 +357,9 @@ class RDMA_Manager{
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
   std::unordered_map<std::string, ibv_mr*> fs_image;
+  std::unordered_map<std::string, ibv_mr*> log_image;
+  std::unique_ptr<ibv_mr, IBV_Deleter> log_image_mr;
+  std::shared_mutex log_image_mutex;
   std::shared_mutex fs_image_mutex;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;

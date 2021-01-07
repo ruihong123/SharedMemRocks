@@ -51,6 +51,11 @@ RDMA_Manager::RDMA_Manager(
 {
 //  assert(read_block_size <table_size);
   res = new resources();
+  void* buff = malloc(1024*1024);
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  log_image_mr.reset(ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags));
+
   //  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;
 //  Write_Local_Mem_Bitmap = Write_Bitmap;
@@ -412,8 +417,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
-    }else if (receive_msg_buf.command == retrieve_serialized_data){
-      printf("retrieve_serialized_data message received successfully\n");
+    }else if (receive_msg_buf.command == retrieve_fs_serialized_data){
+      printf("retrieve_fs_serialized_data message received successfully\n");
       post_receive(recv_mr,client_ip, 1000);
       post_send<int>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
@@ -436,20 +441,24 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       }else{
         l.unlock();
         *(reinterpret_cast<size_t*>(send_buff)) = 0;
+        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         post_send<size_t>(send_mr,client_ip);
         poll_completion(wc, 1, client_ip);
       }
 
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-    }else if (receive_msg_buf.command == save_serialized_data){
-      printf("save_serialized_data message received successfully\n");
-      int buff_size = receive_msg_buf.content.data_size;
+
+    }else if (receive_msg_buf.command == save_fs_serialized_data){
+      printf("save_fs_serialized_data message received successfully\n");
+      int buff_size = receive_msg_buf.content.fs_sync_command.data_size;
+      file_type filetype = receive_msg_buf.content.fs_sync_command.type;
+
       char* buff = static_cast<char*>(malloc(buff_size));
       ibv_mr* local_mr;
       int mr_flags =
           IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
       local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
       post_receive(local_mr,client_ip, buff_size);
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<char>(recv_mr,client_ip);
       poll_completion(wc, 2, client_ip);
 
@@ -473,10 +482,73 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       }else{
         fs_image[db_name] = local_mr;
       }
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+
+
+
+
+
 //      break;
-    }else{
+    }else if(receive_msg_buf.command == save_log_serialized_data){
+      printf("retrieve_log_serialized_data message received successfully\n");
+
+      int buff_size = receive_msg_buf.content.fs_sync_command.data_size;
+      file_type filetype = receive_msg_buf.content.fs_sync_command.type;
+      post_receive(recv_mr,client_ip, 1000);
+
+      post_send<int>(send_mr,client_ip);
+      poll_completion(wc, 2, client_ip);
+
+      std::string dbname;
+      // Here could be some problem.
+      dbname = std::string(recv_buff);
+      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+      ibv_mr* local_mr;
+      if (log_image.find(dbname) == log_image.end()){
+        void* buff = malloc(1024*1024);
+        int mr_flags =
+            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+        local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
+        log_image.insert({dbname, local_mr});
+      }else{
+        local_mr = log_image.at(dbname);
+      }
+      post_receive(local_mr, client_ip, buff_size);
+      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+      post_send<int>(send_mr,client_ip);
+      poll_completion(wc, 2, client_ip);
+
+
+    }else if(receive_msg_buf.command == retrieve_log_serialized_data){
+//      printf("retrieve_log_serialized_data message received successfully\n");
+//      post_receive(recv_mr,client_ip, 1000);
+//      post_send<int>(send_mr,client_ip);
+//      // prepare the receive for db name, the name should not exceed 1000byte
+//
+//      poll_completion(wc, 2, client_ip);
+//      std::string dbname;
+//      // Here could be some problem.
+//      dbname = std::string(recv_buff);
+//      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+//      ibv_mr* local_mr;
+//      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
+//      if (log_image.find(dbname)!= fs_image.end()){
+//        local_mr = fs_image.at(dbname);
+//        l.unlock();
+//        *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
+//        post_send<size_t>(send_mr,client_ip);
+//        post_receive<char>(recv_mr,client_ip);
+//        post_send(local_mr,client_ip, local_mr->length);
+//        poll_completion(wc, 3, client_ip);
+//      }else{
+//        l.unlock();
+//        *(reinterpret_cast<size_t*>(send_buff)) = 0;
+//        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//        post_send<size_t>(send_mr,client_ip);
+//        poll_completion(wc, 1, client_ip);
+//      }
+    }else {
       printf("corrupt message from client.");
+
     }
 
 
@@ -2328,45 +2400,75 @@ void RDMA_Manager::fs_deserilization(
 
 }
 bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
-                                               char* buff,
-                                               size_t buff_size) {
+                                               char* buff, size_t buff_size,
+                                               file_type type,
+                                               ibv_mr* local_mr) {
   auto start = std::chrono::high_resolution_clock::now();
+  bool destroy_flag;
+  if (local_mr == nullptr){
+    int mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
+    destroy_flag = true;
+  }else
+    destroy_flag = false;
 
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  ibv_mr* local_mr;
-  local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
-  send_pointer->command = save_serialized_data;
-  send_pointer->content.data_size = buff_size;
-  //sync to make sure the shared memory has post the next receive
-  post_receive<char>(res->mr_receive, std::string("main"));
-  // post the command for saving the serialized data.
-  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
-  ibv_wc wc[2] = {};
-  ibv_mr* remote_pointer;
-  if (!poll_completion(wc, 2, std::string("main"))) {
-    post_send(local_mr, std::string("main"), buff_size);
-  }else
-    fprintf(stderr, "failed to poll receive for serialized message\n");
-  if (!poll_completion(wc, 1, std::string("main")))
-    printf("serialized data sent successfully");
-  else
-    fprintf(stderr, "failed to poll send for serialized data send\n");
+
+  if(type == others){
+    send_pointer->command = save_fs_serialized_data;
+    send_pointer->content.fs_sync_command.data_size = buff_size;
+    send_pointer->content.fs_sync_command.type = type;
+    //sync to make sure the shared memory has post the next receive
+    post_receive<char>(res->mr_receive, std::string("main"));
+    // post the command for saving the serialized data.
+    post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+    ibv_wc wc[2] = {};
+    ibv_mr* remote_pointer;
+    if (!poll_completion(wc, 2, std::string("main"))) {
+      post_send(local_mr, std::string("main"), buff_size);
+    }else
+      fprintf(stderr, "failed to poll receive for serialized message\n");
+    if (!poll_completion(wc, 1, std::string("main")))
+      printf("serialized data sent successfully");
+    else
+      fprintf(stderr, "failed to poll send for serialized data send\n");
 //  sleep(100);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("fs meta data save communication time elapse: %ld\n", duration.count());
-  ibv_dereg_mr(local_mr);
-  free(buff);
-  return false;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("fs meta data save communication time elapse: %ld\n", duration.count());
+
+  }
+  else if (type == log){
+    send_pointer->command = save_log_serialized_data;
+    send_pointer->content.fs_sync_command.data_size = buff_size;
+    send_pointer->content.fs_sync_command.type = type;
+    post_receive<int>(res->mr_receive, std::string("main"));
+    post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+    ibv_wc wc[2] = {};
+    ibv_mr* remote_pointer;
+    poll_completion(wc, 2, std::string("main"));
+    memcpy(res->send_buf, db_name.c_str(), db_name.size());
+    memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
+    //receive the size of the serialized data
+    post_send(res->mr_send,"main", db_name.size()+1);
+    post_send(local_mr, std::string("main"), buff_size);
+    poll_completion(wc, 2, std::string("main"));
+  }
+  if (destroy_flag){
+    ibv_dereg_mr(local_mr);
+    free(buff);
+  }
+
+  return true;
 }
 bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
                                                    char*& buff,
                                                    size_t& buff_size,
-                                                   ibv_mr*& local_mr) {
+                                                   ibv_mr*& local_mr,
+                                                   file_type type) {
   auto start = std::chrono::high_resolution_clock::now();
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
@@ -2374,45 +2476,86 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
   ibv_wc wc[2] = {};
   computing_to_memory_msg* send_pointer;
   send_pointer = (computing_to_memory_msg*)res->send_buf;
-  send_pointer->command = retrieve_serialized_data;
-  //sync to make sure the shared memory has post the next receive for the dbname
-  post_receive<int>(res->mr_receive, std::string("main"));
-  // post the command for saving the serialized data.
-  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
-  if (poll_completion(wc, 2, std::string("main"))) {
-    fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
-    return false;
-  }else
-    printf("retrieve message was sent successfully");
-  memcpy(res->send_buf, db_name.c_str(), db_name.size());
-  memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
-  //receive the size of the serialized data
-  post_receive<size_t>(res->mr_receive, std::string("main"));
-  post_send(res->mr_send,"main", db_name.size()+1);
+  if (type == others){
+    send_pointer->command = retrieve_fs_serialized_data;
+    //sync to make sure the shared memory has post the next receive for the dbname
+    post_receive<int>(res->mr_receive, std::string("main"));
+    // post the command for saving the serialized data.
+    post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
+      return false;
+    }else
+      printf("retrieve message was sent successfully");
+    memcpy(res->send_buf, db_name.c_str(), db_name.size());
+    memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
+    //receive the size of the serialized data
+    post_receive<size_t>(res->mr_receive, std::string("main"));
+    post_send(res->mr_send,"main", db_name.size()+1);
 
-  if (poll_completion(wc, 2, std::string("main"))) {
-    fprintf(stderr, "failed to poll receive for serialized data size <retrieve>\n");
-    return false;
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized data size <retrieve>\n");
+      return false;
+    }
+    buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
+    if (buff_size!=0){
+      buff = static_cast<char*>(malloc(buff_size));
+      local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
+      post_receive(local_mr,"main", buff_size);
+      // send a char to tell the shared memory that this computing node is ready to receive the data
+      post_send<char>(res->mr_send, std::string("main"));
+    }
+    else
+      return false;
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized message\n");
+      return false;
+    }else{
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
+      return true;
+    }
+  }else if (type == log){
+    post_receive<int>(res->mr_receive, std::string("main"));
+    // post the command for saving the serialized data.
+    post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
+      return false;
+    }else
+      printf("retrieve message was sent successfully");
+    memcpy(res->send_buf, db_name.c_str(), db_name.size());
+    memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
+    //receive the size of the serialized data
+    post_receive<size_t>(res->mr_receive, std::string("main"));
+    post_send(res->mr_send,"main", db_name.size()+1);
+
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized data size <retrieve>\n");
+      return false;
+    }
+    buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
+    if (buff_size!=0){
+
+      local_mr = log_image_mr.get();
+      post_receive(local_mr,"main", buff_size);
+      // send a char to tell the shared memory that this computing node is ready to receive the data
+      post_send<char>(res->mr_send, std::string("main"));
+    }
+    else
+      return false;
+    if (poll_completion(wc, 2, std::string("main"))) {
+      fprintf(stderr, "failed to poll receive for serialized message\n");
+      return false;
+    }else{
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
+      return true;
+    }
   }
-  buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
-  if (buff_size!=0){
-    buff = static_cast<char*>(malloc(buff_size));
-    local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags);
-    post_receive(local_mr,"main", buff_size);
-    // send a char to tell the shared memory that this computing node is ready to receive the data
-    post_send<char>(res->mr_send, std::string("main"));
-  }
-  else
-    return false;
-  if (poll_completion(wc, 2, std::string("main"))) {
-    fprintf(stderr, "failed to poll receive for serialized message\n");
-    return false;
-  }else{
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
-    return true;
-  }
+  return true;
 
 
 

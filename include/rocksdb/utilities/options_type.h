@@ -63,7 +63,7 @@ enum class OptionVerificationType {
   kDeprecated,           // The option is no longer used in rocksdb. The RocksDB
                          // OptionsParser will still accept this option if it
                          // happen to exists in some Options file.  However,
-                         // the parser will not include it in serialization
+                         // the parser will not include it in bucket_serialization
                          // and verification processes.
   kAlias,                // This option represents is a name/shortcut for
                          // another option and should not be written or verified
@@ -182,7 +182,7 @@ using ParseFunc = std::function<Status(
 // @param opts  The ConfigOptions controlling how the values are serialized
 // @param name  The name of the options being serialized
 // @param addr  Pointer to the value being serialized
-// @param value The result of the serialization.
+// @param value The result of the bucket_serialization.
 using SerializeFunc = std::function<Status(
     const ConfigOptions& /*opts*/, const std::string& /*name*/,
     const char* /*addr*/, std::string* /*value*/)>;
@@ -321,7 +321,7 @@ class OptionTypeInfo {
   //   properties of the object that can be set via the options.
   // - Call this method passing the name and map in as parameters.
   // Note that it is not necessary to add a new OptionType or make any
-  // other changes -- the returned object handles parsing, serialization, and
+  // other changes -- the returned object handles parsing, bucket_serialization, and
   // comparisons.
   //
   // @param offset The offset in the option object for this enum
@@ -680,7 +680,7 @@ Status ParseVector(const ConfigOptions& config_options,
 // Serializes the input vector into its output value.  Elements are
 // separated by the separator character.  This element will convert all of the
 // elements in vec into their serialized form, using elem_info to perform the
-// serialization.
+// bucket_serialization.
 // For example, if the vec contains the integers 1,2,3,4,5 and elem_info
 // serializes the output would be 1:2:3:4:5 for separator ":".
 // @param config_options Controls how the option value is serialized.

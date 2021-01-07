@@ -166,6 +166,7 @@ class FileSystem {
   RDMA_Manager* rdma_mg;
   std::string db_name;
   std::unordered_map<std::string, SST_Metadata*> file_to_sst_meta;
+  std::unordered_map<std::string, SST_Metadata*> log_files;
   std::shared_mutex fs_mutex;
   std::map<void*, In_Use_Array>* Remote_Bitmap;
   Status set_db_name(const std::string& name){
@@ -177,8 +178,8 @@ class FileSystem {
     size_t size;
     ibv_mr* local_mr;
 
-    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size,
-                                                 local_mr)){
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size, local_mr,
+                                                 others)){
       rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta,
                                  *Remote_Bitmap, local_mr);
       printf("Serialized data size: %zu", size);
@@ -192,7 +193,7 @@ class FileSystem {
     size_t size;
     rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
     printf("Serialized data size: %zu", size);
-    rdma_mg->client_save_serialized_data(db_name, buff, size);
+    rdma_mg->client_save_serialized_data(db_name, buff, size, others, nullptr);
     return;
   }
   virtual const char* Name() const = 0;

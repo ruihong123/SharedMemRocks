@@ -1450,6 +1450,8 @@ IOStatus DBImpl::CreateWAL(uint64_t log_file_num, uint64_t recycle_log_number,
     io_s = fs_->ReuseWritableFile(log_fname, old_log_fname, opt_file_options,
                                   &lfile, /*dbg=*/nullptr);
   } else {
+    //TODO: change here to make log file and the other files seperate
+    // Create a new method called NewwritableLog and also return writableFile Writer class
     io_s = NewWritableFile(fs_.get(), log_fname, &lfile, opt_file_options);
   }
 
@@ -1458,6 +1460,7 @@ IOStatus DBImpl::CreateWAL(uint64_t log_file_num, uint64_t recycle_log_number,
     lfile->SetPreallocationBlockSize(preallocate_block_size);
 
     const auto& listeners = immutable_db_options_.listeners;
+
     std::unique_ptr<WritableFileWriter> file_writer(new WritableFileWriter(
         std::move(lfile), log_fname, opt_file_options, env_, io_tracer_,
         nullptr /* stats */, listeners));
