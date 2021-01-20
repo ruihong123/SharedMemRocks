@@ -1866,6 +1866,7 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 //  auto start = std::chrono::high_resolution_clock::now();
   const std::unique_lock<std::shared_mutex> lock(
       sst_meta_head->file_lock);// write lock
+//  size_t ori_file_size = sst_meta_head->file_size; //TODO: Delete it after debugging
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Write Get the lock time elapse: %ld\n", duration.count());
@@ -1880,6 +1881,7 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
 
   const char* src = data.data();
   size_t nbytes = data.size();
+//  size_t n_ori = nbytes;// TODO: Delete it after debugging.
   char* chunk_src = const_cast<char*>(src);
 //  std::cout << "Old Write data to " << sst_meta_head->fname << " " << sst_meta_current->mr->addr << " offset: "
 //            << chunk_offset << "size: " << nbytes << std::endl;
@@ -1908,6 +1910,7 @@ IOStatus RDMAWritableFile::Append(const Slice& data, const IOOptions& /*opts*/,
   }
   Append_chunk(chunk_src, nbytes, local_mr_pointer, remote_mr,
                thread_id);
+//  assert(sst_meta_head->file_size - ori_file_size == n_ori);
 //               *(static_cast<std::string*>(rdma_mg_->t_local_1->Get())));
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
