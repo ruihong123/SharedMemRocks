@@ -449,8 +449,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
     }else if (receive_msg_buf.command == save_fs_serialized_data){
       printf("save_fs_serialized_data message received successfully\n");
-      int buff_size = receive_msg_buf.content.fs_sync_command.data_size;
-      file_type filetype = receive_msg_buf.content.fs_sync_command.type;
+      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
+      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
 
       char* buff = static_cast<char*>(malloc(buff_size));
       ibv_mr* local_mr;
@@ -491,8 +491,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     }else if(receive_msg_buf.command == save_log_serialized_data){
       printf("retrieve_log_serialized_data message received successfully\n");
 
-      int buff_size = receive_msg_buf.content.fs_sync_command.data_size;
-      file_type filetype = receive_msg_buf.content.fs_sync_command.type;
+      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
+      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
       post_receive(recv_mr,client_ip, 1000);
 
       post_send<int>(send_mr,client_ip);
@@ -2419,8 +2419,8 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 
   if(type == others){
     send_pointer->command = save_fs_serialized_data;
-    send_pointer->content.fs_sync_command.data_size = buff_size;
-    send_pointer->content.fs_sync_command.type = type;
+    send_pointer->content.fs_sync_cmd.data_size = buff_size;
+    send_pointer->content.fs_sync_cmd.type = type;
     //sync to make sure the shared memory has post the next receive
     post_receive<char>(res->mr_receive, std::string("main"));
     // post the command for saving the serialized data.
@@ -2441,10 +2441,10 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
     printf("fs meta data save communication time elapse: %ld\n", duration.count());
 
   }
-  else if (type == log){
+  else if (type == log_type){
     send_pointer->command = save_log_serialized_data;
-    send_pointer->content.fs_sync_command.data_size = buff_size;
-    send_pointer->content.fs_sync_command.type = type;
+    send_pointer->content.fs_sync_cmd.data_size = buff_size;
+    send_pointer->content.fs_sync_cmd.type = type;
     post_receive<int>(res->mr_receive, std::string("main"));
     post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
     ibv_wc wc[2] = {};
@@ -2516,7 +2516,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
       return true;
     }
-  }else if (type == log){
+  }else if (type == log_type){
     post_receive<int>(res->mr_receive, std::string("main"));
     // post the command for saving the serialized data.
     post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));

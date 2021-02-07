@@ -91,7 +91,7 @@ enum RDMA_Command_Type {create_qp_, create_mr_,
   retrieve_fs_serialized_data, save_log_serialized_data,
   retrieve_log_serialized_data
 };
-enum file_type {log, others};
+enum file_type {log_type, others};
 struct fs_sync_command{
   int data_size;
   file_type type;
@@ -99,7 +99,7 @@ struct fs_sync_command{
 union RDMA_Command_Content{
   size_t mem_size;
   registered_qp_config qp_config;
-  fs_sync_command fs_sync_command;
+  fs_sync_command fs_sync_cmd;
 };
 
 struct computing_to_memory_msg
@@ -310,7 +310,7 @@ class RDMA_Manager{
     size_t size_dummy;
     fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
     printf("Serialized data size: %zu", size_dummy);
-    client_save_serialized_data(*db_name_, buff, size_dummy, log, nullptr);}
+    client_save_serialized_data(*db_name_, buff, size_dummy, log_type, nullptr);}
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
