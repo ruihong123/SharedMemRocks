@@ -12,23 +12,22 @@
 #include "port/sys_time.h"
 #include "rocksdb/env.h"
 #include "rocksdb/status.h"
-//#define USE_HDFS
-#ifdef USE_HDFS
-#include <hdfs.h>
+
+#include "nrfs.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 // Thrown during execution when there is an issue with the supplied
 // arguments.
-class HdfsUsageException : public std::exception { };
+class OctopusUsageException : public std::exception { };
 
 // A simple exception that indicates something went wrong that is not
 // recoverable.  The intention is for the message to be printed (with
 // nothing else) and the process terminate.
-class HdfsFatalException : public std::exception {
+class OctopusFatalException : public std::exception {
 public:
-  explicit HdfsFatalException(const std::string& s) : what_(s) { }
-  virtual ~HdfsFatalException() throw() { }
+  explicit OctopusFatalException(const std::string& s) : what_(s) { }
+  virtual ~OctopusFatalException() throw() { }
   virtual const char* what() const throw() {
     return what_.c_str();
   }
@@ -41,16 +40,16 @@ private:
 // file/dir access methods and delegates the thread-mgmt methods to the
 // default posix environment.
 //
-class HdfsEnv : public Env {
+class OctopusEnv : public Env {
 
  public:
-  explicit HdfsEnv(const std::string& fsname) : fsname_(fsname) {
+  explicit OctopusEnv(const std::string& fsname) : fsname_(fsname) {
     posixEnv = Env::Default();
     fileSys_ = connectToPath(fsname_);
   }
 
-  virtual ~HdfsEnv() {
-    fprintf(stderr, "Destroying HdfsEnv::Default()\n");
+  virtual ~OctopusEnv() {
+    fprintf(stderr, "Destroying OctopusEnv::Default()\n");
     hdfsDisconnect(fileSys_);
   }
 
@@ -164,7 +163,7 @@ class HdfsEnv : public Env {
 
   static uint64_t gettid() { return Env::Default()->GetThreadID(); }
 
-  uint64_t GetThreadID() const override { return HdfsEnv::gettid(); }
+  uint64_t GetThreadID() const override { return OctopusEnv::gettid(); }
 
  private:
   std::string fsname_;  // string of the form "hdfs://hostname:port/"
@@ -196,7 +195,7 @@ class HdfsEnv : public Env {
     std::vector <std::string> parts;
     split(hostport, ':', parts);
     if (parts.size() != 2) {
-      throw HdfsFatalException("Bad uri for hdfs " + uri);
+      throw OctopusFatalException("Bad uri for hdfs " + uri);
     }
     // parts[0] = hosts, parts[1] = port/xxx/yyy
     std::string host(parts[0]);
@@ -208,7 +207,7 @@ class HdfsEnv : public Env {
 
     tPort port = static_cast<tPort>(atoi(portStr.c_str()));
     if (port == 0) {
-      throw HdfsFatalException("Bad host-port for hdfs " + uri);
+      throw OctopusFatalException("Bad host-port for hdfs " + uri);
     }
     hdfsFS fs = hdfsConnectNewInstance(host.c_str(), port);
     return fs;
@@ -234,16 +233,16 @@ class HdfsEnv : public Env {
 
 namespace ROCKSDB_NAMESPACE {
 
-class HdfsEnv : public Env {
+class OctopusEnv : public Env {
 
  public:
-  explicit HdfsEnv(const std::string& /*fsname*/) {
+  explicit OctopusEnv(const std::string& /*fsname*/) {
     fprintf(stderr, "You have not build rocksdb with HDFS support\n");
     fprintf(stderr, "Please see hdfs/README for details\n");
     abort();
   }
 
-  virtual ~HdfsEnv() {
+  virtual ~OctopusEnv() {
   }
 
   virtual Status NewSequentialFile(const std::string& fname,
@@ -383,4 +382,4 @@ class HdfsEnv : public Env {
 };
 }  // namespace ROCKSDB_NAMESPACE
 
-#endif // USE_HDFS
+
