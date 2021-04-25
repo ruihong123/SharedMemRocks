@@ -51,10 +51,6 @@ RDMA_Manager::RDMA_Manager(
 {
 //  assert(read_block_size <table_size);
   res = new resources();
-  void* buff = malloc(1024*1024);
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  log_image_mr.reset(ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags));
 
   //  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;
@@ -660,6 +656,10 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     fprintf(stderr, "failed to create resources\n");
     return;
   }
+  void* buff = malloc(1024*1024);
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  log_image_mr.reset(ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags));
   Client_Connect_to_Server_RDMA();
 }
 /******************************************************************************
