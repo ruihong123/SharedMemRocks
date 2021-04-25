@@ -127,6 +127,7 @@ else()
     include_directories(${GFLAGS_INCLUDE_DIR})
     list(APPEND THIRDPARTY_LIBS ${GFLAGS_LIB})
     add_definitions(-DGFLAGS=1)
+    message("GFLAG was set")
   endif()
 
   if(WITH_SNAPPY)
