@@ -275,7 +275,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   TEST_SYNC_POINT("DBImpl::WriteImpl:BeforeLeaderEnters");
   last_batch_group_size_ =
       write_thread_.EnterAsBatchGroupLeader(&w, &write_group);
-#ifndef NDEBUG
+#ifndef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   std::printf("Enter as group leader, time elapse is %zu\n",  duration.count());
@@ -293,7 +293,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     // assumed to be true.  Rule 3 is checked for each batch.  We could
     // relax rules 2 if we could prevent write batches from referring
     // more than once to a particular key.
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     start = std::chrono::high_resolution_clock::now();
 #endif
     bool parallel = immutable_db_options_.allow_concurrent_memtable_write &&
@@ -350,13 +350,13 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     if (write_options.disableWAL) {
       has_unpersisted_data_.store(true, std::memory_order_relaxed);
     }
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::printf("ADD stats, time elapse is %zu\n",  duration.count());
 #endif
     PERF_TIMER_STOP(write_pre_and_post_process_time);
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     start = std::chrono::high_resolution_clock::now();
 #endif
     if (!two_write_queues_) {
@@ -381,12 +381,12 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     assert(last_sequence != kMaxSequenceNumber);
     const SequenceNumber current_sequence = last_sequence + 1;
     last_sequence += seq_inc;
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::printf("Write ahead log, supposed to be zero time elapse is %zu\n",  duration.count());
 #endif
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     start = std::chrono::high_resolution_clock::now();
 #endif
     // PreReleaseCallback is called after WAL write and before memtable write
@@ -419,12 +419,12 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
         }
       }
     }
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::printf("Call back, supposed to be small time elapse is %zu\n",  duration.count());
 #endif
-#ifndef NDEBUG
+#ifndef TIMEPRINT
     start = std::chrono::high_resolution_clock::now();
 #endif
     if (status.ok()) {
@@ -472,12 +472,12 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
       WriteStatusCheck(status);
     }
   }
-#ifndef NDEBUG
+#ifndef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
 #endif
-#ifndef NDEBUG
+#ifndef TIMEPRINT
   start = std::chrono::high_resolution_clock::now();
 #endif
   if (need_log_sync) {
@@ -514,7 +514,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   if (status.ok()) {
     status = w.FinalStatus();
   }
-#ifndef NDEBUG
+#ifndef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   std::printf("Sync log and notify next batch, supposed to be small time elapse is %zu\n",  duration.count());

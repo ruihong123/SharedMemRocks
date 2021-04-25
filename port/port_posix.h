@@ -84,7 +84,7 @@
 // when targeting older platforms.
 #define fdatasync fsync
 #endif
-
+#define TIMEPRINT
 namespace ROCKSDB_NAMESPACE {
 
 extern const bool kDefaultToAdaptiveMutex;
