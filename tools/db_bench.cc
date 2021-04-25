@@ -7,15 +7,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef GFLAGS
-#include <cstdio>
-int main() {
-  fprintf(stderr, "Please install gflags to run rocksdb tools\n");
-  return 1;
-}
-#else
+//#ifndef GFLAGS
+//#include <cstdio>
+//int main() {
+//  fprintf(stderr, "Please install gflags to run rocksdb tools\n");
+//  return 1;
+//}
+//#else
 #include <rocksdb/db_bench_tool.h>
 int main(int argc, char** argv) {
   return ROCKSDB_NAMESPACE::db_bench_tool(argc, argv);
 }
-#endif  // GFLAGS
+//#endif  // GFLAGS
