@@ -371,125 +371,125 @@ class RDMA_Manager{
 
 
 };
-class Hash_Map{
-  Hash_Map(size_t size, RDMA_Manager* rdma_mg, size_t bucket_size = 16*1024):
-            region_size_(size), bucket_size_(bucket_size), rdma_mg_(rdma_mg) {
-    void* temp_p = malloc(1*1024*1024);
-    int mr_flags =
-        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-    mr = ibv_reg_mr(rdma_mg_->res->pd, static_cast<void*>(temp_p), region_size_, mr_flags);
-    memory_region = static_cast<char*>(mr->addr);
-  }
-  bool insert(std::string& filename, SST_Metadata* sst_p){
-    std::hash<std::string> hash;
-    size_t hash_value = hash(filename);
-    return false;
-  }
-  bool serialize_one_file(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
-    char* temp_p = start_position;
-    size_t filename_length = filename.size();
-    size_t filename_length_net = htonl(filename_length);
-    memcpy(temp_p, &filename_length_net, sizeof(size_t));
-    temp_p = temp_p + sizeof(size_t);
-    memcpy(temp_p, filename.c_str(), filename_length);
-    temp_p = temp_p + filename_length;
-    unsigned int file_size = sst_p->file_size;
-    unsigned int file_size_net = htonl(file_size);
-    memcpy(temp_p, &file_size_net, sizeof(unsigned int));
-    temp_p = temp_p + sizeof(unsigned int);
-    // check how long is the list
-    SST_Metadata* meta_p = sst_p;
-    SST_Metadata* temp_meta = meta_p;
-    size_t list_len = 1;
-    while (temp_meta->next_ptr != nullptr) {
-      list_len++;
-      temp_meta = temp_meta->next_ptr;
-    }
-    size_t list_len_net = ntohl(list_len);
-    memcpy(temp_p, &list_len_net, sizeof(size_t));
-    temp_p = temp_p + sizeof(size_t);
-    meta_p = sst_p;
-    size_t length_map = meta_p->map_pointer->length;
-    size_t length_map_net = htonl(length_map);
-    memcpy(temp_p, &length_map_net, sizeof(size_t));
-    temp_p = temp_p + sizeof(size_t);
-    size_t dummy_size;
-    while (meta_p != nullptr) {
-
-      rdma_mg_->mr_serialization(temp_p, dummy_size, meta_p->mr);
-      // TODO: minimize the size of the serialized data. For exe, could we save
-      // TODO: the mr length only once?
-
-      void* p = meta_p->map_pointer->addr;
-      memcpy(temp_p, &p, sizeof(void*));
-      temp_p = temp_p + sizeof(void*);
-      meta_p = meta_p->next_ptr;
-
-
-    }
-    size_delta = temp_p - start_position;
-    return true;
-  }
-  bool search_in_bucket(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
-    char* temp = start_position;
-    size_t filenumber_net;
-    memcpy(&filenumber_net, temp, sizeof(size_t));
-    size_t filenumber = htonl(filenumber_net);
-    temp = temp + sizeof(size_t);
-    for (size_t i = 0; i < filenumber; i++) {
-      size_t filename_length_net;
-      memcpy(&filename_length_net, temp, sizeof(size_t));
-      size_t filename_length = ntohl(filename_length_net);
-      temp = temp + sizeof(size_t);
-      char filename[filename_length+1];
-      memcpy(filename, temp, filename_length);
-      filename[filename_length] = '\0';
-      temp = temp + filename_length;
-
-      unsigned int file_size_net = 0;
-      memcpy(&file_size_net, temp, sizeof(unsigned int));
-      unsigned int file_size = ntohl(file_size_net);
-      temp = temp + sizeof(unsigned int);
-      size_t list_len_net = 0;
-      memcpy(&list_len_net, temp, sizeof(size_t));
-      size_t list_len = htonl(list_len_net);
-      temp = temp + sizeof(size_t);
-      SST_Metadata* meta_head;
-      SST_Metadata* meta = new SST_Metadata();
-      meta->file_size = file_size;
-      meta_head = meta;
-      size_t length_map_net = 0;
-      memcpy(&length_map_net, temp, sizeof(size_t));
-      size_t length_map = htonl(length_map_net);
-      temp = temp + sizeof(size_t);
-      for (size_t j = 0; j<list_len; j++){
-        //below could be problematic.
-        meta->fname = std::string(filename);
-        mr_deserialization(temp, size, meta->mr);
-        meta->map_pointer = new ibv_mr;
-        *(meta->map_pointer) = *(meta->mr);
-        void* start_key;
-        memcpy(&start_key, temp, sizeof(void*));
-        temp = temp + sizeof(void*);
-        meta->map_pointer->length = length_map;
-        meta->map_pointer->addr = start_key;
-        if (j!=list_len-1){
-          meta->next_ptr = new SST_Metadata();
-          meta = meta->next_ptr;
-        }
-
-      }
-      file_to_sst_meta.insert({std::string(filename), meta_head});
-    }
-  }
- private:
-  size_t region_size_;
-  size_t bucket_size_;
-  RDMA_Manager* rdma_mg_;
-  ibv_mr* mr;
-  char* memory_region;
-  size_t number_element = 0;
-};
+//class Hash_Map{
+//  Hash_Map(size_t size, RDMA_Manager* rdma_mg, size_t bucket_size = 16*1024):
+//            region_size_(size), bucket_size_(bucket_size), rdma_mg_(rdma_mg) {
+//    void* temp_p = malloc(1*1024*1024);
+//    int mr_flags =
+//        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+//    mr = ibv_reg_mr(rdma_mg_->res->pd, static_cast<void*>(temp_p), region_size_, mr_flags);
+//    memory_region = static_cast<char*>(mr->addr);
+//  }
+//  bool insert(std::string& filename, SST_Metadata* sst_p){
+//    std::hash<std::string> hash;
+//    size_t hash_value = hash(filename);
+//    return false;
+//  }
+//  bool serialize_one_file(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
+//    char* temp_p = start_position;
+//    size_t filename_length = filename.size();
+//    size_t filename_length_net = htonl(filename_length);
+//    memcpy(temp_p, &filename_length_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    memcpy(temp_p, filename.c_str(), filename_length);
+//    temp_p = temp_p + filename_length;
+//    unsigned int file_size = sst_p->file_size;
+//    unsigned int file_size_net = htonl(file_size);
+//    memcpy(temp_p, &file_size_net, sizeof(unsigned int));
+//    temp_p = temp_p + sizeof(unsigned int);
+//    // check how long is the list
+//    SST_Metadata* meta_p = sst_p;
+//    SST_Metadata* temp_meta = meta_p;
+//    size_t list_len = 1;
+//    while (temp_meta->next_ptr != nullptr) {
+//      list_len++;
+//      temp_meta = temp_meta->next_ptr;
+//    }
+//    size_t list_len_net = ntohl(list_len);
+//    memcpy(temp_p, &list_len_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    meta_p = sst_p;
+//    size_t length_map = meta_p->map_pointer->length;
+//    size_t length_map_net = htonl(length_map);
+//    memcpy(temp_p, &length_map_net, sizeof(size_t));
+//    temp_p = temp_p + sizeof(size_t);
+//    size_t dummy_size;
+//    while (meta_p != nullptr) {
+//
+//      rdma_mg_->mr_serialization(temp_p, dummy_size, meta_p->mr);
+//      // TODO: minimize the size of the serialized data. For exe, could we save
+//      // TODO: the mr length only once?
+//
+//      void* p = meta_p->map_pointer->addr;
+//      memcpy(temp_p, &p, sizeof(void*));
+//      temp_p = temp_p + sizeof(void*);
+//      meta_p = meta_p->next_ptr;
+//
+//
+//    }
+//    size_delta = temp_p - start_position;
+//    return true;
+//  }
+//  bool search_in_bucket(std::string& filename, SST_Metadata* sst_p, char* start_position, size_t size_delta){
+//    char* temp = start_position;
+//    size_t filenumber_net;
+//    memcpy(&filenumber_net, temp, sizeof(size_t));
+//    size_t filenumber = htonl(filenumber_net);
+//    temp = temp + sizeof(size_t);
+//    for (size_t i = 0; i < filenumber; i++) {
+//      size_t filename_length_net;
+//      memcpy(&filename_length_net, temp, sizeof(size_t));
+//      size_t filename_length = ntohl(filename_length_net);
+//      temp = temp + sizeof(size_t);
+//      char filename[filename_length+1];
+//      memcpy(filename, temp, filename_length);
+//      filename[filename_length] = '\0';
+//      temp = temp + filename_length;
+//
+//      unsigned int file_size_net = 0;
+//      memcpy(&file_size_net, temp, sizeof(unsigned int));
+//      unsigned int file_size = ntohl(file_size_net);
+//      temp = temp + sizeof(unsigned int);
+//      size_t list_len_net = 0;
+//      memcpy(&list_len_net, temp, sizeof(size_t));
+//      size_t list_len = htonl(list_len_net);
+//      temp = temp + sizeof(size_t);
+//      SST_Metadata* meta_head;
+//      SST_Metadata* meta = new SST_Metadata();
+//      meta->file_size = file_size;
+//      meta_head = meta;
+//      size_t length_map_net = 0;
+//      memcpy(&length_map_net, temp, sizeof(size_t));
+//      size_t length_map = htonl(length_map_net);
+//      temp = temp + sizeof(size_t);
+//      for (size_t j = 0; j<list_len; j++){
+//        //below could be problematic.
+//        meta->fname = std::string(filename);
+//        mr_deserialization(temp, size, meta->mr);
+//        meta->map_pointer = new ibv_mr;
+//        *(meta->map_pointer) = *(meta->mr);
+//        void* start_key;
+//        memcpy(&start_key, temp, sizeof(void*));
+//        temp = temp + sizeof(void*);
+//        meta->map_pointer->length = length_map;
+//        meta->map_pointer->addr = start_key;
+//        if (j!=list_len-1){
+//          meta->next_ptr = new SST_Metadata();
+//          meta = meta->next_ptr;
+//        }
+//
+//      }
+//      file_to_sst_meta.insert({std::string(filename), meta_head});
+//    }
+//  }
+// private:
+//  size_t region_size_;
+//  size_t bucket_size_;
+//  RDMA_Manager* rdma_mg_;
+//  ibv_mr* mr;
+//  char* memory_region;
+//  size_t number_element = 0;
+//};
 //#ifdef __cplusplus
 //}
 //#endif

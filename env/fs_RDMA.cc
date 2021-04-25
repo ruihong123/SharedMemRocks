@@ -615,7 +615,7 @@ class RDMAFileSystem : public FileSystem {
         break;
       }
     }
-    uint64_t size;
+    uint64_t size = 0;
     if (status.ok()) {
       IOOptions opts;
       status = GetFileSize(fname, opts, &size, nullptr);
@@ -1218,10 +1218,10 @@ RDMAFileSystem::RDMAFileSystem()
                              &file_to_sst_meta,
                              &fs_mutex);
   rdma_mg->Client_Set_Up_Resources();
-//  auto myid = std::this_thread::get_id();
-//  std::stringstream ss;
-//  ss << myid;
-//  auto* posix_tid = new std::string(ss.str());
+  //  auto myid = std::this_thread::get_id();
+  //  std::stringstream ss;
+  //  ss << myid;
+  //  auto* posix_tid = new std::string(ss.str());
 //  rdma_mg->Remote_Query_Pair_Connection(*posix_tid);
 //  rdma_mg->t_local_1->Reset(posix_tid);
 

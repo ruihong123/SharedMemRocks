@@ -219,9 +219,9 @@ class RDMARandomAccessFile : public FSRandomAccessFile {
   virtual IOStatus Read(uint64_t offset, size_t n, const IOOptions& opts,
                         Slice* result, char* scratch,
                         IODebugContext* dbg) const override;
-  virtual IOStatus Read(uint64_t offset, const IOOptions& opts,
-                        Slice* result, char* scratch,
-                        IODebugContext* dbg) const;
+//  virtual IOStatus Read(uint64_t offset, const IOOptions& opts,
+//                        Slice* result, char* scratch,
+//                        IODebugContext* dbg) const;
   IOStatus Read_chunk(char*& buff_ptr, size_t size, ibv_mr* local_mr_pointer,
                       ibv_mr& remote_mr, size_t& chunk_offset,
                       SST_Metadata*& sst_meta_current,

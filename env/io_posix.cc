@@ -1008,12 +1008,12 @@ RDMARandomAccessFile::RDMARandomAccessFile(SST_Metadata* sst_meta,
       logical_sector_size_(logical_block_size),
       rdma_mg_(rdma_mg){}
 
-//RDMARandomAccessFile::RDMARandomAccessFile){}
-IOStatus RDMARandomAccessFile::Read(uint64_t offset, const IOOptions& opts,
-                                    Slice* result, char* scratch,
-                                    IODebugContext* dbg) const {
-  return IOStatus();
-}
+////RDMARandomAccessFile::RDMARandomAccessFile){}
+//IOStatus RDMARandomAccessFile::Read(uint64_t offset, const IOOptions& opts,
+//                                    Slice* result, char* scratch,
+//                                    IODebugContext* dbg) const {
+//  return IOStatus();
+//}
 IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
