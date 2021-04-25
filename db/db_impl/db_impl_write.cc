@@ -150,7 +150,11 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     }
     return status;
   }
-
+#ifdef TIMEPRINT
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("The beggining of the write, time elapse is %zu\n",  duration.count());
+#endif
   if (immutable_db_options_.enable_pipelined_write) {
     return PipelinedWriteImpl(write_options, my_batch, callback, log_used,
                               log_ref, disable_memtable, seq_used);
@@ -163,11 +167,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   if (!write_options.disableWAL) {
     RecordTick(stats_, WRITE_WITH_WAL);
   }
-#ifdef TIMEPRINT
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::printf("The beggining of the write, time elapse is %zu\n",  duration.count());
-#endif
+
   StopWatch write_sw(env_, immutable_db_options_.statistics.get(), DB_WRITE);
 #ifdef TIMEPRINT
   start = std::chrono::high_resolution_clock::now();
@@ -175,7 +175,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   write_thread_.JoinBatchGroup(&w);
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("JoinBatchGroup, time elapse is %zu\n",  duration.count());
 #endif
   if (w.state == WriteThread::STATE_PARALLEL_MEMTABLE_WRITER) {
@@ -262,7 +262,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   mutex_.Unlock();
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("PreprocessWrite and a lock, time elapse is %zu\n",  duration.count());
 #endif
   // Add to log and apply to memtable.  We can release the lock
@@ -277,7 +277,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
       write_thread_.EnterAsBatchGroupLeader(&w, &write_group);
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("Enter as group leader, time elapse is %zu\n",  duration.count());
 #endif
 
@@ -352,7 +352,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     }
 #ifdef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     std::printf("ADD stats, time elapse is %zu\n",  duration.count());
 #endif
     PERF_TIMER_STOP(write_pre_and_post_process_time);
@@ -383,7 +383,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     last_sequence += seq_inc;
 #ifdef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     std::printf("Write ahead log, supposed to be zero time elapse is %zu\n",  duration.count());
 #endif
 #ifdef TIMEPRINT
@@ -421,7 +421,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     }
 #ifdef TIMEPRINT
     stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     std::printf("Call back, supposed to be small time elapse is %zu\n",  duration.count());
 #endif
 #ifdef TIMEPRINT
@@ -474,7 +474,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   }
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
 #endif
 #ifdef TIMEPRINT
@@ -516,7 +516,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   }
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("Sync log and notify next batch, supposed to be small time elapse is %zu\n",  duration.count());
 #endif
   return status;
@@ -526,6 +526,12 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
                                   WriteBatch* my_batch, WriteCallback* callback,
                                   uint64_t* log_used, uint64_t log_ref,
                                   bool disable_memtable, uint64_t* seq_used) {
+#ifdef TIMEPRINT
+  auto total_start = std::chrono::high_resolution_clock::now();
+#endif
+#ifdef TIMEPRINT
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   PERF_TIMER_GUARD(write_pre_and_post_process_time);
   StopWatch write_sw(env_, immutable_db_options_.statistics.get(), DB_WRITE);
 
@@ -534,7 +540,15 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
   WriteThread::Writer w(write_options, my_batch, callback, log_ref,
                         disable_memtable);
   write_thread_.JoinBatchGroup(&w);
+#ifdef TIMEPRINT
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("JoinBatchGroup, time elapse is %zu\n",  duration.count());
+#endif
   if (w.state == WriteThread::STATE_GROUP_LEADER) {
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     WriteThread::WriteGroup wal_write_group;
     if (w.callback && !w.callback->AllowWriteBatching()) {
       write_thread_.WaitForMemTableWriters();
@@ -548,10 +562,25 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
     PERF_TIMER_START(write_pre_and_post_process_time);
     log::Writer* log_writer = logs_.back().writer;
     mutex_.Unlock();
-
+#ifdef TIMEPRINT
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    std::printf("PreprocessWrite and a lock, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     // This can set non-OK status if callback fail.
     last_batch_group_size_ =
         write_thread_.EnterAsBatchGroupLeader(&w, &wal_write_group);
+#ifdef TIMEPRINT
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    std::printf("Enter as group leader, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     const SequenceNumber current_sequence =
         write_thread_.UpdateLastSequence(versions_->LastSequence()) + 1;
     size_t total_count = 0;
@@ -600,7 +629,11 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
                         need_log_dir_sync, current_sequence);
       w.status = io_s;
     }
-
+#ifdef TIMEPRINT
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    std::printf("ADD stats, time elapse is %zu\n",  duration.count());
+#endif
     if (!w.CallbackFailed()) {
       if (!io_s.ok()) {
         IOStatusCheck(io_s);
@@ -617,7 +650,9 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
 
     write_thread_.ExitAsBatchGroupLeader(wal_write_group, w.status);
   }
-
+#ifdef TIMEPRINT
+  start = std::chrono::high_resolution_clock::now();
+#endif
   WriteThread::WriteGroup memtable_write_group;
   if (w.state == WriteThread::STATE_MEMTABLE_WRITER_LEADER) {
     PERF_TIMER_GUARD(write_memtable_time);
@@ -636,7 +671,14 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
       write_thread_.ExitAsMemTableWriter(&w, memtable_write_group);
     }
   }
-
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+  start = std::chrono::high_resolution_clock::now();
+#endif
   if (w.state == WriteThread::STATE_PARALLEL_MEMTABLE_WRITER) {
     assert(w.ShouldWriteToMemtable());
     ColumnFamilyMemTablesImpl column_family_memtables(
@@ -656,7 +698,13 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
   if (seq_used != nullptr) {
     *seq_used = w.sequence;
   }
-
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  auto duration_total = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - total_start);
+  std::printf("Real insert to memtable as a follower, time elapse is %zu\n",  duration.count());
+  std::printf("total time for pipeline wirte, time elapse is %zu\n",  duration_total.count());
+#endif
   assert(w.state == WriteThread::STATE_COMPLETED);
   return w.FinalStatus();
 }
