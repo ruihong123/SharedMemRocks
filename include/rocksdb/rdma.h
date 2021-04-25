@@ -358,7 +358,7 @@ class RDMA_Manager{
   std::shared_mutex local_mem_mutex;
   std::unordered_map<std::string, ibv_mr*> fs_image;
   std::unordered_map<std::string, ibv_mr*> log_image;
-  std::unique_ptr<ibv_mr, IBV_Deleter> log_image_mr;
+  ibv_mr* log_image_mr = nullptr;
   std::shared_mutex log_image_mutex;
   std::shared_mutex fs_image_mutex;
   // use thread local qp and cq instead of map, this could be lock free.

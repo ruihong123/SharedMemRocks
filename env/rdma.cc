@@ -99,6 +99,10 @@ RDMA_Manager::~RDMA_Manager() {
     }
     //    local_mem_pool.clear();
   }
+  if (log_image_mr != nullptr){
+    ibv_dereg_mr(log_image_mr);
+    delete (char*)log_image_mr->addr;
+  }
   if (!remote_mem_pool.empty()) {
     for (auto p : remote_mem_pool) {
       delete p;  // remote buffer is not registered on this machine so just delete the structure
@@ -659,7 +663,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   void* buff = malloc(1024*1024);
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  log_image_mr.reset(ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags));
+  log_image_mr = ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags);
   Client_Connect_to_Server_RDMA();
 }
 /******************************************************************************
@@ -2538,7 +2542,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
     buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
     if (buff_size!=0){
 
-      local_mr = log_image_mr.get();
+      local_mr = log_image_mr;
       post_receive(local_mr,"main", buff_size);
       // send a char to tell the shared memory that this computing node is ready to receive the data
       post_send<char>(res->mr_send, std::string("main"));
