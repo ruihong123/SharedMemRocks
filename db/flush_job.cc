@@ -184,6 +184,7 @@ void FlushJob::PickMemTable() {
   edit_->SetColumnFamily(cfd_->GetID());
 
   // path 0 for level 0 file.
+  //Tothink Why there is only one file for the flushing result. what if the file exceed the size limit?
   meta_.fd = FileDescriptor(versions_->NewFileNumber(), 0, 0);
 
   base_ = cfd_->current();
