@@ -26,7 +26,7 @@ def run(cmd, out, cwd, timeout_sec):
 for run_index in range(TIMES_TO_RUN):
     db_path = os.path.join("./temp"+ str(run_index))
     with open("result" + str(run_index) + '.txt', 'w+') as out:
-        cmd = ['./db_bench', '--benchmarks=fillrandom --use_existing_db=0', '--disable_auto_compactions=0', '--sync=0',
+        cmd = ['./db_bench', '--benchmarks=fillrandom --use_existing_db=0 --disable_auto_compactions=0 --sync=0',
                '--db=./temp' + str(run_index), '--wal_dir=./temp' + str(run_index), '--num=10000000', '--num_levels=6', '--key_size=16', '--value_size=400', '--block_size=8192', '--cache_size=6442450944',
                '--cache_numshardbits=6', '--compression_max_dict_bytes=0', '--compression_ratio=0.5', '--compression_type=none', '--level_compaction_dynamic_level_bytes=true', '--bytes_per_sync=8388608',
                '--cache_index_and_filter_blocks=0', '--pin_l0_filter_and_index_blocks_in_cache=1', '--benchmark_write_rate_limit=0',
