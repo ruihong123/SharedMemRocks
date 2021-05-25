@@ -15,7 +15,7 @@ DB_BENCH_DIR = "./release"
 # TIMEOUT = 10 * 60
 total_bandwidth=0
 for run_index in range(TIMES_TO_RUN):
-    db_path = os.path.join(DB_BENCH_DIR + "/result"+ str(run_index) + '.txt')
+    db_path = os.path.join(DB_BENCH_DIR + "/result"+ str(run_index+1) + '.txt')
 
     with open(db_path, 'r') as out:
         test_results = out.read()
