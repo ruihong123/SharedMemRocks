@@ -16,7 +16,7 @@ cust_func(){
 }
 cd release
 # For loop 5 times
-for i in {1..8}
+for i in {1..16}
 do
 	cust_func $i & # Put a function in the background
 done
