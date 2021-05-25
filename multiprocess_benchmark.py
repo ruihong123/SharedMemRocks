@@ -35,5 +35,5 @@ for run_index in range(TIMES_TO_RUN):
                '--max_bytes_for_level_multiplier=8', '--statistics=0', '--stats_per_interval=1', '--stats_interval_seconds=60',
                '--histogram=1', '--memtablerep=skip_list', '--bloom_bits=10', '--open_files=-1', '--max_background_compactions=16',
                '--max_write_buffer_number=1', '--max_background_flushes=1', '--level0_file_num_compaction_trigger=4', '--level0_stop_writes_trigger=20',
-               '--level0_slowdown_writes_trigger=12', '--threads=16', '--allow_concurrent_memtable_write=true', '--disable_wal=1', '--seed=1606010580' '<', 'input.txt']
+               '--level0_slowdown_writes_trigger=12', '--threads=16', '--allow_concurrent_memtable_write=true', '--disable_wal=1', '--seed=1606010580' '<', '../input.txt']
         proc = subprocess.Popen(cmd, cwd=DB_BENCH_DIR, stdout=out, stderr=out)
