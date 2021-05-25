@@ -5,7 +5,7 @@ import subprocess
 from distutils.dir_util import copy_tree
 from shutil import copyfile, rmtree
 from threading import Timer
-TIMES_TO_RUN = 4
+TIMES_TO_RUN = 8
 # STUDENT_TEST_LOG_NAME = 'test-results'
 # STUDENT_SUBMISSION_DIR = "Assignment4"
 # SCORES = {}
