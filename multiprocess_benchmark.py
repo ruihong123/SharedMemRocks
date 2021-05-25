@@ -15,6 +15,7 @@ DB_BENCH_DIR = "./release"
 TIMEOUT = 5 * 60
 def run(cmd, out, cwd, timeout_sec):
     proc = subprocess.Popen(cmd, cwd=cwd, stdout=out, stderr=out)
+    print("Process start!")
     kill_proc = lambda p: p.kill()
     timer = Timer(timeout_sec, kill_proc, [proc])
     try:
