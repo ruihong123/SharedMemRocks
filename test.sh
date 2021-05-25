@@ -2,7 +2,7 @@
 # Our custom function
 cust_func(){
   DB_FOLDER="./temp$1"
-  LOG_FILE="../result$1.txt"
+  LOG_FILE="./result$1.txt"
   ulimit -l 134217728 && ./db_bench --benchmarks=fillrandom --use_existing_db=0 --disable_auto_compactions=0 --sync=0 --db=$DB_FOLDER \
   --wal_dir=$DB_FOLDER --num=10000000 --num_levels=6 --key_size=16 --value_size=400 --block_size=8192 \
   --cache_size=6442450944 --cache_numshardbits=6 --compression_max_dict_bytes=0 --compression_ratio=0.5 \
