@@ -4391,7 +4391,7 @@ class Benchmark {
     Duration duration(test_duration, max_ops, ops_per_stage);
     for (size_t i = 0; i < num_key_gens; i++) {
       key_gens[i].reset(new KeyGenerator(&(thread->rand), write_mode,
-                                         num_ + max_num_range_tombstones_,
+                                         num_*FLAGS_threads + max_num_range_tombstones_,
                                          ops_per_stage));
     }
 
@@ -4448,7 +4448,7 @@ class Benchmark {
 
       for (int64_t j = 0; j < entries_per_batch_; j++) {
         //kEEP THE range of the key same across the tests
-        int64_t rand_num = key_gens[id]->Next()*FLAGS_threads;
+        int64_t rand_num = key_gens[id]->Next();
         GenerateKeyFromInt(rand_num, FLAGS_num, &key);
         Slice val = gen.Generate();
         if (use_blob_db_) {
