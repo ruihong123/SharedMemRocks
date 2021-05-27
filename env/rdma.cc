@@ -329,9 +329,11 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   }
   ibv_mr* recv_mr;
   char* recv_buff;
+
   if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
     fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
   }
+
 //  post_receive<int>(recv_mr, client_ip);
 
 
@@ -373,11 +375,15 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       ibv_mr* send_pointer = (ibv_mr*)send_buff;
       ibv_mr* mr;
       char* buff;
+      auto start = std::chrono::high_resolution_clock::now();
       if (!Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
                                  std::string())) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(receive_msg_buf.content.mem_size));
       }
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      std::printf("RDMA Memory registeration size: %zu time elapse (%ld) us\n", receive_msg_buf.content.mem_size, duration.count());
 
       *send_pointer = *mr;
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
@@ -420,7 +426,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
     }else if (receive_msg_buf.command == retrieve_fs_serialized_data){
-      printf("retrieve_fs_serialized_data message received successfully\n");
+//      printf("retrieve_fs_serialized_data message received successfully\n");
       post_receive(recv_mr,client_ip, 1000);
       post_send<int>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
@@ -450,7 +456,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
 
     }else if (receive_msg_buf.command == save_fs_serialized_data){
-      printf("save_fs_serialized_data message received successfully\n");
+//      printf("save_fs_serialized_data message received successfully\n");
       int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
       file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
 
@@ -1507,8 +1513,8 @@ int RDMA_Manager::post_receive(ibv_mr** mr_list, size_t sge_size,
     rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post RR\n");
-  else
-    fprintf(stdout, "Receive Request was posted\n");
+//  else
+//    fprintf(stdout, "Receive Request was posted\n");
   return rc;
 }
 
@@ -1547,8 +1553,8 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id, size_t size) {
     rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post RR\n");
-  else
-    fprintf(stdout, "Receive Request was posted\n");
+//  else
+//    fprintf(stdout, "Receive Request was posted\n");
   return rc;
 }
 
@@ -1604,8 +1610,8 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
     rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post RR\n");
-  else
-    fprintf(stdout, "Receive Request was posted\n");
+//  else
+//    fprintf(stdout, "Receive Request was posted\n");
   return rc;
 }
 /* poll_completion */
@@ -2217,9 +2223,9 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
 
   }
   size = temp - buff;
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("fs serialization time elapse: %ld\n", duration.count());
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  printf("fs serialization time elapse: %ld\n", duration.count());
 }
 void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
 
@@ -2397,9 +2403,9 @@ void RDMA_Manager::fs_deserilization(
     In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
   }
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("fs pure deserialization time elapse: %ld\n", duration.count());
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  printf("fs pure deserialization time elapse: %ld\n", duration.count());
   ibv_dereg_mr(local_mr);
   free(buff);
 
@@ -2442,9 +2448,9 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
     else
       fprintf(stderr, "failed to poll send for serialized data send\n");
 //  sleep(100);
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("fs meta data save communication time elapse: %ld\n", duration.count());
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("fs meta data save communication time elapse: %ld\n", duration.count());
 
   }
   else if (type == log_type){
@@ -2517,9 +2523,9 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       fprintf(stderr, "failed to poll receive for serialized message\n");
       return false;
     }else{
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
+//      auto stop = std::chrono::high_resolution_clock::now();
+//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
       return true;
     }
   }else if (type == log_type){
@@ -2555,9 +2561,9 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       fprintf(stderr, "failed to poll receive for serialized message\n");
       return false;
     }else{
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
+//      auto stop = std::chrono::high_resolution_clock::now();
+//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
       return true;
     }
   }
