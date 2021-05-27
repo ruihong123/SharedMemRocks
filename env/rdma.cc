@@ -2093,7 +2093,7 @@ void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
 
 void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name,
                                     std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
 
   size_t namenumber = db_name.size();
@@ -2251,7 +2251,7 @@ void RDMA_Manager::fs_deserilization(
     char*& buff, size_t& size, std::string& db_name,
     std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
     std::map<void*, In_Use_Array>& remote_mem_bitmap, ibv_mr* local_mr) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
   size_t namenumber_net;
   memcpy(&namenumber_net, temp, sizeof(size_t));
@@ -2415,7 +2415,7 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
                                                char* buff, size_t buff_size,
                                                file_type type,
                                                ibv_mr* local_mr) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   bool destroy_flag;
   if (local_mr == nullptr){
     int mr_flags =
@@ -2481,7 +2481,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
                                                    size_t& buff_size,
                                                    ibv_mr*& local_mr,
                                                    file_type type) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
