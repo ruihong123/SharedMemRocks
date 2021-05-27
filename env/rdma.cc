@@ -481,7 +481,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       dbname_[namenumber] = '\0';
       temp = temp + namenumber;
       std::string db_name = std::string(dbname_);
-      std::cout << "save db_name is: " << db_name <<std::endl;
+//      std::cout << "save db_name is: " << db_name <<std::endl;
       if (fs_image.find(db_name)!= fs_image.end()){
         void* to_delete = fs_image.at(db_name)->addr;
         ibv_dereg_mr(fs_image.at(db_name));
@@ -1378,9 +1378,9 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id) {
     rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
-  else {
-    fprintf(stdout, "Send Request was posted\n");
-  }
+//  else {
+//    fprintf(stdout, "Send Request was posted\n");
+//  }
   return rc;
 }
 int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
@@ -1422,9 +1422,9 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
     rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
-  else {
-    fprintf(stdout, "Send Request was posted\n");
-  }
+//  else {
+//    fprintf(stdout, "Send Request was posted\n");
+//  }
   return rc;
 }
 int RDMA_Manager::post_send(ibv_mr** mr_list, size_t sge_size,
@@ -1470,9 +1470,9 @@ int RDMA_Manager::post_send(ibv_mr** mr_list, size_t sge_size,
     rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
   if (rc)
     fprintf(stderr, "failed to post SR\n");
-  else {
-    fprintf(stdout, "Send Request was posted\n");
-  }
+//  else {
+//    fprintf(stdout, "Send Request was posted\n");
+//  }
   return rc;
 }
 int RDMA_Manager::post_receive(ibv_mr** mr_list, size_t sge_size,
@@ -2443,9 +2443,7 @@ bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
       post_send(local_mr, std::string("main"), buff_size);
     }else
       fprintf(stderr, "failed to poll receive for serialized message\n");
-    if (!poll_completion(wc, 1, std::string("main")))
-      printf("serialized data sent successfully");
-    else
+    if (poll_completion(wc, 1, std::string("main")))
       fprintf(stderr, "failed to poll send for serialized data send\n");
 //  sleep(100);
 //    auto stop = std::chrono::high_resolution_clock::now();

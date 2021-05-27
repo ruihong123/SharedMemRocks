@@ -182,7 +182,7 @@ class FileSystem {
                                                  others)){
       rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta,
                                  *Remote_Bitmap, local_mr);
-      printf("Serialized data size: %zu", size);
+//      printf("Serialized data size: %zu", size);
     }
     return;
   }
@@ -192,7 +192,7 @@ class FileSystem {
     char* buff = static_cast<char*>(malloc(1024*1024));
     size_t size;
     rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
-    printf("Serialized data size: %zu", size);
+//    printf("Serialized data size: %zu", size);
     rdma_mg->client_save_serialized_data(db_name, buff, size, others, nullptr);
     return;
   }

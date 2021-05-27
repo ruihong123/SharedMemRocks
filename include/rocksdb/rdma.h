@@ -309,7 +309,7 @@ class RDMA_Manager{
     char* buff = static_cast<char*>(malloc(1024*1024));
     size_t size_dummy;
     fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
-    printf("Serialized data size: %zu", size_dummy);
+//    printf("Serialized data size: %zu", size_dummy);
     client_save_serialized_data(*db_name_, buff, size_dummy, log_type, nullptr);}
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
