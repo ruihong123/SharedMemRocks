@@ -4447,7 +4447,6 @@ class Benchmark {
       int64_t batch_bytes = 0;
 
       for (int64_t j = 0; j < entries_per_batch_; j++) {
-        //kEEP THE range of the key same across the tests
         int64_t rand_num = key_gens[id]->Next();
         GenerateKeyFromInt(rand_num, FLAGS_num, &key);
         Slice val = gen.Generate();
@@ -4576,6 +4575,7 @@ class Benchmark {
       }
     }
     thread->stats.AddBytes(bytes);
+    printf("Job finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   }
 
   Status DoDeterministicCompact(ThreadState* thread,
