@@ -196,15 +196,17 @@ class RDMAFileSystem : public FileSystem {
 
       // delete remove the flage sucessfully
       SST_Metadata* next_file_meta;
+      bool result;
       while (file_meta->next_ptr != nullptr){
         next_file_meta = file_meta->next_ptr;
-        rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
-
+        result = rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+        assert(result);
         delete file_meta->mr;
         delete file_meta;
         file_meta = next_file_meta;
       }
-      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+      result = rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+      assert(result);
       delete file_meta->mr;
       delete file_meta;
       return 1;
@@ -884,6 +886,7 @@ class RDMAFileSystem : public FileSystem {
       // Otherwise it is a RDMA file, delete it through the RDMA file delete.
       if (RDMA_Delete_File(fname)==0){
         result = IOError("while RDMA unlink() file, error occur", fname, errno);
+        assert(false);
       }
       else result = IOStatus::OK();
     }
