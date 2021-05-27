@@ -242,6 +242,8 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
   for (iterator = resolved_addr; iterator; iterator = iterator->ai_next) {
     sockfd = socket(iterator->ai_family, iterator->ai_socktype,
                     iterator->ai_protocol);
+    int option = 1;
+    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&option,sizeof(int));
     if (sockfd >= 0) {
       /* Server mode. Set up listening socket an accept a connection */
       listenfd = sockfd;
