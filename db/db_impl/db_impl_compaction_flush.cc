@@ -199,7 +199,11 @@ Status DBImpl::FlushMemTableToOutputFile(
   // and EventListener callback will be called when the db_mutex
   // is unlocked by the current thread.
   if (s.ok()) {
+    auto start = std::chrono::high_resolution_clock::now();
     s = flush_job.Run(&logs_with_prep_tracker_, &file_meta);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("memtable flushing time elapse (%ld) us\n", duration.count());
   } else {
     flush_job.Cancel();
   }
@@ -2925,7 +2929,12 @@ Status DBImpl::BackgroundCompaction(bool* made_progress,
     mutex_.Unlock();
     TEST_SYNC_POINT_CALLBACK(
         "DBImpl::BackgroundCompaction:NonTrivial:BeforeRun", nullptr);
+    auto start = std::chrono::high_resolution_clock::now();
     compaction_job.Run();
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %zu, the second level file number %zu \n",
+           duration.count(), c->level(), c->num_input_files(0),c->num_input_files(1) );
     TEST_SYNC_POINT("DBImpl::BackgroundCompaction:NonTrivial:AfterRun");
     mutex_.Lock();
 
