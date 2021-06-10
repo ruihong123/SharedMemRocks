@@ -4575,7 +4575,7 @@ class Benchmark {
       }
     }
     thread->stats.AddBytes(bytes);
-    printf("Job finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+//    printf("Job finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   }
 
   Status DoDeterministicCompact(ThreadState* thread,
