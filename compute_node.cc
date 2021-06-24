@@ -314,7 +314,7 @@ int main()
   struct config_t config = {
       NULL,  /* dev_name */
       NULL,  /* server_name */
-      19875, /* tcp_port */
+      19899, /* tcp_port */
       1,	 /* ib_port */ //physical
       1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
