@@ -1787,6 +1787,9 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
                   SequenceNumber* max_covering_tombstone_seq, bool* value_found,
                   bool* key_exists, SequenceNumber* seq, ReadCallback* callback,
                   bool* is_blob, bool do_merge) {
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   Slice ikey = k.internal_key();
   Slice user_key = k.user_key();
 
@@ -1919,6 +1922,11 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
     if (key_exists != nullptr) {
       *key_exists = false;
     }
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+#endif
     *status = Status::NotFound(); // Use an empty error message for speed
   }
 }

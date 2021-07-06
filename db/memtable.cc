@@ -799,6 +799,9 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
                    SequenceNumber* max_covering_tombstone_seq,
                    SequenceNumber* seq, const ReadOptions& read_opts,
                    ReadCallback* callback, bool* is_blob_index, bool do_merge) {
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   // The sequence number is updated synchronously in version_set.h
   if (IsEmpty()) {
     // Avoiding recording stats for speed.
@@ -852,6 +855,14 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
     *s = Status::MergeInProgress();
   }
   PERF_COUNTER_ADD(get_from_memtable_count, 1);
+#ifdef GETANALYSIS
+  if(!found_final_value){
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+  }
+
+#endif
   return found_final_value;
 }
 
