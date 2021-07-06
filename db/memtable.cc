@@ -39,7 +39,10 @@
 #include "util/mutexlock.h"
 
 namespace ROCKSDB_NAMESPACE {
-
+#ifdef GETANALYSIS
+std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
+std::atomic<uint64_t> MemTable::GetNum = 0;
+#endif
 ImmutableMemTableOptions::ImmutableMemTableOptions(
     const ImmutableCFOptions& ioptions,
     const MutableCFOptions& mutable_cf_options)
@@ -859,7 +862,9 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
   if(!found_final_value){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+//    std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+    GetTimeElapseSum.fetch_add(duration.count());
+    GetNum.fetch_add(1);
   }
 
 #endif

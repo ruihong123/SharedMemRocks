@@ -907,7 +907,10 @@ class VersionSet {
   void operator=(const VersionSet&) = delete;
 
   virtual ~VersionSet();
-
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> GetTimeElapseSum;
+  static std::atomic<uint64_t> GetNum;
+#endif
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new
   // current version.  Will release *mu while actually writing to the file.

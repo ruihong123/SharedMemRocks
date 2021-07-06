@@ -227,7 +227,12 @@ class MemTableList {
 
   // Should not delete MemTableList without making sure MemTableList::current()
   // is Unref()'d.
-  ~MemTableList() {}
+  ~MemTableList() {
+#ifdef GETANALYSIS
+    if (MemTable::GetNum.load() >0)
+      printf("Memtable GET time statics is %zu, %zu, %zu\n", MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(), MemTable::GetTimeElapseSum.load()/MemTable::GetNum.load());
+#endif
+  }
 
   MemTableListVersion* current() const { return current_; }
 

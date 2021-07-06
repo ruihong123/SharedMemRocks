@@ -59,7 +59,10 @@
 #include "util/user_comparator_wrapper.h"
 
 namespace ROCKSDB_NAMESPACE {
-
+#ifdef GETANALYSIS
+std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
+std::atomic<uint64_t> VersionSet::GetNum = 0;
+#endif
 namespace {
 
 // Find File in LevelFilesBrief data structure
@@ -1928,7 +1931,9 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
 #ifdef GETANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+//  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  VersionSet::GetTimeElapseSum.fetch_add(duration.count());
+  VersionSet::GetNum.fetch_add(1);
 #endif
 }
 
@@ -3677,6 +3682,10 @@ VersionSet::~VersionSet() {
   }
   obsolete_files_.clear();
   io_status_.PermitUncheckedError();
+#ifdef GETANALYSIS
+  if (VersionSet::GetNum.load() >0)
+    printf("LSM Versionset GET time statics is %zu, %zu, %zu\n", VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(), VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
+#endif
 }
 
 void VersionSet::Reset() {

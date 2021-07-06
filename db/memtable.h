@@ -110,7 +110,10 @@ class MemTable {
 
   // Do not delete this MemTable unless Unref() indicates it not in use.
   ~MemTable();
-
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> GetTimeElapseSum;
+  static std::atomic<uint64_t> GetNum;
+#endif
   // Increase reference count.
   // REQUIRES: external synchronization to prevent simultaneous
   // operations on the same MemTable.
