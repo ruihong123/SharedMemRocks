@@ -1922,13 +1922,14 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
     if (key_exists != nullptr) {
       *key_exists = false;
     }
+
+    *status = Status::NotFound(); // Use an empty error message for speed
+  }
 #ifdef GETANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
 #endif
-    *status = Status::NotFound(); // Use an empty error message for speed
-  }
 }
 
 void Version::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
