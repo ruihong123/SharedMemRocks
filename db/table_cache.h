@@ -56,6 +56,8 @@ class TableCache {
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
+  static std::atomic<uint64_t> not_filtered;
+  static std::atomic<uint64_t> filtered;
 #endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "table_reader_ptr"
