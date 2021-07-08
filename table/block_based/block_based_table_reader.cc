@@ -24,7 +24,8 @@
 #include "file/random_access_file_reader.h"
 #include "monitoring/perf_context_imp.h"
 #include "options/options_helper.h"
-#include "rocksdb/cache.h"
+//#include "rocksdb/cache.h"
+#include "db/table_cache.h"
 #include "rocksdb/comparator.h"
 #include "rocksdb/env.h"
 #include "rocksdb/file_system.h"
@@ -2233,7 +2234,13 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
   if (!may_match) {
     RecordTick(rep_->ioptions.statistics, BLOOM_FILTER_USEFUL);
     PERF_COUNTER_BY_LEVEL_ADD(bloom_filter_useful, 1, rep_->level);
+#ifdef GETANALYSIS
+    TableCache::not_filtered.fetch_add(1);
+#endif
   } else {
+#ifdef GETANALYSIS
+    TableCache::filtered.fetch_add(1);
+#endif
     IndexBlockIter iiter_on_stack;
     // if prefix_extractor found in block differs from options, disable
     // BlockPrefixIndex. Only do this check when index_type is kHashSearch.
