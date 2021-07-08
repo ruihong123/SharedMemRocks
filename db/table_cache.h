@@ -53,7 +53,10 @@ class TableCache {
              BlockCacheTracer* const block_cache_tracer,
              const std::shared_ptr<IOTracer>& io_tracer);
   ~TableCache();
-
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> GetTimeElapseSum;
+  static std::atomic<uint64_t> GetNum;
+#endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "table_reader_ptr"
   // is non-nullptr, also sets "*table_reader_ptr" to point to the Table object
