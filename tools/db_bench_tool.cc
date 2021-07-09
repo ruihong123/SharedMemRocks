@@ -5140,7 +5140,7 @@ class Benchmark {
       } else {
         key_rand = GetRandomKey(&thread->rand);
       }
-      GenerateKeyFromInt(key_rand, FLAGS_num, &key);
+      GenerateKeyFromInt(key_rand, FLAGS_num*FLAGS_threads, &key);
       read++;
       std::string ts_ret;
       std::string* ts_ptr = nullptr;
