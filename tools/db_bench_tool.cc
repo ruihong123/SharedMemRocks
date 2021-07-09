@@ -5087,7 +5087,7 @@ class Benchmark {
     uint64_t rand_int = rand->Next();
     int64_t key_rand;
     if (read_random_exp_range_ == 0) {
-      key_rand = rand_int % FLAGS_num;
+      key_rand = rand_int % FLAGS_num*FLAGS_threads;
     } else {
       const uint64_t kBigInt = static_cast<uint64_t>(1U) << 62;
       long double order = -static_cast<long double>(rand_int % kBigInt) /
@@ -5140,7 +5140,7 @@ class Benchmark {
       } else {
         key_rand = GetRandomKey(&thread->rand);
       }
-      GenerateKeyFromInt(key_rand, FLAGS_num*FLAGS_threads, &key);
+      GenerateKeyFromInt(key_rand, FLAGS_num, &key);
       read++;
       std::string ts_ret;
       std::string* ts_ptr = nullptr;
