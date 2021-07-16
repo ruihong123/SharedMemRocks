@@ -1932,6 +1932,7 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  printf("GetNum within version::get %lu\n", VersionSet::GetNum.load());
   VersionSet::GetTimeElapseSum.fetch_add(duration.count());
   VersionSet::GetNum.fetch_add(1);
 #endif
@@ -3683,6 +3684,7 @@ VersionSet::~VersionSet() {
   obsolete_files_.clear();
   io_status_.PermitUncheckedError();
 #ifdef GETANALYSIS
+  printf("GetNum is %lu", VersionSet::GetNum.load());
   if (VersionSet::GetNum.load() >0)
     printf("LSM Version GET time statics is %zu, %zu, %zu\n", VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(), VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
