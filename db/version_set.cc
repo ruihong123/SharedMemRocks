@@ -56,7 +56,7 @@
 #include "util/stop_watch.h"
 #include "util/string_util.h"
 #include "util/user_comparator_wrapper.h"
-#define GETANALYSIS
+//#define GETANALYSIS
 namespace ROCKSDB_NAMESPACE {
 #ifdef GETANALYSIS
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
@@ -1927,14 +1927,14 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
 
     *status = Status::NotFound(); // Use an empty error message for speed
   }
-#ifdef GETANALYSIS
+//#ifdef GETANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
   printf("GetNum within version::get %lu\n", VersionSet::GetNum.load());
   VersionSet::GetTimeElapseSum.fetch_add(duration.count());
   VersionSet::GetNum.fetch_add(1);
-#endif
+//#endif
 }
 
 void Version::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
