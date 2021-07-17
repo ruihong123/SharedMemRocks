@@ -22,10 +22,9 @@
 #include <vector>
 
 #include "compaction/compaction.h"
-#include "db/internal_stats.h"
 #include "db/log_reader.h"
 #include "db/log_writer.h"
-#include "db/memtable.h"
+#include "port/port_posix.h"
 #include "db/merge_context.h"
 #include "db/merge_helper.h"
 #include "db/pinned_iterators_manager.h"
