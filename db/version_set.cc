@@ -56,7 +56,7 @@
 #include "util/stop_watch.h"
 #include "util/string_util.h"
 #include "util/user_comparator_wrapper.h"
-
+#define GETANALYSIS
 namespace ROCKSDB_NAMESPACE {
 #ifdef GETANALYSIS
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
