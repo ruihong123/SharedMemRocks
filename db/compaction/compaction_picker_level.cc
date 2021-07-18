@@ -300,6 +300,9 @@ Compaction* LevelCompactionBuilder::PickCompaction() {
   // to a clean cut.
   SetupInitialFiles();
   if (start_level_inputs_.empty()) {
+#ifdef GETANALYSIS
+    printf("No compaction is needed\n");
+#endif
     return nullptr;
   }
   assert(start_level_ >= 0 && output_level_ >= 0);
@@ -307,12 +310,18 @@ Compaction* LevelCompactionBuilder::PickCompaction() {
   // If it is a L0 -> base level compaction, we need to set up other L0
   // files if needed.
   if (!SetupOtherL0FilesIfNeeded()) {
+#ifdef GETANALYSIS
+    printf("No compaction is needed\n");
+#endif
     return nullptr;
   }
 
   // Pick files in the output level and expand more files in the start level
   // if needed.
   if (!SetupOtherInputsIfNeeded()) {
+#ifdef GETANALYSIS
+    printf("No compaction is needed\n");
+#endif
     return nullptr;
   }
 
@@ -320,7 +329,9 @@ Compaction* LevelCompactionBuilder::PickCompaction() {
   Compaction* c = GetCompaction();
 
   TEST_SYNC_POINT_CALLBACK("LevelCompactionPicker::PickCompaction:Return", c);
-
+#ifdef GETANALYSIS
+  printf("compaction is still needed\n");
+#endif
   return c;
 }
 

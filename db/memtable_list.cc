@@ -152,7 +152,9 @@ bool MemTableListVersion::GetFromList(
     SequenceNumber* max_covering_tombstone_seq, SequenceNumber* seq,
     const ReadOptions& read_opts, ReadCallback* callback, bool* is_blob_index) {
   *seq = kMaxSequenceNumber;
-
+#ifdef GETANALYSIS
+  printf("memtable list size is %zu\n", list->size());
+#endif
   for (auto& memtable : *list) {
     SequenceNumber current_seq = kMaxSequenceNumber;
 
