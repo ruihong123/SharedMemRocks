@@ -3348,6 +3348,7 @@ class Benchmark {
   std::shared_ptr<TimestampEmulator> timestamp_emulator_;
   std::unique_ptr<port::Thread> secondary_update_thread_;
   std::atomic<int> secondary_update_stopped_{0};
+  int total_thread_count_ = 0;
 #ifndef ROCKSDB_LITE
   uint64_t secondary_db_updates_ = 0;
 #endif  // ROCKSDB_LITE
@@ -3434,7 +3435,9 @@ class Benchmark {
       arg[i].bm = this;
       arg[i].method = method;
       arg[i].shared = &shared;
-      arg[i].thread = new ThreadState(i);
+      total_thread_count_++;
+//      arg[i].thread = new ThreadState(i);
+      arg[i].thread = new ThreadState(total_thread_count_);
       arg[i].thread->stats.SetReporterAgent(reporter_agent.get());
       arg[i].thread->shared = &shared;
       FLAGS_env->StartThread(ThreadBody, &arg[i]);
