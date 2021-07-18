@@ -42,6 +42,7 @@ namespace ROCKSDB_NAMESPACE {
 #ifdef GETANALYSIS
 std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
 std::atomic<uint64_t> MemTable::GetNum = 0;
+std::atomic<uint64_t> MemTable::foundNum = 0;
 #endif
 ImmutableMemTableOptions::ImmutableMemTableOptions(
     const ImmutableCFOptions& ioptions,
@@ -865,6 +866,8 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
 //    std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
     GetTimeElapseSum.fetch_add(duration.count());
     GetNum.fetch_add(1);
+  }else{
+    foundNum.fetch_add(1);
   }
 
 #endif

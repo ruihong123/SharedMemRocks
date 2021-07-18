@@ -113,6 +113,7 @@ class MemTable {
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
+  static std::atomic<uint64_t> foundNum;
 #endif
   // Increase reference count.
   // REQUIRES: external synchronization to prevent simultaneous
