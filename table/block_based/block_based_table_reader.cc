@@ -2336,6 +2336,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
             if (get_context->State() == GetContext::GetState::kFound) {
               does_referenced_key_exist = true;
               referenced_data_size = biter.key().size() + biter.value().size();
+              TableCache::foundNum.fetch_add(1);
             }
             done = true;
             break;
