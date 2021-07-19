@@ -2240,6 +2240,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
   } else {
 #ifdef GETANALYSIS
     TableCache::filtered.fetch_add(1);
+    auto start = std::chrono::high_resolution_clock::now();
 #endif
     IndexBlockIter iiter_on_stack;
     // if prefix_extractor found in block differs from options, disable
@@ -2336,7 +2337,9 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
             if (get_context->State() == GetContext::GetState::kFound) {
               does_referenced_key_exist = true;
               referenced_data_size = biter.key().size() + biter.value().size();
+#ifdef GETANALYSIS
               TableCache::foundNum.fetch_add(1);
+#endif
             }
             done = true;
             break;
@@ -2385,6 +2388,12 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     if (s.ok() && !iiter->status().IsNotFound()) {
       s = iiter->status();
     }
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+    TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
   }
 
   return s;

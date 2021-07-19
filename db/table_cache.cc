@@ -36,6 +36,7 @@ std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::GetNum = 0;
 std::atomic<uint64_t> TableCache::filtered = 0;
 std::atomic<uint64_t> TableCache::not_filtered = 0;
+std::atomic<uint64_t> TableCache::BinarySearchTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::foundNum = 0;
 
 #endif
@@ -92,12 +93,13 @@ TableCache::TableCache(const ImmutableCFOptions& ioptions,
 
 TableCache::~TableCache() {
 #ifdef GETANALYSIS
-  if (TableCache::GetNum.load() >0)
-    printf("Cache Get time statics is %zu, %zu, %zu, need binary search: %zu, filtered %zu, foundNum is %zu\n",
+  if (TableCache::GetNum.load() >0 && TableCache::not_filtered.load() > 0)
+    printf("Cache Get time statics is %zu, %zu, %zu, need binary search: "
+        "%zu, filtered %zu, foundNum is %zu, average time elapse for binary search is %zu\n",
            TableCache::GetTimeElapseSum.load(), TableCache::GetNum.load(),
            TableCache::GetTimeElapseSum.load()/TableCache::GetNum.load(),
            TableCache::not_filtered.load(), TableCache::filtered.load(),
-           TableCache::foundNum.load());
+           TableCache::foundNum.load(), TableCache::BinarySearchTimeElapseSum.load()/TableCache::not_filtered.load());
 #endif
 }
 
