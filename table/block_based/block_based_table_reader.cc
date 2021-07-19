@@ -1458,6 +1458,11 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
         // compressed block cache.
         is_cache_hit = true;
       }
+#ifndef NDEBUG
+      else{
+        is_cache_hit = false;
+      }
+#endif
     }
 
     // Can't find the block from the cache. If I/O is allowed, read from the
