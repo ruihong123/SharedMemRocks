@@ -1100,12 +1100,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset = second_half;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
     }else{
-//    auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
       int flag =
           rdma_mg_->RDMA_Read(&remote_mr, &local_mr, n, thread_id, IBV_SEND_SIGNALED,1);
-//    auto stop = std::chrono::high_resolution_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    printf("New Bare RDMA read size: %zu time elapse: %ld\n", n, duration.count());
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("New Bare RDMA read size: %zu time elapse: %ld\n", n, duration.count());
 //    printf("%s", scratch);
 
 //    start = std::chrono::high_resolution_clock::now();
