@@ -2259,7 +2259,17 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         rep_->internal_comparator.user_comparator()->timestamp_size();
     bool matched = false;  // if such user key matched a key in SST
     bool done = false;
+#ifdef GETANALYSIS
+    TableCache::filtered.fetch_add(1);
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     for (iiter->Seek(key); iiter->Valid() && !done; iiter->Next()) {
+#ifdef GETANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+      TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
       IndexValue v = iiter->value();
 
       bool not_exist_in_filter =
@@ -2310,17 +2320,9 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         s = biter.status();
         break;
       }
-#ifdef GETANALYSIS
-      TableCache::filtered.fetch_add(1);
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       bool may_exist = biter.SeekForGet(key);
-#ifdef GETANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-      TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
-#endif
+
       // If user-specified timestamp is supported, we cannot end the search
       // just because hash index lookup indicates the key+ts does not exist.
       if (!may_exist && ts_sz == 0) {
