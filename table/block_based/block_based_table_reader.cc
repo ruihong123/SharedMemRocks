@@ -2321,7 +2321,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
 #ifdef GETANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
       if (no_io && biter.status().IsIncomplete()) {
