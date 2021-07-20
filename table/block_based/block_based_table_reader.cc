@@ -2252,7 +2252,10 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     TableCache::filtered.fetch_add(1);
 #endif
   } else {
-
+#ifdef GETANALYSIS
+    TableCache::not_filtered.fetch_add(1);
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     IndexBlockIter iiter_on_stack;
     // if prefix_extractor found in block differs from options, disable
     // BlockPrefixIndex. Only do this check when index_type is kHashSearch.
@@ -2308,22 +2311,14 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
           /*get_from_user_specified_snapshot=*/read_options.snapshot !=
               nullptr};
       bool does_referenced_key_exist = false;
-#ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       DataBlockIter biter;
       uint64_t referenced_data_size = 0;
       NewDataBlockIterator<DataBlockIter>(
           read_options, v.handle, &biter, BlockType::kData, get_context,
           &lookup_data_block_context,
           /*s=*/Status(), /*prefetch_buffer*/ nullptr);
-#ifdef GETANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-      TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
-#endif
+
       if (no_io && biter.status().IsIncomplete()) {
         // couldn't get block from block_cache
         // Update Saver.state to Found because we are only looking for
@@ -2411,7 +2406,12 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     if (s.ok() && !iiter->status().IsNotFound()) {
       s = iiter->status();
     }
-
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+    TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
   }
 
   return s;
