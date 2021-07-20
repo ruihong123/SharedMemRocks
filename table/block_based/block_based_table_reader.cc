@@ -2252,10 +2252,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     TableCache::filtered.fetch_add(1);
 #endif
   } else {
-#ifdef GETANALYSIS
-    TableCache::not_filtered.fetch_add(1);
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
+
     IndexBlockIter iiter_on_stack;
     // if prefix_extractor found in block differs from options, disable
     // BlockPrefixIndex. Only do this check when index_type is kHashSearch.
@@ -2330,9 +2327,17 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         s = biter.status();
         break;
       }
-
+#ifdef GETANALYSIS
+      TableCache::not_filtered.fetch_add(1);
+      auto start = std::chrono::high_resolution_clock::now();
+#endif
       bool may_exist = biter.SeekForGet(key);
-
+#ifdef GETANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+      TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
       // If user-specified timestamp is supported, we cannot end the search
       // just because hash index lookup indicates the key+ts does not exist.
       if (!may_exist && ts_sz == 0) {
@@ -2406,12 +2411,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     if (s.ok() && !iiter->status().IsNotFound()) {
       s = iiter->status();
     }
-#ifdef GETANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-    TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
-#endif
+
   }
 
   return s;
