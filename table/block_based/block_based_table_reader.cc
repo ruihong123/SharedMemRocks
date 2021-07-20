@@ -2249,7 +2249,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     RecordTick(rep_->ioptions.statistics, BLOOM_FILTER_USEFUL);
     PERF_COUNTER_BY_LEVEL_ADD(bloom_filter_useful, 1, rep_->level);
 #ifdef GETANALYSIS
-    TableCache::not_filtered.fetch_add(1);
+    TableCache::filtered.fetch_add(1);
 #endif
   } else {
 
@@ -2309,7 +2309,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
               nullptr};
       bool does_referenced_key_exist = false;
 #ifdef GETANALYSIS
-      TableCache::filtered.fetch_add(1);
+      TableCache::not_filtered.fetch_add(1);
       auto start = std::chrono::high_resolution_clock::now();
 #endif
       DataBlockIter biter;
@@ -2321,7 +2321,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
 #ifdef GETANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
       if (no_io && biter.status().IsIncomplete()) {
