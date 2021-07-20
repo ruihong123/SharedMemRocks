@@ -60,6 +60,10 @@ class TableCache {
   static std::atomic<uint64_t> filtered;
   static std::atomic<uint64_t> BinarySearchTimeElapseSum;
   static std::atomic<uint64_t> foundNum;
+  static std::atomic<uint64_t> cache_hit_look_up_time;
+  static std::atomic<uint64_t> cache_miss_block_fetch_time;
+  static std::atomic<uint64_t> cache_hit;
+  static std::atomic<uint64_t> cache_miss;
 #endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "table_reader_ptr"

@@ -1450,12 +1450,24 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
     }
 
     if (!contents) {
+#ifdef GETANALYSIS
+      auto start = std::chrono::high_resolution_clock::now();
+#endif
       s = GetDataBlockFromCache(key, ckey, block_cache, block_cache_compressed,
                                 ro, block_entry, uncompression_dict, block_type,
                                 get_context);
+
+#ifdef GETANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+#endif
       if (block_entry->GetValue()) {
         // TODO(haoyu): Differentiate cache hit on uncompressed block cache and
         // compressed block cache.
+#ifdef GETANALYSIS
+        TableCache::cache_hit.fetch_add(1);
+        TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
+#endif
         is_cache_hit = true;
       }
 #ifndef NDEBUG
@@ -1477,6 +1489,10 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
       CompressionType raw_block_comp_type;
       BlockContents raw_block_contents;
       if (!contents) {
+#ifdef GETANALYSIS
+        auto start = std::chrono::high_resolution_clock::now();
+        TableCache::cache_miss.fetch_add(1);
+#endif
         StopWatch sw(rep_->ioptions.env, statistics, READ_BLOCK_GET_MICROS);
         BlockFetcher block_fetcher(
             rep_->file.get(), prefetch_buffer, rep_->footer, ro, handle,
@@ -1497,6 +1513,11 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
 
         raw_block_comp_type = block_fetcher.get_compression_type();
         contents = &raw_block_contents;
+#ifdef GETANALYSIS
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
       } else {
         raw_block_comp_type = contents->get_compression_type();
       }

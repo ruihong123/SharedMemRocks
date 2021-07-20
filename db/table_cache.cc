@@ -38,7 +38,10 @@ std::atomic<uint64_t> TableCache::filtered = 0;
 std::atomic<uint64_t> TableCache::not_filtered = 0;
 std::atomic<uint64_t> TableCache::BinarySearchTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::foundNum = 0;
-
+std::atomic<uint64_t> TableCache::cache_hit_look_up_time = 0;
+std::atomic<uint64_t> TableCache::cache_miss_block_fetch_time = 0;
+std::atomic<uint64_t> TableCache::cache_hit = 0;
+std::atomic<uint64_t> TableCache::cache_miss = 0;
 #endif
 namespace {
 
@@ -100,6 +103,11 @@ TableCache::~TableCache() {
            TableCache::GetTimeElapseSum.load()/TableCache::GetNum.load(),
            TableCache::not_filtered.load(), TableCache::filtered.load(),
            TableCache::foundNum.load(), TableCache::BinarySearchTimeElapseSum.load()/TableCache::not_filtered.load());
+  if (TableCache::cache_miss>0&&TableCache::cache_hit>0){
+    printf("Cache hit Num %zu, average look up time %zu, Cache miss %zu, average Block Fetch time %zu\n",
+           TableCache::cache_hit.load(),TableCache::cache_hit_look_up_time.load()/TableCache::cache_hit.load(),
+           TableCache::cache_miss.load(),TableCache::cache_miss_block_fetch_time.load()/TableCache::cache_miss.load());
+  }
 #endif
 }
 
