@@ -1485,15 +1485,15 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
             rep_->persistent_cache_options,
             GetMemoryAllocator(rep_->table_options),
             GetMemoryAllocatorForCompressedBlock(rep_->table_options));
-#ifdef GETANALYSIS
-        auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef GETANALYSIS
+//        auto start = std::chrono::high_resolution_clock::now();
+//#endif
         s = block_fetcher.ReadBlockContents();
-#ifdef GETANALYSIS
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Read Data block time elapse is %zu\n",  duration.count());
-#endif
+//#ifdef GETANALYSIS
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Read Data block time elapse is %zu\n",  duration.count());
+//#endif
 
         raw_block_comp_type = block_fetcher.get_compression_type();
         contents = &raw_block_contents;
