@@ -1041,19 +1041,19 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
   SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
   //find the SST_Metadata for current chunk.
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   size_t chunk_offset = offset%(rdma_mg_->Table_Size);
   while (offset >= rdma_mg_->Table_Size){
     sst_meta_current = sst_meta_current->next_ptr;
     offset = offset- rdma_mg_->Table_Size;
   }
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//#ifdef GETANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Find mr time elapse is %zu\n",  duration.count());
-#endif
+//#endif
 //  std::string thread_id = *(static_cast<std::string*>(rdma_mg_->t_local_1->Get()));
     std::string thread_id;
 //  stop = std::chrono::high_resolution_clock::now();
@@ -1108,13 +1108,16 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset = second_half;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
     }else{
-//    auto start = std::chrono::high_resolution_clock::now();
+#ifdef GETANALYSIS
+      auto start = std::chrono::high_resolution_clock::now();
+#endif
       int flag =
           rdma_mg_->RDMA_Read(&remote_mr, &local_mr, n, thread_id, IBV_SEND_SIGNALED,1);
-//    auto stop = std::chrono::high_resolution_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    printf("New Bare RDMA read size: %zu time elapse: %ld\n", n, duration.count());
-//    printf("%s", scratch);
+#ifdef GETANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      printf("Find mr time elapse is %zu\n",  duration.count());
+#endif
 
 //    start = std::chrono::high_resolution_clock::now();
 //    stop = std::chrono::high_resolution_clock::now();
