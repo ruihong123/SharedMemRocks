@@ -33,7 +33,39 @@ namespace ROCKSDB_NAMESPACE {
 // Memory for uncompressed and compressed blocks is allocated as needed
 // using memory_allocator and memory_allocator_compressed, respectively
 // (if provided; otherwise, the default allocator is used).
+// This memory allocator will make the memory located on the RDMA registered memory.
+class RDMA_Allocator: public MemoryAllocator{
+  void* Allocate(size_t size) override{
+    ibv_mr* mr_;
+    ibv_mr* map_mr_;
+    if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("read")){
+      std::string buff_type_ = "read";
+      FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+      return mr_->addr;
+    }else if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("write")){
+      std::string buff_type_ = "write";
+      FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+      return mr_->addr;
+    }else{
+      char* p = new char[size];
+      return p;
+    }
 
+  }
+  void Deallocate(void* p) override{
+//    std::string buff_type_ = "read";
+    if(FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(p, std::string("read")))
+      return;
+    else if (FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(p, std::string("write")))
+      return;
+    else {
+      delete[] static_cast<char*>(p);
+    }
+  }
+  const char* Name() const override {
+    return "RDMA_Allocator";
+  };
+};
 class BlockFetcher {
  public:
   BlockFetcher(RandomAccessFileReader* file,
@@ -60,7 +92,7 @@ class BlockFetcher {
         block_size_with_trailer_(block_size(handle_)),
         uncompression_dict_(uncompression_dict),
         cache_options_(cache_options),
-        memory_allocator_(memory_allocator),
+        memory_allocator_(memory_allocator== nullptr? new RDMA_Allocator():memory_allocator),
         memory_allocator_compressed_(memory_allocator_compressed),
         for_compaction_(for_compaction) {}
 
@@ -126,37 +158,5 @@ class BlockFetcher {
   void InsertUncompressedBlockToPersistentCacheIfNeeded();
   void CheckBlockChecksum();
 };
-// This memory allocator will make the memory located on the RDMA registered memory.
-class RDMA_Allocator: public MemoryAllocator{
-  void* Allocate(size_t size) override{
-    ibv_mr* mr_;
-    ibv_mr* map_mr_;
-    if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("read")){
-      std::string buff_type_ = "read";
-      FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
-      return mr_->addr;
-    }else if (size <= FileSystem::Default()->rdma_mg->name_to_size.at("write")){
-      std::string buff_type_ = "write";
-      FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
-      return mr_->addr;
-    }else{
-      char* p = new char[size];
-      return p;
-    }
 
-  }
-  void Deallocate(void* p) override{
-//    std::string buff_type_ = "read";
-    if(FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(p, std::string("read")))
-      return;
-    else if (FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(p, std::string("write")))
-      return;
-    else {
-      delete[] static_cast<char*>(p);
-    }
-  }
-  const char* Name() const override {
-      return "RDMA_Allocator";
-  };
-};
 }  // namespace ROCKSDB_NAMESPACE
