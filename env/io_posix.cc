@@ -1018,23 +1018,10 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-//  auto start = std::chrono::high_resolution_clock::now();
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
-  //  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Read Get the lock time elapse: %ld\n", duration.count());
-//  const std::lock_guard<std::mutex> lock(sst_meta_head_->file_lock);
 
-//  const std::lock_guard<std::mutex> lock(
-//      rdma_mg_->remote_mem_mutex);// write lock
   IOStatus s;
-  //Find the Poxis thread ID for the key for the qp_map in rdma manager.
-//  auto myid = std::this_thread::get_id();
-//  std::stringstream ss;
-//  ss << myid;
-//  std::string posix_tid = ss.str();
-//  start = std::chrono::high_resolution_clock::now();
-//  assert(n<= rdma_mg_->Read_Block_Size);
+
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;
@@ -1054,14 +1041,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Find mr time elapse is %zu\n",  duration.count());
 //#endif
-//  std::string thread_id = *(static_cast<std::string*>(rdma_mg_->t_local_1->Get()));
     std::string thread_id;
-//  stop = std::chrono::high_resolution_clock::now();
-//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Read Set up sst file pointer time elapse: %ld\n", duration.count());
-//  std::cout << "Read data from " << sst_meta_head_->fname <<" " << sst_meta_current->mr->addr <<  " offset: "
-//            << offset << "size: " << n << std::endl;
-//  start = std::chrono::high_resolution_clock::now();
+
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_current->mr);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + offset);
@@ -1109,23 +1090,11 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset = second_half;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
     }else{
-#ifdef GETANALYSIS
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       int flag =
           rdma_mg_->RDMA_Read(&remote_mr, &local_mr, n, thread_id, IBV_SEND_SIGNALED,1);
-#ifdef GETANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      printf("RDMA read time elapse is %zu\n",  duration.count());
-#endif
-//    start = std::chrono::high_resolution_clock::now();
-//    stop = std::chrono::high_resolution_clock::now();
-//    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    printf("Read Memcopy size: %zu time elapse: %ld\n", size, duration.count());
-//    std::cout << "read blocks within Table chunk" << std::endl;
 
-      if (flag!=0){
+       if (flag!=0){
 
         return IOError("While appending to file", sst_meta_head_->fname, flag);
 
@@ -1137,23 +1106,17 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     }
 
     *result = Slice(scratch, n_original);
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//  std::cout << size <<"inner Read Chunk time elapse :" << duration.count() << std::endl;
     return s;
 
   }else{
     ibv_mr* local_mr_pointer;
     local_mr_pointer = nullptr;
-//  stop = std::chrono::high_resolution_clock::now();
-//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Read pointer convert time elapse: %ld\n", duration.count());
-//  start = std::chrono::high_resolution_clock::now();
+
     rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
-//  stop = std::chrono::high_resolution_clock::now();
-//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  std::printf("Read Memory allocate, time elapse : (%ld)\n", duration.count());
-//  auto start = std::chrono::high_resolution_clock::now();
+
+#ifdef GETANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     while (n > rdma_mg_->name_to_size.at("read")){
       Read_chunk(chunk_src, rdma_mg_->name_to_size.at("read"), local_mr_pointer, remote_mr,
                  chunk_offset, sst_meta_current, thread_id);
@@ -1164,11 +1127,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     }
     Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
                sst_meta_current, thread_id);
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("RDMA read size: %zu time elapse: %ld\n", n, duration.count());
-//  memcpy(scratch, static_cast<char*>(local_mr_pointer->addr),n);
-//  start = std::chrono::high_resolution_clock::now();
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("RDMA read time elapse is %zu\n",  duration.count());
+#endif
+
     *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
     if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
                                             std::string("read")))
