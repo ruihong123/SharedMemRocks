@@ -1116,7 +1116,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 #ifdef GETANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      printf("Find mr time elapse is %zu\n",  duration.count());
+      printf("RDMA read time elapse is %zu\n",  duration.count());
 #endif
 
 //    start = std::chrono::high_resolution_clock::now();
