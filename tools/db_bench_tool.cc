@@ -3466,8 +3466,10 @@ class Benchmark {
       delete arg[i].thread;
     }
     delete[] arg;
-
+    if (method == &Benchmark::WriteRandom)
+      sleep(15); // Digestion for SSTable compaction.
     return merge_stats;
+
   }
 
   void Crc32c(ThreadState* thread) {
