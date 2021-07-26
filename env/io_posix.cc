@@ -1078,6 +1078,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
+#ifdef GETANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
@@ -1108,16 +1111,10 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset = second_half;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
     }else{
-#ifdef GETANALYSIS
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       int flag =
           rdma_mg_->RDMA_Read(&remote_mr, &local_mr, n, thread_id, IBV_SEND_SIGNALED,1);
-#ifdef GETANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      printf("RDMA read time elapse is %zu\n",  duration.count());
-#endif
+
 
 //    start = std::chrono::high_resolution_clock::now();
 //    stop = std::chrono::high_resolution_clock::now();
@@ -1135,6 +1132,11 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset += n;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("RDMA read time elapse is %zu\n",  duration.count());
+#endif
     *result = Slice(scratch, n_original);
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
