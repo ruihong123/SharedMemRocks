@@ -1490,8 +1490,8 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
       BlockContents raw_block_contents;
       if (!contents) {
 #ifdef GETANALYSIS
-        auto start = std::chrono::high_resolution_clock::now();
         TableCache::cache_miss.fetch_add(1);
+        auto start = std::chrono::high_resolution_clock::now();
 #endif
         StopWatch sw(rep_->ioptions.env, statistics, READ_BLOCK_GET_MICROS);
         BlockFetcher block_fetcher(

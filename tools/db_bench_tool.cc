@@ -3282,6 +3282,8 @@ class Benchmark {
         }
 
         for (int i = 0; i < num_warmup; i++) {
+          if (method == &Benchmark::ReadRandom)
+            TableCache::CleanAll();
           RunBenchmark(num_threads, name, method);
         }
 
