@@ -2338,7 +2338,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
               nullptr};
       bool does_referenced_key_exist = false;
 #ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
+//      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       DataBlockIter biter;
@@ -2365,7 +2365,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         break;
       }
 #ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
+//      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       bool may_exist = biter.SeekForGet(key);
