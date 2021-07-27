@@ -1053,13 +1053,15 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
-                                     &rdma_mg_->name_to_mem_pool.at("read"))){
+                             &rdma_mg_->name_to_mem_pool.at("read"))){
 //    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
     ibv_mr local_mr;
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
-
+#ifdef GETANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
@@ -1104,7 +1106,11 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset += n;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
-
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("RDMA read time elapse is %zu\n",  duration.count());
+#endif
     *result = Slice(scratch, n_original);
     return s;
 
@@ -1114,9 +1120,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
     rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
 
-#ifdef GETANALYSIS
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
+
     while (n > rdma_mg_->name_to_size.at("read")){
       Read_chunk(chunk_src, rdma_mg_->name_to_size.at("read"), local_mr_pointer, remote_mr,
                  chunk_offset, sst_meta_current, thread_id);
@@ -1127,11 +1131,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     }
     Read_chunk(chunk_src, n, local_mr_pointer, remote_mr, chunk_offset,
                sst_meta_current, thread_id);
-#ifdef GETANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("RDMA read time elapse is %zu\n",  duration.count());
-#endif
+
 
     *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
     if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
