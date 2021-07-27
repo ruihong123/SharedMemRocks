@@ -91,7 +91,20 @@ class TableCache {
       bool skip_filters, int level, size_t max_file_size_for_l0_meta_pin,
       const InternalKey* smallest_compaction_key,
       const InternalKey* largest_compaction_key, bool allow_unprepared_value);
-
+  static void CleanAll(){
+    GetTimeElapseSum = 0;
+    GetNum = 0;
+    filtered = 0;
+    not_filtered = 0;
+    DataBinarySearchTimeElapseSum = 0;
+    IndexBinarySearchTimeElapseSum = 0;
+    DataBlockFetchBeforeCacheElapseSum = 0;
+    foundNum = 0;
+    cache_hit_look_up_time = 0;
+    cache_miss_block_fetch_time = 0;
+    cache_hit = 0;
+    cache_miss = 0;
+  }
   // If a seek to internal key "k" in specified file finds an entry,
   // call get_context->SaveValue() repeatedly until
   // it returns false. As a side effect, it will insert the TableReader
