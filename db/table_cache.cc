@@ -42,6 +42,7 @@ std::atomic<uint64_t> TableCache::cache_hit_look_up_time = 0;
 std::atomic<uint64_t> TableCache::cache_miss_block_fetch_time = 0;
 std::atomic<uint64_t> TableCache::cache_hit = 0;
 std::atomic<uint64_t> TableCache::cache_miss = 0;
+std::atomic<uint64_t> TableCache::RDMA_Read_time = 0;
 #endif
 namespace {
 

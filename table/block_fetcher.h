@@ -92,7 +92,7 @@ class BlockFetcher {
         block_size_with_trailer_(block_size(handle_)),
         uncompression_dict_(uncompression_dict),
         cache_options_(cache_options),
-        memory_allocator_(memory_allocator== nullptr? new RDMA_Allocator():memory_allocator),
+        memory_allocator_(memory_allocator),
         memory_allocator_compressed_(memory_allocator_compressed),
         for_compaction_(for_compaction) {}
 

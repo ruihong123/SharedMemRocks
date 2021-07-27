@@ -10,7 +10,7 @@
 #include "cache/sharded_cache.h"
 
 #include <string>
-
+#include "table/block_fetcher.h"
 #include "util/mutexlock.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -18,7 +18,7 @@ namespace ROCKSDB_NAMESPACE {
 ShardedCache::ShardedCache(size_t capacity, int num_shard_bits,
                            bool strict_capacity_limit,
                            std::shared_ptr<MemoryAllocator> allocator)
-    : Cache(std::move(allocator)),
+    : Cache(std::make_shared<RDMA_Allocator>()),
       num_shard_bits_(num_shard_bits),
       capacity_(capacity),
       strict_capacity_limit_(strict_capacity_limit),

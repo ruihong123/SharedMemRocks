@@ -35,4 +35,5 @@ inline CacheAllocationPtr AllocateBlock(size_t size,
   return CacheAllocationPtr(new char[size]);
 }
 
+
 }  // namespace ROCKSDB_NAMESPACE

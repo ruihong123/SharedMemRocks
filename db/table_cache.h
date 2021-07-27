@@ -64,6 +64,7 @@ class TableCache {
   static std::atomic<uint64_t> cache_miss_block_fetch_time;
   static std::atomic<uint64_t> cache_hit;
   static std::atomic<uint64_t> cache_miss;
+  static std::atomic<uint64_t> RDMA_Read_time;
 #endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "table_reader_ptr"

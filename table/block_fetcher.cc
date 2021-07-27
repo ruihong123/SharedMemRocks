@@ -240,8 +240,16 @@ Status BlockFetcher::ReadBlockContents() {
       } else {
         PrepareBufferForBlockFromFile();
         PERF_TIMER_GUARD(block_read_time);
+//#ifdef GETANALYSIS
+//        auto start = std::chrono::high_resolution_clock::now();
+//#endif
         status_ = file_->Read(opts, handle_.offset(), block_size_with_trailer_,
                               &slice_, used_buf_, nullptr, for_compaction_);
+//#ifdef GETANALYSIS
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+//#endif
         PERF_COUNTER_ADD(block_read_count, 1);
 #ifndef NDEBUG
         if (slice_.data() == &stack_buf_[0]) {
