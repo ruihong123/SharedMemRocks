@@ -508,6 +508,7 @@ IOStatus RDMASequentialFile::Read(size_t n, const IOOptions& /*opts*/,
   if (n + position_>=sst_meta_->file_size)
     n = sst_meta_->file_size - position_;
   size_t n_original = n;
+
   while (n > rdma_mg_->name_to_size.at("read")){
     Read_chunk(chunk_src, rdma_mg_->name_to_size.at("read"), local_mr_pointer, remote_mr,
                chunk_offset, sst_meta_current, thread_id);
@@ -1107,9 +1108,14 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
 //#ifdef GETANALYSIS
-//    auto stop = std::chrono::high_resolution_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    printf("RDMA read time elapse is %zu\n",  duration.count());
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+////    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+//  if (n <= 8192){
+//    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+//    RDMA_Manager::ReadCount.fetch_add(1);
+//  }
+//
 //#endif
     *result = Slice(scratch, n_original);
     return s;
