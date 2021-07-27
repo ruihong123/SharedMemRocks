@@ -36,7 +36,9 @@ std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::GetNum = 0;
 std::atomic<uint64_t> TableCache::filtered = 0;
 std::atomic<uint64_t> TableCache::not_filtered = 0;
-std::atomic<uint64_t> TableCache::BinarySearchTimeElapseSum = 0;
+std::atomic<uint64_t> TableCache::DataBinarySearchTimeElapseSum = 0;
+std::atomic<uint64_t> TableCache::IndexBinarySearchTimeElapseSum = 0;
+std::atomic<uint64_t> TableCache::DataBlockFetchBeforeCacheElapseSum = 0;
 std::atomic<uint64_t> TableCache::foundNum = 0;
 std::atomic<uint64_t> TableCache::cache_hit_look_up_time = 0;
 std::atomic<uint64_t> TableCache::cache_miss_block_fetch_time = 0;
@@ -97,13 +99,21 @@ TableCache::TableCache(const ImmutableCFOptions& ioptions,
 
 TableCache::~TableCache() {
 #ifdef GETANALYSIS
-  if (TableCache::GetNum.load() >0 && TableCache::not_filtered.load() > 0)
+  if (TableCache::GetNum.load() >0)
     printf("Cache Get time statics is %zu, %zu, %zu, need binary search: "
-        "%zu, filtered %zu, foundNum is %zu, average time elapse for binary search is %zu\n",
+        "%zu, filtered %zu, foundNum is %zu\n",
            TableCache::GetTimeElapseSum.load(), TableCache::GetNum.load(),
            TableCache::GetTimeElapseSum.load()/TableCache::GetNum.load(),
            TableCache::not_filtered.load(), TableCache::filtered.load(),
-           TableCache::foundNum.load(), TableCache::BinarySearchTimeElapseSum.load()/TableCache::not_filtered.load());
+           TableCache::foundNum.load());
+  if (TableCache::not_filtered.load() > 0){
+    printf("Average time elapse for Data binary search is %zu, "
+        "Average time elapse for Index binary search is %zu,"
+        " Average time elapse for data block fetch before cache is %zu\n",
+           TableCache::DataBinarySearchTimeElapseSum.load()/TableCache::not_filtered.load(),
+           TableCache::IndexBinarySearchTimeElapseSum.load()/TableCache::not_filtered.load(),
+           TableCache::DataBlockFetchBeforeCacheElapseSum.load()/TableCache::not_filtered.load());
+  }
   if (TableCache::cache_miss>0&&TableCache::cache_hit>0){
     printf("Cache hit Num %zu, average look up time %zu, Cache miss %zu, average Block Fetch time %zu\n",
            TableCache::cache_hit.load(),TableCache::cache_hit_look_up_time.load()/TableCache::cache_hit.load(),

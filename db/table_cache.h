@@ -58,7 +58,9 @@ class TableCache {
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> not_filtered;
   static std::atomic<uint64_t> filtered;
-  static std::atomic<uint64_t> BinarySearchTimeElapseSum;
+  static std::atomic<uint64_t> DataBinarySearchTimeElapseSum;
+  static std::atomic<uint64_t> IndexBinarySearchTimeElapseSum;
+  static std::atomic<uint64_t> DataBlockFetchBeforeCacheElapseSum;
   static std::atomic<uint64_t> foundNum;
   static std::atomic<uint64_t> cache_hit_look_up_time;
   static std::atomic<uint64_t> cache_miss_block_fetch_time;
