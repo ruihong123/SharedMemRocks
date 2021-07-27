@@ -1,5 +1,10 @@
 #include <include/rocksdb/rdma.h>
 namespace ROCKSDB_NAMESPACE {
+#ifdef GETANALYSIS
+std::atomic<uint64_t> RDMA_Manager::RDMAReadTimeElapseSum = 0;
+std::atomic<uint64_t> RDMA_Manager::ReadCount = 0;
+
+#endif
 void UnrefHandle_rdma(void* ptr){
   delete static_cast<std::string*>(ptr);
 }
@@ -78,6 +83,9 @@ RDMA_Manager::~RDMA_Manager() {
   delete qp_local;
   delete  cq_local;
   delete t_local_1;
+#ifdef GETANALYSIS
+  printf("RDMA read operatoion average time duration: %zu", RDMAReadTimeElapseSum.load()/ReadCount);
+#endif
 //  for (auto & iter : name_to_mem_pool){
 //    delete iter.second;
 //  }
@@ -1111,12 +1119,9 @@ End of socket operations
 int
 RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, std::string q_id, size_t send_flag,
                         int poll_num) {
-//  auto start = std::chrono::high_resolution_clock::now();
-
-//    auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  std::printf("Read lock time elapse : (%ld)\n",duration.count());
-
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
@@ -1189,12 +1194,16 @@ RDMA_Manager::RDMA_Read(ibv_mr *remote_mr, ibv_mr *local_mr, size_t msg_size, st
     }
     delete[] wc;
   }
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  if (msg_size <= 4096){
+    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+    RDMA_Manager::ReadCount.fetch_add(1);
+  }
 
-
-
-//  stop = std::chrono::high_resolution_clock::now();
-//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("RDMA READ and poll: %zu elapse: %ld\n", msg_size, duration.count());
+#endif
   return rc;
 }
 int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,

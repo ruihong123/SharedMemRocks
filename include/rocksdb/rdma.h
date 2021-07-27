@@ -335,7 +335,10 @@ class RDMA_Manager{
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
-
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> RDMAReadTimeElapseSum;
+  static std::atomic<uint64_t> ReadCount;
+#endif
 //  std::shared_mutex remote_pool_mutex;
 //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
 ////  std::shared_mutex write_pool_mutex;
