@@ -1029,19 +1029,13 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
   SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
   //find the SST_Metadata for current chunk.
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
+
   size_t chunk_offset = offset%(rdma_mg_->Table_Size);
   while (offset >= rdma_mg_->Table_Size){
     sst_meta_current = sst_meta_current->next_ptr;
     offset = offset- rdma_mg_->Table_Size;
   }
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Find mr time elapse is %zu\n",  duration.count());
-//#endif
+
     std::string thread_id;
 
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
@@ -1053,10 +1047,22 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
                              &rdma_mg_->name_to_mem_pool.at("read"))){
-//    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
-    ibv_mr local_mr;
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  if (n <= 8192){
+    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+    RDMA_Manager::ReadCount.fetch_add(1);
+  }
+
+#endif
+     ibv_mr local_mr;
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
