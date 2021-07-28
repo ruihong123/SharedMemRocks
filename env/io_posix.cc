@@ -1220,18 +1220,18 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     chunk_offset = second_half;
     buff_ptr += second_half;
   }else{
-    auto start = std::chrono::high_resolution_clock::now();
+//    auto start = std::chrono::high_resolution_clock::now();
     int flag =
         rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, size, thread_id, IBV_SEND_SIGNALED,1);
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("Bare RDMA read size: %zu time elapse: %ld\n", size, duration.count());
-    start = std::chrono::high_resolution_clock::now();
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Bare RDMA read size: %zu time elapse: %ld\n", size, duration.count());
+//    start = std::chrono::high_resolution_clock::now();
     memcpy(buff_ptr, local_mr_pointer->addr, size);// copy to the buffer
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("Read Memcopy size: %zu time elapse: %ld\n", size, duration.count());
-    std::cout << "read blocks within Table chunk" << std::endl;
+//    stop = std::chrono::high_resolution_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Read Memcopy size: %zu time elapse: %ld\n", size, duration.count());
+//    std::cout << "read blocks within Table chunk" << std::endl;
 
     if (flag!=0){
 
