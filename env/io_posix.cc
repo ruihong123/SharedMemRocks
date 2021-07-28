@@ -1047,21 +1047,24 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
                              &rdma_mg_->name_to_mem_pool.at("read"))){
 #ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-  if (n <= 8192){
-    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
-    RDMA_Manager::ReadCount.fetch_add(1);
-  }
-
+    auto start = std::chrono::high_resolution_clock::now();
 #endif
+//#ifdef GETANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+////    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+//  if (n <= 8192){
+//    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+//    RDMA_Manager::ReadCount.fetch_add(1);
+//  }
+//
+//#endif
      ibv_mr local_mr;
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
@@ -1113,16 +1116,16 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset += n;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-////    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-//  if (n <= 8192){
-//    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
-//    RDMA_Manager::ReadCount.fetch_add(1);
-//  }
-//
-//#endif
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  if (n <= 8192){
+    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+    RDMA_Manager::ReadCount.fetch_add(1);
+  }
+
+#endif
     *result = Slice(scratch, n_original);
     return s;
 
