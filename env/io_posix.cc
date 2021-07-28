@@ -1153,7 +1153,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-    if (n <= 8192 && n >= 7000){
+    if (n_original <= 8192 && n_original >= 7000){
       RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
       RDMA_Manager::ReadCount.fetch_add(1);
     }
