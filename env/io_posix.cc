@@ -1052,9 +1052,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //#endif
   if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
                              &rdma_mg_->name_to_mem_pool.at("read"))){
-//#ifdef GETANALYSIS
-//    auto start = std::chrono::high_resolution_clock::now();
-//#endif
+#ifdef GETANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
 //#ifdef GETANALYSIS
 //  auto stop = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -1069,9 +1069,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
-#ifdef GETANALYSIS
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef GETANALYSIS
+//    auto start = std::chrono::high_resolution_clock::now();
+//#endif
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
