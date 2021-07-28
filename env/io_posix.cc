@@ -1036,7 +1036,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     offset = offset- rdma_mg_->Table_Size;
   }
 
-    std::string thread_id;
+  std::string thread_id;
 
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
   remote_mr = *(sst_meta_current->mr);
@@ -1120,7 +1120,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-  if (n <= 8192){
+  if (n <= 8192 && n >= 7000){
     RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
     RDMA_Manager::ReadCount.fetch_add(1);
   }
