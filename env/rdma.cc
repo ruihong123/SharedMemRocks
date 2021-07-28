@@ -84,7 +84,10 @@ RDMA_Manager::~RDMA_Manager() {
   delete  cq_local;
   delete t_local_1;
 #ifdef GETANALYSIS
-  printf("RDMA read operatoion average time duration: %zu\n", RDMAReadTimeElapseSum.load()/ReadCount.load());
+  if (RDMA_Manager::ReadCount.load() != 0)
+    printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
+  else
+    printf("No RDMA read recorded\n");
 #endif
 //  for (auto & iter : name_to_mem_pool){
 //    delete iter.second;
