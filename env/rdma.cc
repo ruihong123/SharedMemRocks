@@ -85,7 +85,7 @@ RDMA_Manager::~RDMA_Manager() {
   delete t_local_1;
 #ifdef GETANALYSIS
   if (RDMA_Manager::ReadCount.load() != 0)
-    printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
+    printf("RDMA read operatoion average time duration: %zu, ReadNuM is%zu, total time is %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load(), RDMA_Manager::ReadCount.load(), RDMA_Manager::RDMAReadTimeElapseSum.load());
   else
     printf("No RDMA read recorded\n");
 #endif
