@@ -15,7 +15,9 @@ void UnrefHandle_qp(void* ptr){
     fprintf(stderr, "Thread local qp failed to destroy QP\n");
   }
   else{
+#ifndef NDEBUG
     printf("thread local qp destroy successfully!");
+#endif
   }
 }
 void UnrefHandle_cq(void* ptr){
@@ -638,12 +640,13 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
   }
 //  else
 //    printf("RDMA bitmap insert error");
+#ifndef NDEBUG
   fprintf(
         stdout,
         "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
         (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
         mr_flags);
-
+#endif
     return true;
 };
 /******************************************************************************
@@ -948,10 +951,14 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
   }
   rc = modify_qp_to_rts(qp);
   if (rc) {
+#ifndef NDEBUG
     fprintf(stderr, "failed to modify QP state to RTS\n");
+#endif
     goto connect_qp_exit;
   }
+#ifndef NDEBUG
   fprintf(stdout, "QP %s state was change to RTS\n", qp_id.c_str());
+#endif
   /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
   connect_qp_exit:
   return rc;
@@ -1836,10 +1843,10 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   send_pointer = (computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = qp->qp_num;
-  fprintf(stdout, "QP num to be sent = 0x%x\n", qp->qp_num);
+//  fprintf(stdout, "QP num to be sent = 0x%x\n", qp->qp_num);
   send_pointer->content.qp_config.lid = res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
-  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+//  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
   registered_qp_config* receive_pointer;
   receive_pointer = (registered_qp_config*)res->receive_buf;
 
@@ -1858,8 +1865,10 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   if (!poll_completion(wc, 2, std::string("main"))) {
     // poll the receive for 2 entires
     registered_qp_config temp_buff = *receive_pointer;
+#ifndef NDEBUG
     fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->qp_num);
     fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->lid);
+#endif
     // te,p_buff will have the informatin for the remote query pair,
     // use this information for qp connection.
     connect_qp(temp_buff, qp_id);
