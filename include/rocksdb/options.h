@@ -561,7 +561,7 @@ struct DBOptions {
   // Default: 1 (i.e. no subcompactions)
   //
   // Dynamically changeable through SetDBOptions() API.
-  uint32_t max_subcompactions = 1;
+  uint32_t max_subcompactions = 12;
 
   // NOT SUPPORTED ANYMORE: RocksDB automatically decides this based on the
   // value of max_background_jobs. For backwards compatibility we will set
