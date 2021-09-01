@@ -213,16 +213,16 @@ void LevelCompactionBuilder::SetupInitialFiles() {
       break;
     }
   }
-  if (!start_level_inputs_.empty()) {
-#ifdef GETANALYSIS
-    printf("compaction is still needed\n");
-#endif
-    return;
-  }else{
-#ifdef GETANALYSIS
-    printf("According to the compaciton score, there is no compaction needed\n");
-#endif
-  }
+//  if (!start_level_inputs_.empty()) {
+//#ifdef GETANALYSIS
+//    printf("compaction is still needed\n");
+//#endif
+//    return;
+//  }else{
+//#ifdef GETANALYSIS
+//    printf("According to the compaciton score, there is no compaction needed\n");
+//#endif
+//  }
 
   // if we didn't find a compaction, check if there are any files marked for
   // compaction

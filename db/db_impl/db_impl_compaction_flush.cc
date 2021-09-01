@@ -203,7 +203,9 @@ Status DBImpl::FlushMemTableToOutputFile(
     s = flush_job.Run(&logs_with_prep_tracker_, &file_meta);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+#ifndef NDEBUG
     printf("memtable flushing time elapse (%ld) us, memtable number is %lu\n", duration.count(), flush_job.GetMemTables().size());
+#endif
   } else {
     flush_job.Cancel();
   }

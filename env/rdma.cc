@@ -930,10 +930,12 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data,
     qp = static_cast<ibv_qp*>(qp_local->Get());
   if (rdma_config.gid_idx >= 0) {
     uint8_t* p = remote_con_data.gid;
+#ifndef NDEBUG
     fprintf(stdout,
             "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ",
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
             p[11], p[12], p[13], p[14], p[15]);
+#endif
   }
   /* modify the QP to init */
   rc = modify_qp_to_init(qp);
