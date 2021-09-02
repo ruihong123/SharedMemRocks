@@ -354,7 +354,11 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
 
   post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-
+  local_mem_pool.reserve(100);
+  {
+    std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
+    Preregister_Memory(64);
+  }
   // sync after send & recv buffer creation and receive request posting.
   if (sock_sync_data(socket_fd, 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
@@ -604,27 +608,41 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
                                          std::string pool_name) {
   int mr_flags = 0;
-  *p2buffpointer = new char[size];
-  if (!*p2buffpointer) {
-    fprintf(stderr, "failed to malloc bytes to memory buffer\n");
-    return false;
-  }
-  memset(*p2buffpointer, 0, size);
+  if (pre_allocated_pool.empty()){
 
-  /* register the memory buffer */
-  mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-//  auto start = std::chrono::high_resolution_clock::now();
-  *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//  std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
-  local_mem_pool.push_back(*p2mrpointer);
+    *p2buffpointer = new char[size];
+    if (!*p2buffpointer) {
+      fprintf(stderr, "failed to malloc bytes to memory buffer\n");
+      return false;
+    }
+    memset(*p2buffpointer, 0, size);
+
+    /* register the memory buffer */
+    mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
+    //  auto stop = std::chrono::high_resolution_clock::now();
+    //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
+    local_mem_pool.push_back(*p2mrpointer);
+    fprintf(stdout,
+            "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
+            (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
+            mr_flags, size, total_registered_size);
+  }else{
+    *p2mrpointer = pre_allocated_pool.back();
+    pre_allocated_pool.pop_back();
+    *p2buffpointer = (char*)(*p2mrpointer)->addr;
+  }
+
   if (!*p2mrpointer) {
-    fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
-            mr_flags, size, local_mem_pool.size());
+    fprintf(
+        stderr,
+        "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
+        mr_flags, size, local_mem_pool.size());
     return false;
-  } else if (rdma_config.server_name && pool_name != "") {  // for the send buffer and receive buffer they will not be
+  } else if(pool_name!= "") {
+    // if pool name == "", then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
     int placeholder_num =
@@ -635,20 +653,48 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                               *p2mrpointer);
     // TODO: Modify it to allocate the memory according to the memory chunk types
 
-    name_to_mem_pool.at(pool_name).insert(
-        {(*p2mrpointer)->addr, in_use_array});
+    name_to_mem_pool.at(pool_name).insert({(*p2mrpointer)->addr, in_use_array});
   }
-//  else
-//    printf("RDMA bitmap insert error");
-#ifndef NDEBUG
-  fprintf(
-        stdout,
-        "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
-        (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-        mr_flags);
-#endif
-    return true;
+  else
+    printf("Register memory for computing node\n");
+  total_registered_size = total_registered_size + (*p2mrpointer)->length;
+
+
+  return true;
+
 };
+bool RDMA_Manager::Preregister_Memory(int gb_number) {
+  int mr_flags = 0;
+  size_t size = 1024*1024*1024;
+
+  for (int i = 0; i < gb_number; ++i) {
+    //    total_registered_size = total_registered_size + size;
+    std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
+    std::fflush(stderr);
+    char* buff_pointer = new char[size];
+    if (!buff_pointer) {
+      fprintf(stderr, "failed to malloc bytes to memory buffer\n");
+      return false;
+    }
+    memset(buff_pointer, 0, size);
+
+    /* register the memory buffer */
+    mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    ibv_mr* mrpointer = ibv_reg_mr(res->pd, buff_pointer, size, mr_flags);
+    if (!mrpointer) {
+      fprintf(
+          stderr,
+          "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
+          mr_flags, size, local_mem_pool.size());
+      return false;
+    }
+    local_mem_pool.push_back(mrpointer);
+    pre_allocated_pool.push_back(mrpointer);
+  }
+  return true;
+}
 /******************************************************************************
 * Function: set_up_RDMA
 *

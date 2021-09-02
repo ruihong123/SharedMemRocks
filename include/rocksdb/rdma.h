@@ -11,9 +11,9 @@
 #include <inttypes.h>
 #include <endian.h>
 #include <byteswap.h>
-//#include <getopt.h>
+
 #include <cassert>
-//#include <unordered_map>
+
 #include <algorithm>
 #include <shared_mutex>
 #include <thread>
@@ -21,7 +21,7 @@
 #include <memory>
 #include <sstream>
 
-//#include <options.h>
+
 
 #include <arpa/inet.h>
 #include <infiniband/verbs.h>
@@ -35,6 +35,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <list>
 //#ifdef __cplusplus
 //extern "C" { //only need to export C interface if
 //// used by C++ source code
@@ -284,6 +285,8 @@ class RDMA_Manager{
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       std::string pool_name);// register the memory on the local side
+  bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
+
   // Remote Memory registering will call RDMA send and receive to the remote memory
   // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
@@ -334,7 +337,10 @@ class RDMA_Manager{
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
+  std::list<ibv_mr*> pre_allocated_pool;
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
+  size_t total_registered_size = 0;
+
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
