@@ -941,7 +941,8 @@ bool RDMA_Manager::create_qp(std::string& id) {
 //  qp_init_attr.cap.max_inline_data = -1;
   ibv_qp* qp = ibv_create_qp(res->pd, &qp_init_attr);
   if (!qp) {
-    fprintf(stderr, "failed to create QP\n");
+    fprintf(stderr, "failed to create QP, errno: %d\n", errno);
+    exit(1);
   }
   if (id != "")
     res->qp_map[id] = qp;
