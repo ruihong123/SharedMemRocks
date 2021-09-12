@@ -31,7 +31,7 @@
 #include "util/stop_watch.h"
 
 namespace ROCKSDB_NAMESPACE {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::GetNum = 0;
 std::atomic<uint64_t> TableCache::filtered = 0;
@@ -98,7 +98,7 @@ TableCache::TableCache(const ImmutableCFOptions& ioptions,
 }
 
 TableCache::~TableCache() {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (TableCache::GetNum.load() >0)
     printf("Cache Get time statics is %zu, %zu, %zu, need binary search: "
         "%zu, filtered %zu, foundNum is %zu\n",
@@ -427,7 +427,7 @@ Status TableCache::Get(const ReadOptions& options,
                        const SliceTransform* prefix_extractor,
                        HistogramImpl* file_read_hist, bool skip_filters,
                        int level, size_t max_file_size_for_l0_meta_pin) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   auto& fd = file_meta.fd;
@@ -502,7 +502,7 @@ Status TableCache::Get(const ReadOptions& options,
   if (handle != nullptr) {
     ReleaseHandle(handle);
   }
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());

@@ -1069,7 +1069,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     local_mr = *(mr_start->second.get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
 #endif
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
@@ -1116,8 +1116,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       chunk_offset += n;
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
+#ifdef PROCESSANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
   if (n_original <= 8192 && n_original >= 7000){

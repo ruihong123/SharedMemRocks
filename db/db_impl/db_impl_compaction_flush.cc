@@ -199,12 +199,18 @@ Status DBImpl::FlushMemTableToOutputFile(
   // and EventListener callback will be called when the db_mutex
   // is unlocked by the current thread.
   if (s.ok()) {
+#ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
+#endif
     s = flush_job.Run(&logs_with_prep_tracker_, &file_meta);
+#ifdef PROCESSANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    Total_time_elapse.fetch_add(duration.count());
+    flush_times.fetch_add(1);
 #ifndef NDEBUG
     printf("memtable flushing time elapse (%ld) us, memtable number is %lu\n", duration.count(), flush_job.GetMemTables().size());
+#endif
 #endif
   } else {
     flush_job.Cancel();

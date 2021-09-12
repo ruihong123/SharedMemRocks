@@ -228,7 +228,7 @@ class MemTableList {
   // Should not delete MemTableList without making sure MemTableList::current()
   // is Unref()'d.
   ~MemTableList() {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     if (MemTable::GetNum.load() >0)
       printf("Memtable GET time statics is %zu, %zu, %zu, Memtable found Num %zu\n",
              MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(),

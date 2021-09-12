@@ -1450,21 +1450,21 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
     }
 
     if (!contents) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       auto start = std::chrono::high_resolution_clock::now();
 #endif
       s = GetDataBlockFromCache(key, ckey, block_cache, block_cache_compressed,
                                 ro, block_entry, uncompression_dict, block_type,
                                 get_context);
 
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 #endif
       if (block_entry->GetValue()) {
         // TODO(haoyu): Differentiate cache hit on uncompressed block cache and
         // compressed block cache.
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         TableCache::cache_hit.fetch_add(1);
         TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
 #endif
@@ -1489,7 +1489,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
       CompressionType raw_block_comp_type;
       BlockContents raw_block_contents;
       if (!contents) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         TableCache::cache_miss.fetch_add(1);
         auto start = std::chrono::high_resolution_clock::now();
 #endif
@@ -1513,7 +1513,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
 
         raw_block_comp_type = block_fetcher.get_compression_type();
         contents = &raw_block_contents;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         auto stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
@@ -2269,7 +2269,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
   if (!may_match) {
     RecordTick(rep_->ioptions.statistics, BLOOM_FILTER_USEFUL);
     PERF_COUNTER_BY_LEVEL_ADD(bloom_filter_useful, 1, rep_->level);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     TableCache::filtered.fetch_add(1);
 #endif
   } else {
@@ -2294,12 +2294,12 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         rep_->internal_comparator.user_comparator()->timestamp_size();
     bool matched = false;  // if such user key matched a key in SST
     bool done = false;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     TableCache::not_filtered.fetch_add(1);
     auto start = std::chrono::high_resolution_clock::now();
 #endif
     for (iiter->Seek(key); iiter->Valid() && !done; iiter->Next()) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -2337,8 +2337,8 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
           /*get_from_user_specified_snapshot=*/read_options.snapshot !=
               nullptr};
       bool does_referenced_key_exist = false;
-#ifdef GETANALYSIS
-//      TableCache::not_filtered.fetch_add(1);
+#ifdef PROCESSANALYSIS
+      //      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       DataBlockIter biter;
@@ -2347,7 +2347,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
           read_options, v.handle, &biter, BlockType::kData, get_context,
           &lookup_data_block_context,
           /*s=*/Status(), /*prefetch_buffer*/ nullptr);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -2364,12 +2364,12 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
         s = biter.status();
         break;
       }
-#ifdef GETANALYSIS
-//      TableCache::not_filtered.fetch_add(1);
+#ifdef PROCESSANALYSIS
+      //      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       bool may_exist = biter.SeekForGet(key);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -2397,7 +2397,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
             if (get_context->State() == GetContext::GetState::kFound) {
               does_referenced_key_exist = true;
               referenced_data_size = biter.key().size() + biter.value().size();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
               TableCache::foundNum.fetch_add(1);
 #endif
             }

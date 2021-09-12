@@ -1,6 +1,6 @@
 #include <include/rocksdb/rdma.h>
 namespace ROCKSDB_NAMESPACE {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> RDMA_Manager::RDMAReadTimeElapseSum = 0;
 std::atomic<uint64_t> RDMA_Manager::ReadCount = 0;
 
@@ -85,7 +85,7 @@ RDMA_Manager::~RDMA_Manager() {
   delete qp_local;
   delete  cq_local;
   delete t_local_1;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (RDMA_Manager::ReadCount.load() != 0)
     printf("RDMA read operatoion average time duration: %zu, ReadNuM is%zu, "
         "total time is %zu\n",

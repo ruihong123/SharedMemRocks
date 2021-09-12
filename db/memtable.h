@@ -110,7 +110,7 @@ class MemTable {
 
   // Do not delete this MemTable unless Unref() indicates it not in use.
   ~MemTable();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> foundNum;

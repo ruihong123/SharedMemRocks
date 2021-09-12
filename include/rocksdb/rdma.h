@@ -341,7 +341,7 @@ class RDMA_Manager{
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
   size_t total_registered_size = 0;
 
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
 #endif

@@ -58,7 +58,7 @@
 #include "util/user_comparator_wrapper.h"
 //#define GETANALYSIS
 namespace ROCKSDB_NAMESPACE {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
 std::atomic<uint64_t> VersionSet::GetNum = 0;
 #endif
@@ -1789,7 +1789,7 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
                   SequenceNumber* max_covering_tombstone_seq, bool* value_found,
                   bool* key_exists, SequenceNumber* seq, ReadCallback* callback,
                   bool* is_blob, bool do_merge) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   Slice ikey = k.internal_key();
@@ -1927,7 +1927,7 @@ void Version::Get(const ReadOptions& read_options, const LookupKey& k,
 
     *status = Status::NotFound(); // Use an empty error message for speed
   }
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
@@ -3682,7 +3682,7 @@ VersionSet::~VersionSet() {
   }
   obsolete_files_.clear();
   io_status_.PermitUncheckedError();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   printf("GetNum is %lu", VersionSet::GetNum.load());
   if (VersionSet::GetNum.load() >0)
     printf("LSM Version GET time statics is %zu, %zu, %zu\n",

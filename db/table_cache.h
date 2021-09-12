@@ -53,7 +53,7 @@ class TableCache {
              BlockCacheTracer* const block_cache_tracer,
              const std::shared_ptr<IOTracer>& io_tracer);
   ~TableCache();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> not_filtered;

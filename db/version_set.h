@@ -907,7 +907,7 @@ class VersionSet {
   void operator=(const VersionSet&) = delete;
 
   virtual ~VersionSet();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
 #endif

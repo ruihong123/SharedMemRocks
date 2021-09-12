@@ -1074,6 +1074,10 @@ class DBImpl : public DB {
   //
   // Default: true
   const bool batch_per_txn_;
+#ifdef PROCESSANALYSIS
+  std::atomic<size_t> Total_time_elapse;
+  std::atomic<size_t> flush_times;
+#endif
 
   // Except in DB::Open(), WriteOptionsFile can only be called when:
   // Persist options to options file.

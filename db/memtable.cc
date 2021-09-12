@@ -39,7 +39,7 @@
 #include "util/mutexlock.h"
 
 namespace ROCKSDB_NAMESPACE {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
 std::atomic<uint64_t> MemTable::GetNum = 0;
 std::atomic<uint64_t> MemTable::foundNum = 0;
@@ -803,7 +803,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
                    SequenceNumber* max_covering_tombstone_seq,
                    SequenceNumber* seq, const ReadOptions& read_opts,
                    ReadCallback* callback, bool* is_blob_index, bool do_merge) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   // The sequence number is updated synchronously in version_set.h
@@ -859,7 +859,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
     *s = Status::MergeInProgress();
   }
   PERF_COUNTER_ADD(get_from_memtable_count, 1);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if(!found_final_value){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
