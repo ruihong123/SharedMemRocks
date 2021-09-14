@@ -563,19 +563,22 @@ IOStatus RDMASequentialFile::Read_chunk(char*& buff_ptr, size_t size,
     sst_meta_current = sst_meta_current->next_ptr;
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
-                               thread_id, IBV_SEND_SIGNALED,1);
-    memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
-//    std::cout << "read blocks accross Table chunk" << std::endl;
-    if (flag!=0){
+    if (second_half != 0){
+      flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
+                                 thread_id, IBV_SEND_SIGNALED,1);
+      memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
+                                                              //    std::cout << "read blocks accross Table chunk" << std::endl;
+      if (flag!=0){
 
-      return IOError("While appending to file", sst_meta_->fname, flag);
+        return IOError("While appending to file", sst_meta_->fname, flag);
 
 
+      }
+      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
+      chunk_offset = second_half;
+      buff_ptr += second_half;
     }
-    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
-    chunk_offset = second_half;
-    buff_ptr += second_half;
+
   }else{
 //    auto start = std::chrono::high_resolution_clock::now();
     int flag =
@@ -597,7 +600,10 @@ IOStatus RDMASequentialFile::Read_chunk(char*& buff_ptr, size_t size,
 
     }
     remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
+
     chunk_offset += size;
+//    if (chunk_offset == rdma_mg_->Table_Size)
+//      chunk_offset = 0;
     buff_ptr += size;
   }
 //  auto stop = std::chrono::high_resolution_clock::now();
