@@ -3685,7 +3685,7 @@ VersionSet::~VersionSet() {
 #ifdef PROCESSANALYSIS
   printf("GetNum is %lu", VersionSet::GetNum.load());
   if (VersionSet::GetNum.load() >0)
-    printf("LSM Version GET time statics is %zu, %zu, %zu\n",
+    printf("LSM Version GET time statistics is %zu, %zu, %zu\n",
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
