@@ -7,7 +7,7 @@
 
 find_path(GFLAGS_INCLUDE_DIR
   NAMES gflags/gflags.h)
-
+#message(${GFLAGS_INCLUDE_DIR})
 find_library(GFLAGS_LIBRARIES
   NAMES gflags)
 
@@ -19,7 +19,7 @@ mark_as_advanced(
   GFLAGS_LIBRARIES
   GFLAGS_INCLUDE_DIR)
 if (gflags_FOUND)
-  message("gflag found")
+  message("gflag found 2")
 endif ()
 
 if(gflags_FOUND AND NOT (TARGET gflags::gflags))
