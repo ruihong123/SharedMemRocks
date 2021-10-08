@@ -18,9 +18,12 @@ find_package_handle_standard_args(gflags
 mark_as_advanced(
   GFLAGS_LIBRARIES
   GFLAGS_INCLUDE_DIR)
+if (gflags_FOUND)
+  message("gflag found")
+endif ()
 
 if(gflags_FOUND AND NOT (TARGET gflags::gflags))
-  message("gflag found")
+
   add_library(gflags::gflags UNKNOWN IMPORTED)
   set_target_properties(gflags::gflags
     PROPERTIES
