@@ -5,11 +5,11 @@
 
 #include <gflags/gflags.h>
 
-//#ifndef GFLAGS_NAMESPACE
+#ifndef GFLAGS_NAMESPACE
 // in case it's not defined in old versions, that's probably because it was
 // still google by default.
 #define GFLAGS_NAMESPACE google
-//#endif
+#endif
 
 #ifndef DEFINE_uint32
 // DEFINE_uint32 does not appear in older versions of gflags. This should be
