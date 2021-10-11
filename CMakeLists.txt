@@ -111,7 +111,7 @@ else()
   if(WITH_GFLAGS)
     # Config with namespace available since gflags 2.2.2
     option(GFLAGS_USE_TARGET_NAMESPACE "Use gflags import target with namespace." ON)
-    find_package(gflags CONFIG)
+    find_package(gflags REQUIRED)
     if(gflags_FOUND)
       message("gflag found")
       message("Include dir is ${GFLAGS_INCLUDE_DIR}")
