@@ -2297,6 +2297,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
 #ifdef PROCESSANALYSIS
     TableCache::not_filtered.fetch_add(1);
     auto start = std::chrono::high_resolution_clock::now();
+    int counter = 0;
 #endif
     for (iiter->Seek(key); iiter->Valid() && !done; iiter->Next()) {
 #ifdef PROCESSANALYSIS
@@ -2304,6 +2305,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
+      assert(!counter++);
 #endif
       IndexValue v = iiter->value();
 
