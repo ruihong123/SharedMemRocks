@@ -2307,7 +2307,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
       TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
       assert(!counter++);
 #endif
-      if (iiter->Valid() && !done)
+      if (!iiter->Valid() || done)
         break;
       IndexValue v = iiter->value();
 
