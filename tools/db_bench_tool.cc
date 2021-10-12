@@ -3282,8 +3282,10 @@ class Benchmark {
         }
 
         for (int i = 0; i < num_warmup; i++) {
+#ifdef PROCESSANALYSIS
           if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting)
             TableCache::CleanAll();
+#endif
           RunBenchmark(num_threads, name, method);
         }
 
