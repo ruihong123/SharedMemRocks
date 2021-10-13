@@ -214,6 +214,7 @@ inline void BlockFetcher::GetBlockContents() {
 }
 
 Status BlockFetcher::ReadBlockContents() {
+  printf("read block content\n");
   if (TryGetUncompressBlockFromPersistentCache()) {
     compression_type_ = kNoCompression;
 #ifndef NDEBUG
