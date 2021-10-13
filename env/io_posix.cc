@@ -1078,6 +1078,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 #ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
 #endif
+    printf("start to fetch a block through RDMA\n");
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
