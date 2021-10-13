@@ -105,6 +105,8 @@ class TableCache {
     cache_miss_block_fetch_time = 0;
     cache_hit = 0;
     cache_miss = 0;
+    RDMA_Manager::ReadCount = 0;
+    RDMA_Manager::RDMAReadTimeElapseSum = 0;
   }
 #endif
   // If a seek to internal key "k" in specified file finds an entry,
