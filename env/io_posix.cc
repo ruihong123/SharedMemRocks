@@ -1129,6 +1129,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   if (n_original <= 8192 && n_original >= 7000){
     RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
     RDMA_Manager::ReadCount.fetch_add(1);
+  }else{
+    assert(false);
   }
 
 #endif
