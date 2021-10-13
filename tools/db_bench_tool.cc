@@ -3282,10 +3282,7 @@ class Benchmark {
         }
 
         for (int i = 0; i < num_warmup; i++) {
-#ifdef PROCESSANALYSIS
-          if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting)
-            TableCache::CleanAll();
-#endif
+
           RunBenchmark(num_threads, name, method);
         }
 
@@ -3295,6 +3292,10 @@ class Benchmark {
 
         CombinedStats combined_stats;
         for (int i = 0; i < num_repeat; i++) {
+#ifdef PROCESSANALYSIS
+          if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting)
+            TableCache::CleanAll();
+#endif
           Stats stats = RunBenchmark(num_threads, name, method);
           combined_stats.AddStats(stats);
         }
