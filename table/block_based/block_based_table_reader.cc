@@ -1493,7 +1493,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
         TableCache::cache_miss.fetch_add(1);
         auto start = std::chrono::high_resolution_clock::now();
 #endif
-        printf("cache miss!!\n");
+        printf("cache miss!!, cache miss number is %lu\n", TableCache::cache_miss.load());
         StopWatch sw(rep_->ioptions.env, statistics, READ_BLOCK_GET_MICROS);
         BlockFetcher block_fetcher(
             rep_->file.get(), prefetch_buffer, rep_->footer, ro, handle,
