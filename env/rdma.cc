@@ -58,7 +58,7 @@ RDMA_Manager::RDMA_Manager(
 {
 //  assert(read_block_size <table_size);
   res = new resources();
-
+  printf("initialize the RDMA manager\n");
   //  res->sock = -1;
   Remote_Mem_Bitmap = Remote_Bitmap;
 //  Write_Local_Mem_Bitmap = Write_Bitmap;
@@ -351,14 +351,9 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   }
 
 //  post_receive<int>(recv_mr, client_ip);
-
-
   post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-  local_mem_pool.reserve(100);
-  {
-    std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
-    Preregister_Memory(64);
-  }
+
+
   // sync after send & recv buffer creation and receive request posting.
   if (sock_sync_data(socket_fd, 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
@@ -589,6 +584,12 @@ void RDMA_Manager::Server_to_Client_Communication() {
     fprintf(stderr, "failed to create resources\n");
   }
   int rc;
+
+  local_mem_pool.reserve(100);
+  {
+    std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
+    Preregister_Memory(64);
+  }
   if (rdma_config.gid_idx >= 0) {
     printf("checkpoint0");
     rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx,
@@ -715,6 +716,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   // int trans_times;
   char temp_char;
   std::string ip_add;
+  printf("please input the ipadress for shared memory");
   std::cin >> ip_add;
   rdma_config.server_name = ip_add.c_str();
   /* if client side */
