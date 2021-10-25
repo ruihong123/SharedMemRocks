@@ -441,7 +441,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       post_send<registered_qp_config>(send_mr, client_ip);
       poll_completion(wc, 1, client_ip);
     }else if (receive_msg_buf.command == retrieve_fs_serialized_data){
-//      printf("retrieve_fs_serialized_data message received successfully\n");
+      printf("retrieve_fs_serialized_data message received successfully\n");
       post_receive(recv_mr,client_ip, 1000);
       post_send<int>(send_mr,client_ip);
       // prepare the receive for db name, the name should not exceed 1000byte
@@ -524,7 +524,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       std::string dbname;
       // Here could be some problem.
       dbname = std::string(recv_buff);
-      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+//      std::cout << "retrieve db_name is: " << dbname <<std::endl;
       ibv_mr* local_mr;
       if (log_image.find(dbname) == log_image.end()){
         void* buff = malloc(1024*1024);
