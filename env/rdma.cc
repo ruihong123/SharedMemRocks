@@ -472,7 +472,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
 
     }else if (receive_msg_buf.command == save_fs_serialized_data){
-//      printf("save_fs_serialized_data message received successfully\n");
+      printf("save_fs_serialized_data message received successfully\n");
       int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
       file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
 
@@ -543,7 +543,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
 
     }else if(receive_msg_buf.command == retrieve_log_serialized_data){
-//      printf("retrieve_log_serialized_data message received successfully\n");
+      printf("retrieve_log_serialized_data message received successfully\n");
 //      post_receive(recv_mr,client_ip, 1000);
 //      post_send<int>(send_mr,client_ip);
 //      // prepare the receive for db name, the name should not exceed 1000byte
