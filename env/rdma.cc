@@ -571,7 +571,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 //        poll_completion(wc, 1, client_ip);
 //      }
     }else {
-      printf("corrupt message from client.");
+      printf("corrupt message from client.\n");
 
     }
 
