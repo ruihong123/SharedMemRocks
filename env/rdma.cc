@@ -381,6 +381,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   //TODO: implement a heart beat mechanism.
   while (true) {
     poll_completion(wc, 1, client_ip);
+    printf("receive one RPC via RDMA\n");
     memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
     // copy the pointer of receive buf to a new place because
     // it is the same with send buff pointer.
