@@ -460,8 +460,10 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
         *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
         post_send<size_t>(send_mr,client_ip);
         post_receive<char>(recv_mr,client_ip);
+        poll_completion(wc, 2, client_ip);
+        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         post_send(local_mr,client_ip, local_mr->length);
-        poll_completion(wc, 3, client_ip);
+        poll_completion(wc, 1, client_ip);
       }else{
         l.unlock();
         *(reinterpret_cast<size_t*>(send_buff)) = 0;
@@ -2578,7 +2580,7 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       fprintf(stderr, "failed to poll receive for serialized message <retreive>\n");
       return false;
     }else
-      printf("retrieve message was sent successfully");
+      printf("retrieve message was sent successfully\n");
     memcpy(res->send_buf, db_name.c_str(), db_name.size());
     memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
     //receive the size of the serialized data
@@ -2596,18 +2598,16 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       post_receive(local_mr,"main", buff_size);
       // send a char to tell the shared memory that this computing node is ready to receive the data
       post_send<char>(res->mr_send, std::string("main"));
+      if (poll_completion(wc, 2, std::string("main"))) {
+        fprintf(stderr, "failed to poll receive for serialized message\n");
+        return false;
+      }else{
+        return true;
+      }
     }
     else
       return false;
-    if (poll_completion(wc, 2, std::string("main"))) {
-      fprintf(stderr, "failed to poll receive for serialized message\n");
-      return false;
-    }else{
-//      auto stop = std::chrono::high_resolution_clock::now();
-//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
-      return true;
-    }
+
   }else if (type == log_type){
     post_receive<int>(res->mr_receive, std::string("main"));
     // post the command for saving the serialized data.
@@ -2634,18 +2634,16 @@ bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
       post_receive(local_mr,"main", buff_size);
       // send a char to tell the shared memory that this computing node is ready to receive the data
       post_send<char>(res->mr_send, std::string("main"));
+      if (poll_completion(wc, 2, std::string("main"))) {
+        fprintf(stderr, "failed to poll receive for serialized message\n");
+        return false;
+      }else{
+        return true;
+      }
     }
     else
       return false;
-    if (poll_completion(wc, 2, std::string("main"))) {
-      fprintf(stderr, "failed to poll receive for serialized message\n");
-      return false;
-    }else{
-//      auto stop = std::chrono::high_resolution_clock::now();
-//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//      printf("fs meta data unpure retrieve communication time elapse: %ld\n", duration.count());
-      return true;
-    }
+
   }
   return true;
 
