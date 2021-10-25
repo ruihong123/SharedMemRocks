@@ -296,7 +296,7 @@ elseif(${CMAKE_VERSION} VERSION_LESS "3.11.4" OR (${Java_VERSION_MINOR} STREQUAL
   # Old CMake or Java 1.7 prepare the JAR...
   message("Preparing Jar for Java 7")
   add_jar(
-      rocksdbjni_classes
+      rocksdbRDMAjni_classes
       SOURCES
       ${JAVA_MAIN_CLASSES}
       ${JAVA_TEST_CLASSES}
@@ -307,7 +307,7 @@ else ()
   # Java 1.8 or newer prepare the JAR...
   message("Preparing Jar for JDK ${Java_VERSION_STRING}")
   add_jar(
-      rocksdbjni_classes
+      rocksdbRDMAjni_classes
       SOURCES
       ${JAVA_MAIN_CLASSES}
       ${JAVA_TEST_CLASSES}
@@ -499,13 +499,13 @@ if(NOT MSVC)
   set_property(TARGET ${ROCKSDB_STATIC_LIB} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
-set(ROCKSDBJNI_STATIC_LIB rocksdbjni${ARTIFACT_SUFFIX})
+set(ROCKSDBJNI_STATIC_LIB rocksdbRDMAjni${ARTIFACT_SUFFIX})
 add_library(${ROCKSDBJNI_STATIC_LIB} ${JNI_NATIVE_SOURCES})
 add_dependencies(${ROCKSDBJNI_STATIC_LIB} rocksdbjni_headers)
 target_link_libraries(${ROCKSDBJNI_STATIC_LIB} ${ROCKSDB_STATIC_LIB} ${ROCKSDB_LIB})
 
 if(NOT MINGW)
-  set(ROCKSDBJNI_SHARED_LIB rocksdbjni-shared${ARTIFACT_SUFFIX})
+  set(ROCKSDBJNI_SHARED_LIB rocksdbRDMAjni-shared${ARTIFACT_SUFFIX})
   add_library(${ROCKSDBJNI_SHARED_LIB} SHARED ${JNI_NATIVE_SOURCES})
   add_dependencies(${ROCKSDBJNI_SHARED_LIB} rocksdbjni_headers)
   target_link_libraries(${ROCKSDBJNI_SHARED_LIB} ${ROCKSDB_STATIC_LIB} ${ROCKSDB_LIB})

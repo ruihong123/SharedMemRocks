@@ -16,10 +16,10 @@ public class NativeLibraryLoader {
   private static final NativeLibraryLoader instance = new NativeLibraryLoader();
   private static boolean initialized = false;
 
-  private static final String sharedLibraryName = Environment.getSharedLibraryName("rocksdb");
-  private static final String jniLibraryName = Environment.getJniLibraryName("rocksdb");
-  private static final String jniLibraryFileName = Environment.getJniLibraryFileName("rocksdb");
-  private static final String tempFilePrefix = "librocksdbjni";
+  private static final String sharedLibraryName = Environment.getSharedLibraryName("rocksdbRDMA");//rocksdbRDMAjni
+  private static final String jniLibraryName = Environment.getJniLibraryName("rocksdbRDMA");//rocksdbRDMAjni-linux.x.x
+  private static final String jniLibraryFileName = Environment.getJniLibraryFileName("rocksdbRDMA");//librocksdbRDMAjni-linux.x.x
+  private static final String tempFilePrefix = "librocksdbRDMAjni";
   private static final String tempFileSuffix = Environment.getJniLibraryExtension();
 
   /**
@@ -48,6 +48,7 @@ public class NativeLibraryLoader {
    * @throws java.io.IOException if a filesystem operation fails.
    */
   public synchronized void loadLibrary(final String tmpDir) throws IOException {
+    System.out.println("java.library.path is" + System.getProperty("java.library.path"));
     try {
         System.loadLibrary(sharedLibraryName);
     } catch(final UnsatisfiedLinkError ule1) {

@@ -53,6 +53,7 @@ public class RocksDB extends RocksObject {
     if (libraryLoaded.compareAndSet(LibraryState.NOT_LOADED,
         LibraryState.LOADING)) {
       final String tmpDir = System.getenv("ROCKSDB_SHAREDLIB_DIR");
+      System.out.print("ROCKSDB_SHAREDLIB_DIR" + tmpDir);
       // loading possibly necessary libraries.
       for (final CompressionType compressionType : CompressionType.values()) {
         try {
