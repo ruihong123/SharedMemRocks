@@ -2303,6 +2303,9 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     int counter = 0;
 #endif
     for (iiter->Seek(key); ; iiter->Next()) {
+      //not understand why sometimes we need next here,
+      // the seek should be able to locate the first block whose largest key is larger than
+      // the target. If call Next,the key is definitely not in the next block
       if (!iiter->Valid() || done)
         break;
 #ifdef PROCESSANALYSIS
