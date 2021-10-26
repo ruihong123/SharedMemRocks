@@ -2310,7 +2310,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
-      assert(!counter++);
+//      assert(!counter++);
 #endif
 
       IndexValue v = iiter->value();
