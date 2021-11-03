@@ -1461,7 +1461,7 @@ struct WriteOptions {
 
   WriteOptions()
       : sync(false),
-        disableWAL(false),
+        disableWAL(true),// For rocksDB over RDMA we set it as true.
         ignore_missing_column_families(false),
         no_slowdown(false),
         low_pri(false),

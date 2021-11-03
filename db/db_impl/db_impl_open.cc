@@ -367,7 +367,8 @@ Status DBImpl::Recover(
     bool error_if_wal_file_exists, bool error_if_data_exists_in_wals,
     uint64_t* recovered_seq) {
   mutex_.AssertHeld();
-
+  for (auto i: column_families)
+    std::cout << i.name << ' ';
   bool is_new_db = false;
   assert(db_lock_ == nullptr);
   std::vector<std::string> files_in_dbname;
