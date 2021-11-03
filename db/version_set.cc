@@ -4569,6 +4569,12 @@ Status VersionSet::Recover(
   for (const auto& cf : column_families) {
     cf_name_to_options.emplace(cf.name, cf.options);
   }
+  for (auto i: column_families){
+    std::cout << "the input column_family " << std::endl;
+    std::cout << i.name << ' ';
+    std::cout << i.name << std::endl;
+  }
+
   // keeps track of column families in manifest that were not found in
   // column families parameters. if those column families are not dropped
   // by subsequent manifest records, Recover() will return failure status
