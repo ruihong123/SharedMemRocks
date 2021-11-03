@@ -15,9 +15,9 @@ void UnrefHandle_qp(void* ptr){
     fprintf(stderr, "Thread local qp failed to destroy QP\n");
   }
   else{
-//#ifndef NDEBUG
+#ifndef NDEBUG
     printf("thread local qp destroy successfully!");
-//#endif
+#endif
   }
 }
 void UnrefHandle_cq(void* ptr){
@@ -953,8 +953,9 @@ bool RDMA_Manager::create_qp(std::string& id) {
     res->qp_map[id] = qp;
   else
     qp_local->Reset(qp);
+#ifndef NDEBUG
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
-
+#endif
   return true;
 }
 /******************************************************************************
