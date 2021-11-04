@@ -27,7 +27,9 @@ void UnrefHandle_cq(void* ptr){
     fprintf(stderr, "Thread local cq failed to destroy QP\n");
   }
   else{
+#ifndef NDEBUG
     printf("thread local cq destroy successfully!");
+#endif
   }
 }
 /******************************************************************************
