@@ -2298,9 +2298,9 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
     bool matched = false;  // if such user key matched a key in SST
     bool done = false;
 #ifdef PROCESSANALYSIS
-    TableCache::not_filtered.fetch_add(1);
-    auto start = std::chrono::high_resolution_clock::now();
-    int counter = 0;
+//    TableCache::not_filtered.fetch_add(1);
+//    auto start = std::chrono::high_resolution_clock::now();
+//    int counter = 0;
 #endif
     for (iiter->Seek(key); ; iiter->Next()) {
       //not understand why sometimes we need next here,
@@ -2309,13 +2309,13 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
       if (!iiter->Valid() || done)
         break;
 #ifdef PROCESSANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-      TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
-//      assert(!counter++);
-      if(counter++ > 0)
-        printf("check here\n");
+//      auto stop = std::chrono::high_resolution_clock::now();
+//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+////    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+//      TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
+////      assert(!counter++);
+//      if(counter++ > 0)
+//        printf("check here\n");
 #endif
 
       IndexValue v = iiter->value();
