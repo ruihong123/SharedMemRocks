@@ -593,7 +593,7 @@ void RDMA_Manager::Server_to_Client_Communication() {
   local_mem_pool.reserve(100);
   {
     std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
-    Preregister_Memory(64);
+    Preregister_Memory(40);
   }
   if (rdma_config.gid_idx >= 0) {
     printf("checkpoint0");
