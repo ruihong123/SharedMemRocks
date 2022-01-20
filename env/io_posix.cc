@@ -1131,9 +1131,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   assert(n_original <= rdma_mg_->name_to_size.at("read"));
   RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
   RDMA_Manager::ReadCount.fetch_add(1);
-#ifndef NDEBUG
-  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
-#endif
+//#ifndef NDEBUG
+//  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
+//#endif
 #endif
     *result = Slice(scratch, n_original);
     return s;
