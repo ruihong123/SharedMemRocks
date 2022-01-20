@@ -4052,7 +4052,8 @@ Status VersionSet::ProcessManifestWrites(
       }
       TEST_SYNC_POINT("VersionSet::ProcessManifestWrites:AfterNewManifest");
     }
-    fs_->fs_meta_save();
+    // TODO: enable the code below if we want recover from crash
+//    fs_->fs_meta_save();
 
     if (s.ok()) {
       // find offset in manifest file where this version is stored.
