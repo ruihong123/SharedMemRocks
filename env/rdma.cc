@@ -44,7 +44,7 @@ void UnrefHandle_cq(void* ptr){
 * Initialize the resource for RDMA.
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(
-    config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
+    config_t config, std::map<void*, In_Use_Array*>* Remote_Bitmap,
     size_t table_size, std::string* db_name,
     std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta,
     std::shared_mutex* fs_mutex)
@@ -153,7 +153,15 @@ RDMA_Manager::~RDMA_Manager() {
         fprintf(stderr, "failed to close socket\n");
       }
     }
-
+  for (auto pool : name_to_mem_pool) {
+    for(auto iter : pool.second){
+      delete iter.second;
+    }
+  }
+  for(auto iter : *Remote_Mem_Bitmap){
+    delete iter.second;
+  }
+  delete Remote_Mem_Bitmap;
   delete res;
 }
 /******************************************************************************
@@ -655,7 +663,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         (*p2mrpointer)->length /
         (name_to_size.at(
             pool_name));  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, name_to_size.at(pool_name),
+    In_Use_Array* in_use_array = new In_Use_Array(placeholder_num, name_to_size.at(pool_name),
                               *p2mrpointer);
     // TODO: Modify it to allocate the memory according to the memory chunk types
 
@@ -1856,7 +1864,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
 
     // push the bitmap of the new registed buffer to the bitmap vector in resource.
     int placeholder_num =static_cast<int>(temp_pointer->length) /(Table_Size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
+    In_Use_Array* in_use_array = new In_Use_Array(placeholder_num, Table_Size, temp_pointer);
 //    std::unique_lock l(remote_pool_mutex);
     Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
 //    l.unlock();
@@ -1964,15 +1972,15 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     // find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr*
     // second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get
     // from the remote memory. The memory was divided into chunks with size == SSTable size.
-    int sst_index = ptr->second.allocate_memory_slot();
+    int sst_index = ptr->second->allocate_memory_slot();
     if (sst_index >= 0) {
-      *(sst_meta->mr) = *((ptr->second).get_mr_ori());
+      *(sst_meta->mr) = *((ptr->second)->get_mr_ori());
       sst_meta->mr->addr = static_cast<void*>(
           static_cast<char*>(sst_meta->mr->addr) + sst_index * Table_Size);
       sst_meta->mr->length = Table_Size;
       sst_meta->fname = file_name;
       sst_meta->map_pointer =
-          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
+          (ptr->second)->get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
       // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
       sst_meta->file_size = 0;
 #ifndef NDEBUG
@@ -1989,7 +1997,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
 //  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
-  int sst_index = Remote_Mem_Bitmap->at(mr_last->addr).allocate_memory_slot();
+  int sst_index = Remote_Mem_Bitmap->at(mr_last->addr)->allocate_memory_slot();
   mem_write_lock.unlock();
 
   //  sst_meta->mr = new ibv_mr();
@@ -2021,16 +2029,16 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   auto ptr = name_to_mem_pool.at(pool_name).begin();
 
   while (ptr != name_to_mem_pool.at(pool_name).end()) {
-    size_t region_chunk_size = ptr->second.get_chunk_size();
+    size_t region_chunk_size = ptr->second->get_chunk_size();
     if (region_chunk_size != chunk_size) {
       ptr++;
       continue;
     }
-    int block_index = ptr->second.allocate_memory_slot();
+    int block_index = ptr->second->allocate_memory_slot();
     if (block_index >= 0) {
       mr_input = new ibv_mr();
-      map_pointer = (ptr->second).get_mr_ori();
-      *(mr_input) = *((ptr->second).get_mr_ori());
+      map_pointer = (ptr->second)->get_mr_ori();
+      *(mr_input) = *((ptr->second)->get_mr_ori());
       mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
                                           block_index * chunk_size);
       mr_input->length = chunk_size;
@@ -2052,7 +2060,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
                         pool_name);
 
 
-  int block_index = name_to_mem_pool.at(pool_name).at(mr_to_allocate->addr).allocate_memory_slot();
+  int block_index = name_to_mem_pool.at(pool_name).at(mr_to_allocate->addr)->allocate_memory_slot();
   mem_write_lock.unlock();
   if (block_index >= 0) {
     mr_input = new ibv_mr();
@@ -2075,25 +2083,25 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
   assert(buff_offset % chunksize == 0);
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
   return name_to_mem_pool.at(buffer_type).at(map_pointer->addr)
-      .deallocate_memory_slot(buff_offset / chunksize);
+      ->deallocate_memory_slot(buff_offset / chunksize);
 
 
 }
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  std::map<void*, In_Use_Array> Bitmap;
-  Bitmap = name_to_mem_pool.at(buff_type);
-  auto mr_iter = Bitmap.upper_bound(p);
-  if (mr_iter == Bitmap.begin()) {
+  std::map<void*, In_Use_Array*>* Bitmap;
+  Bitmap = &name_to_mem_pool.at(buff_type);
+  auto mr_iter = Bitmap->upper_bound(p);
+  if (mr_iter == Bitmap->begin()) {
     return false;
-  } else if (mr_iter == Bitmap.end()) {
+  } else if (mr_iter == Bitmap->end()) {
     mr_iter--;
     size_t buff_offset =
         static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
     //      assert(buff_offset>=0);
-    if (buff_offset < mr_iter->second.get_mr_ori()->length)
-      return mr_iter->second.deallocate_memory_slot(
-          buff_offset / mr_iter->second.get_chunk_size());
+    if (buff_offset < mr_iter->second->get_mr_ori()->length)
+      return mr_iter->second->deallocate_memory_slot(
+          buff_offset / mr_iter->second->get_chunk_size());
     else
       return false;
   } else {
@@ -2101,9 +2109,9 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
     size_t buff_offset =
         static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
     //      assert(buff_offset>=0);
-    if (buff_offset < mr_iter->second.get_mr_ori()->length)
-      return mr_iter->second.deallocate_memory_slot(
-          buff_offset / mr_iter->second.get_chunk_size());
+    if (buff_offset < mr_iter->second->get_mr_ori()->length)
+      return mr_iter->second->deallocate_memory_slot(
+          buff_offset / mr_iter->second->get_chunk_size());
   }
   return false;
 }
@@ -2118,12 +2126,13 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
 #endif
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
   return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
-      .deallocate_memory_slot(buff_offset / Table_Size);
+      ->deallocate_memory_slot(buff_offset / Table_Size);
 }
 
 bool RDMA_Manager::CheckInsideLocalBuff(
-    void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
-    std::map<void*, In_Use_Array>* Bitmap) {
+    void* p,
+    std::_Rb_tree_iterator<std::pair<void* const, In_Use_Array*>>& mr_iter,
+    std::map<void*, In_Use_Array*>* Bitmap) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
   if (Bitmap != nullptr){
     mr_iter = Bitmap->upper_bound(p);
@@ -2133,7 +2142,7 @@ bool RDMA_Manager::CheckInsideLocalBuff(
       mr_iter--;
       size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
 //      assert(buff_offset>=0);
-      if (buff_offset < mr_iter->second.get_mr_ori()->length)
+      if (buff_offset < mr_iter->second->get_mr_ori()->length)
         return true;
       else
         return false;
@@ -2141,7 +2150,7 @@ bool RDMA_Manager::CheckInsideLocalBuff(
       mr_iter--;
       size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
 //      assert(buff_offset>=0);
-      if (buff_offset < mr_iter->second.get_mr_ori()->length)
+      if (buff_offset < mr_iter->second->get_mr_ori()->length)
         return true;
     }
   }else{
@@ -2152,11 +2161,12 @@ bool RDMA_Manager::CheckInsideLocalBuff(
 }
 
 bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
-  std::map<void*, In_Use_Array> mem_sub_pool;
+
   //check whether pool name has already exist.
   if (name_to_mem_pool.find(pool_name) != name_to_mem_pool.end())
     return false;
-  name_to_mem_pool.insert(std::pair<std::string, std::map<void*, In_Use_Array>>({pool_name, mem_sub_pool}));
+  std::map<void*, In_Use_Array*> mem_sub_pool;
+  name_to_mem_pool.insert(std::pair<std::string, std::map<void*, In_Use_Array*>>({pool_name, mem_sub_pool}));
   name_to_size.insert({pool_name, size});
   return true;
 }
@@ -2179,7 +2189,8 @@ void RDMA_Manager::mr_serialization(char*& temp, size_t& size, ibv_mr* mr){
 }
 
 void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_name,
-                                    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap){
+                                    std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
+    std::map<void*, In_Use_Array*>& remote_mem_bitmap){
 //  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
 
@@ -2271,16 +2282,16 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
     void* p = iter.first;
     memcpy(temp, &p, sizeof(void*));
     temp = temp + sizeof(void*);
-    size_t element_size = iter.second.get_element_size();
+    size_t element_size = iter.second->get_element_size();
     size_t element_size_net = htonl(element_size);
     memcpy(temp, &element_size_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
-    size_t chunk_size = iter.second.get_chunk_size();
+    size_t chunk_size = iter.second->get_chunk_size();
     size_t chunk_size_net = htonl(chunk_size);
     memcpy(temp, &chunk_size_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
-    std::atomic<bool>* in_use = iter.second.get_inuse_table();
-    auto mr = iter.second.get_mr_ori();
+    std::list<int>* free_list = iter.second->get_free_list();
+    auto mr = iter.second->get_mr_ori();
     p = mr->context;
     //TODO: It can not be changed into net stream.
 //    void* p_net = htonll(p);
@@ -2300,13 +2311,16 @@ void RDMA_Manager::fs_serialization(char*& buff, size_t& size, std::string& db_n
     size_t length_mr_net = htonl(length_mr);
     memcpy(temp, &length_mr_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
-    for (size_t i = 0; i<element_size; i++){
-
-      bool bit_temp = in_use[i];
-      memcpy(temp, &bit_temp, sizeof(bool));
-      temp = temp + sizeof(bool);
+    mr_serialization(temp, size, iter.second->get_mr_ori());
+    size_t list_size = free_list->size();
+    size_t list_size_net = htonl(list_size);
+    memcpy(temp, &element_size_net, sizeof(size_t));
+    temp = temp + sizeof(size_t);
+    for (auto index: *free_list){
+      memcpy(temp, &index, sizeof(int));
+      temp = temp + sizeof(int);
     }
-    mr_serialization(temp, size, iter.second.get_mr_ori());
+
 
   }
   size = temp - buff;
@@ -2337,7 +2351,7 @@ void RDMA_Manager::mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr){
 void RDMA_Manager::fs_deserilization(
     char*& buff, size_t& size, std::string& db_name,
     std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
-    std::map<void*, In_Use_Array>& remote_mem_bitmap, ibv_mr* local_mr) {
+    std::map<void*, In_Use_Array*>& remote_mem_bitmap, ibv_mr* local_mr) {
 //  auto start = std::chrono::high_resolution_clock::now();
   char* temp = buff;
   size_t namenumber_net;
@@ -2477,17 +2491,24 @@ void RDMA_Manager::fs_deserilization(
     mr_inuse->pd = static_cast<ibv_pd*>(pd_p);
     mr_inuse->handle = handle;
     mr_inuse->length = length_mr;
-    bool bit_temp;
-    for (size_t j = 0; j < element_size; j++){
-      memcpy(&bit_temp, temp, sizeof(bool));
-      in_use[j] = bit_temp;
+    mr_deserialization(temp, size, mr_inuse);
+    In_Use_Array* in_use_array =
+        new In_Use_Array(element_size, chunk_size, mr_inuse, true);
+    auto free_list = in_use_array->get_free_list();
+    size_t free_list_size_net = 0;
+    memcpy(&free_list_size_net, temp, sizeof(size_t));
+    size_t free_list_size = htonl(free_list_size_net);
+    temp = temp + sizeof(size_t);
+    int int_temp;
+    for (size_t j = 0; j < free_list_size; j++){
+      memcpy(&int_temp, temp, sizeof(bool));
+      free_list->push_back(int_temp);
       temp = temp + sizeof(bool);
     }
 
 
 
-    mr_deserialization(temp, size, mr_inuse);
-    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
+
     remote_mem_bitmap.insert({p_key, in_use_array});
   }
 //  auto stop = std::chrono::high_resolution_clock::now();

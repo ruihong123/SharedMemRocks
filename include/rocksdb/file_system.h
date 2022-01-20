@@ -168,7 +168,7 @@ class FileSystem {
   std::unordered_map<std::string, SST_Metadata*> file_to_sst_meta;
   std::unordered_map<std::string, SST_Metadata*> log_files;
   std::shared_mutex fs_mutex;
-  std::map<void*, In_Use_Array>* Remote_Bitmap;
+  std::map<void*, In_Use_Array*>* Remote_Bitmap;
   Status set_db_name(const std::string& name){
     db_name = name;
     return IOStatus::OK();

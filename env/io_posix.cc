@@ -1050,7 +1050,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   assert(offset == chunk_offset);
   char* chunk_src = scratch;
 
-  std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
+  std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array*>> mr_start;
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
 //#ifdef GETANALYSIS
@@ -1072,7 +1072,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //
 //#endif
      ibv_mr local_mr;
-    local_mr = *(mr_start->second.get_mr_ori());
+    local_mr = *(mr_start->second->get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
 #ifdef PROCESSANALYSIS

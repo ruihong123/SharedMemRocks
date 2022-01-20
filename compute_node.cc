@@ -200,7 +200,7 @@ void serialization(char*& buff, int &size, std::string dbname, std::map<std::str
     size_t chunk_size_net = htonl(chunk_size);
     memcpy(temp, &chunk_size_net, sizeof(size_t));
     temp = temp + sizeof(size_t);
-    std::atomic<bool>* in_use = iter.second.get_inuse_table();
+    std::atomic<bool>* in_use = iter.second.get_free_list();
     for (unsigned int i = 0; i<element_size; i++){
 
       bool bit_temp = in_use[i];
@@ -304,7 +304,7 @@ void deserialization(char*& buff, int &size, std::string& db_name, std::map<std:
     }
     ibv_mr* mr_inuse;
     mr_deserialization(temp, size, mr_inuse);
-    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
+    In_Use_Array in_use_array(element_size, chunk_size, mr_inuse);
     Remote_Mem_Bitmap.insert({p_key, in_use_array});
   }
 
@@ -377,7 +377,7 @@ int main()
   std::cout << file_to_sst_meta_reopen.at("meta3")->mr->addr << std::endl;
   std::cout << file_to_sst_meta_reopen.at("meta1") << std::endl;
   std::cout << Remote_Bitmap_reopen->begin()->second.get_mr_ori()->length << std::endl;
-  std::cout << Remote_Bitmap_reopen->begin()->second.get_inuse_table()[2] << std::endl;
+  std::cout << Remote_Bitmap_reopen->begin()->second.get_free_list()[2] << std::endl;
 
   //  while(1);
 
