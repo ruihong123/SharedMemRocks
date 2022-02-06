@@ -1477,7 +1477,7 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
   rocksdb::BlockBasedTableOptions table_option;
   // TODO: All the column family tends to has the same block size,this maay not the correct logic
   column_families.begin()->options.table_factory->Get_table_option(table_option);
-  db_options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size);
+  db_options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("read"), table_option.block_size>4096? table_option.block_size:4096);
   db_options.env->GetFileSystem()->rdma_mg->Mempool_initialize(std::string("write"), db_options.writable_file_max_buffer_size);
   db_options.env->GetFileSystem()->set_db_name(dbname);
   db_options.env->GetFileSystem()->fs_initialization();
