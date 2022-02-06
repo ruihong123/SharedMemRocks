@@ -250,12 +250,21 @@ Status BlockFetcher::ReadBlockContents() {
         printf("prepare buffer for the block of length %lu is %ld\n", handle_.size(), blockfetch_duration.count());
 //        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
 #endif
+#ifdef PROCESSANALYSIS
+        start = std::chrono::high_resolution_clock::now();
+#endif
         PERF_TIMER_GUARD(block_read_time);
 
         status_ = file_->Read(opts, handle_.offset(), block_size_with_trailer_,
                               &slice_, used_buf_, nullptr, for_compaction_);
 
         PERF_COUNTER_ADD(block_read_count, 1);
+#ifdef PROCESSANALYSIS
+        stop = std::chrono::high_resolution_clock::now();
+        blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("File read for the block of length %lu is %ld\n", handle_.size(), blockfetch_duration.count());
+//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
 #ifndef NDEBUG
         if (slice_.data() == &stack_buf_[0]) {
           num_stack_buf_memcpy_++;
