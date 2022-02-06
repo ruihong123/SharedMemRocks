@@ -1045,7 +1045,8 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   }
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  RDMA_Manager::ReadCount.store(duration1.count());
 //  printf("Check whether the buffer is RDMA registered for size %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
 //  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
 #endif
@@ -1122,11 +1123,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
 #ifdef PROCESSANALYSIS
   stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  auto duration2 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA read for size %zu time elapse is %zu\n",  n_original, duration.count());
   assert(n_original <= rdma_mg_->name_to_size.at("read"));
-  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
-  RDMA_Manager::ReadCount.fetch_add(1);
+//  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration2.count());
+  RDMA_Manager::RDMAReadTimeElapseSum.store(duration2.count());
+//  RDMA_Manager::ReadCount.fetch_add(1);
 //#ifndef NDEBUG
 //  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
 //#endif
