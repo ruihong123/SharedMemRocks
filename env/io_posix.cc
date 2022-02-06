@@ -1025,9 +1025,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
-//#ifdef PROCESSANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 
   IOStatus s;
@@ -1044,15 +1044,13 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     sst_meta_current = sst_meta_current->next_ptr;
     offset = offset- rdma_mg_->Table_Size;
   }
-//#ifdef PROCESSANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Check whether the buffer is RDMA registered for size %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
-////  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
-//#endif
-//#ifdef PROCESSANALYSIS
-//  start = std::chrono::high_resolution_clock::now();
-//#endif
+//  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
+#endif
+
   std::string thread_id;
 
   ibv_mr remote_mr = {}; // value copy of the ibv_mr in the sst metadata
@@ -1070,7 +1068,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //#ifdef GETANALYSIS
 //    auto start = std::chrono::high_resolution_clock::now();
 //#endif
-
+#ifdef PROCESSANALYSIS
+    start = std::chrono::high_resolution_clock::now();
+#endif
      ibv_mr local_mr;
     local_mr = *(mr_start->second->get_mr_ori());
     local_mr.addr = scratch;
@@ -1122,17 +1122,17 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + n);
     }
 
-//#ifdef PROCESSANALYSIS
-//  stop = std::chrono::high_resolution_clock::now();
-//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+#ifdef PROCESSANALYSIS
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA read for size %zu time elapse is %zu\n",  n_original, duration.count());
-//  assert(n_original <= rdma_mg_->name_to_size.at("read"));
-//  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
-//  RDMA_Manager::ReadCount.fetch_add(1);
-////#ifndef NDEBUG
-////  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
-////#endif
+  assert(n_original <= rdma_mg_->name_to_size.at("read"));
+  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+  RDMA_Manager::ReadCount.fetch_add(1);
+//#ifndef NDEBUG
+//  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
 //#endif
+#endif
     *result = Slice(scratch, n_original);
     return s;
 
