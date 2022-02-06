@@ -158,9 +158,10 @@ RDMA_Manager::~RDMA_Manager() {
       delete iter.second;
     }
   }
-  for(auto iter : *Remote_Mem_Bitmap){
-    delete iter.second;
-  }
+  //TODO: Understand why the code below will get stuck.
+//  for(auto iter : *Remote_Mem_Bitmap){
+//    delete iter.second;
+//  }
   delete Remote_Mem_Bitmap;
   delete res;
 }
