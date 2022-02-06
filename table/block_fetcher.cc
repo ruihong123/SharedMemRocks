@@ -247,7 +247,7 @@ Status BlockFetcher::ReadBlockContents() {
 #ifdef PROCESSANALYSIS
         auto stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("prepare buffer for the block of length %lu is %ld\n", handle_.offset(), blockfetch_duration.count());
+        printf("prepare buffer for the block of length %lu is %ld\n", handle_.size(), blockfetch_duration.count());
 //        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
 #endif
         PERF_TIMER_GUARD(block_read_time);
