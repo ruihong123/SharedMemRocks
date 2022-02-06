@@ -262,7 +262,7 @@ Status BlockFetcher::ReadBlockContents() {
 #ifdef PROCESSANALYSIS
         stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//        printf("File read for the block of length %lu is %ld\n", handle_.size(), blockfetch_duration.count());
+        printf("File read for the block of length %lu is %ld\n", handle_.size(), blockfetch_duration.count());
 //        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
 #endif
 #ifndef NDEBUG
