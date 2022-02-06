@@ -1489,10 +1489,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
       CompressionType raw_block_comp_type;
       BlockContents raw_block_contents;
       if (!contents) {
-#ifdef PROCESSANALYSIS
-        TableCache::cache_miss.fetch_add(1);
-        auto start = std::chrono::high_resolution_clock::now();
-#endif
+
 //#ifndef NDEBUG
 //        printf("cache miss!!, cache miss number is %lu\n", TableCache::cache_miss.load());
 //#endif
@@ -1508,7 +1505,17 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
 //#ifdef GETANALYSIS
 //        auto start = std::chrono::high_resolution_clock::now();
 //#endif
+#ifdef PROCESSANALYSIS
+        TableCache::cache_miss.fetch_add(1);
+        auto start = std::chrono::high_resolution_clock::now();
+#endif
         s = block_fetcher.ReadBlockContents();
+#ifdef PROCESSANALYSIS
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("block fetch time elapse for size %lu is %ld\n", handle.size(), blockfetch_duration.count());
+        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
 //#ifdef GETANALYSIS
 //        auto stop = std::chrono::high_resolution_clock::now();
 //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -1516,12 +1523,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
 //#endif
         raw_block_comp_type = block_fetcher.get_compression_type();
         contents = &raw_block_contents;
-#ifdef PROCESSANALYSIS
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("block fetch time elapse for size %lu is %ld\n", handle.size(), blockfetch_duration.count());
-        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+
       } else {
         raw_block_comp_type = contents->get_compression_type();
       }
