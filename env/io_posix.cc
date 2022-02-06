@@ -1025,6 +1025,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& /*opts*/, Slice* result,
                                      char* scratch,
                                      IODebugContext* /*dbg*/) const {
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 
   IOStatus s;
@@ -1035,9 +1038,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
   SST_Metadata* sst_meta_current = sst_meta_head_;// set sst_current to head.
   //find the SST_Metadata for current chunk.
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+
   size_t chunk_offset = offset%(rdma_mg_->Table_Size);
   while (offset >= rdma_mg_->Table_Size){
     sst_meta_current = sst_meta_current->next_ptr;
@@ -1045,10 +1046,12 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   }
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
-  auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  RDMA_Manager::ReadCount.store(duration1.count());
-//  printf("Check whether the buffer is RDMA registered for size %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("Check whether the buffer is RDMA registered for size %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
 //  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
+#endif
+#ifdef PROCESSANALYSIS
+  start = std::chrono::high_resolution_clock::now();
 #endif
   std::string thread_id;
 
@@ -1072,9 +1075,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     local_mr = *(mr_start->second->get_mr_ori());
     local_mr.addr = scratch;
     assert(n <= rdma_mg_->name_to_size.at("read"));
-#ifdef PROCESSANALYSIS
-    start = std::chrono::high_resolution_clock::now();
-#endif
+
 
     if (n + chunk_offset >= rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
@@ -1123,12 +1124,11 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 
 #ifdef PROCESSANALYSIS
   stop = std::chrono::high_resolution_clock::now();
-  auto duration2 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("RDMA read for size %zu time elapse is %zu\n",  n_original, duration.count());
   assert(n_original <= rdma_mg_->name_to_size.at("read"));
-//  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration2.count());
-  RDMA_Manager::RDMAReadTimeElapseSum.store(duration2.count());
-//  RDMA_Manager::ReadCount.fetch_add(1);
+  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+  RDMA_Manager::ReadCount.fetch_add(1);
 //#ifndef NDEBUG
 //  printf("fetched a block through RDMA, Read count is %lu\n", RDMA_Manager::ReadCount.load());
 //#endif
@@ -1137,6 +1137,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     return s;
 
   }else{
+    printf("Notice that there is a larger read");
     ibv_mr* local_mr_pointer;
     local_mr_pointer = nullptr;
 
