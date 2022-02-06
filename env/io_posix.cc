@@ -1047,7 +1047,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Check whether the buffer is RDMA registered for size %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
-  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
+//  printf("Seek %zu time elapse is %zu ****!!!!\n",  n_original, duration.count());
 #endif
   std::string thread_id;
 
