@@ -1504,12 +1504,7 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
             rep_->persistent_cache_options,
             GetMemoryAllocator(rep_->table_options),
             GetMemoryAllocatorForCompressedBlock(rep_->table_options));
-#ifdef PROCESSANALYSIS
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("block fetch time elapse for size %lu is %ld\n", handle.size(), blockfetch_duration.count());
-        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+
 //#ifdef GETANALYSIS
 //        auto start = std::chrono::high_resolution_clock::now();
 //#endif
@@ -1519,10 +1514,14 @@ Status BlockBasedTable::MaybeReadBlockAndLoadToCache(
 //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //        printf("Read Data block time elapse is %zu\n",  duration.count());
 //#endif
-
         raw_block_comp_type = block_fetcher.get_compression_type();
         contents = &raw_block_contents;
-
+#ifdef PROCESSANALYSIS
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("block fetch time elapse for size %lu is %ld\n", handle.size(), blockfetch_duration.count());
+        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
       } else {
         raw_block_comp_type = contents->get_compression_type();
       }
