@@ -2021,7 +2021,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
     if (name_to_mem_pool.at(pool_name).empty()) {
       ibv_mr* mr;
       char* buff;
-      Local_Memory_Register(&buff, &mr, 128*chunk_size, pool_name);
+      Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
     }
     mem_write_lock.unlock();
   }
@@ -2029,11 +2029,12 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   auto ptr = name_to_mem_pool.at(pool_name).begin();
 
   while (ptr != name_to_mem_pool.at(pool_name).end()) {
-    size_t region_chunk_size = ptr->second->get_chunk_size();
-    if (region_chunk_size != chunk_size) {
-      ptr++;
-      continue;
-    }
+//    size_t region_chunk_size = ptr->second->get_chunk_size();
+//    if (region_chunk_size != chunk_size) {
+//      ptr++;
+//      continue;
+//    }
+    assert(ptr->second->get_chunk_size() == chunk_size);
     int block_index = ptr->second->allocate_memory_slot();
     if (block_index >= 0) {
       mr_input = new ibv_mr();
@@ -2056,7 +2057,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   char* buff = new char[chunk_size];
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-  Local_Memory_Register(&buff, &mr_to_allocate, 128*chunk_size,
+  Local_Memory_Register(&buff, &mr_to_allocate, 1024*1024*1024,
                         pool_name);
 
 
