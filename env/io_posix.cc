@@ -1137,7 +1137,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
     return s;
 
   }else{
-    printf("Notice that there is a larger read");
+    printf("Notice that there is a larger read\n");
     ibv_mr* local_mr_pointer;
     local_mr_pointer = nullptr;
 
