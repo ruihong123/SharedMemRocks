@@ -2314,8 +2314,8 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
 //      assert(!counter++);
-      if(counter++ > 0)
-        printf("check here\n");
+//      if(counter++ > 0)
+//        printf("check here\n");
 #endif
 
       IndexValue v = iiter->value();
@@ -2351,8 +2351,8 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
               nullptr};
       bool does_referenced_key_exist = false;
 #ifdef PROCESSANALYSIS
-//      //      TableCache::not_filtered.fetch_add(1);
-//      start = std::chrono::high_resolution_clock::now();
+      //      TableCache::not_filtered.fetch_add(1);
+      start = std::chrono::high_resolution_clock::now();
 #endif
       DataBlockIter biter;
       uint64_t referenced_data_size = 0;
@@ -2361,10 +2361,10 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
           &lookup_data_block_context,
           /*s=*/Status(), /*prefetch_buffer*/ nullptr);
 #ifdef PROCESSANALYSIS
-//      stop = std::chrono::high_resolution_clock::now();
-//      duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-////    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-//      TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
+      stop = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+      TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
 #endif
       if (no_io && biter.status().IsIncomplete()) {
         // couldn't get block from block_cache
@@ -2451,6 +2451,11 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
       if (done) {
         // Avoid the extra Next which is expensive in two-level indexes
         break;
+      }else{
+#ifdef PROCESSANALYSIS
+        //      TableCache::not_filtered.fetch_add(1);
+        start = std::chrono::high_resolution_clock::now();
+#endif
       }
     }
     if (matched && filter != nullptr && !filter->IsBlockBased()) {
