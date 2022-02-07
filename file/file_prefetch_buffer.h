@@ -48,7 +48,8 @@ class FilePrefetchBuffer {
   FilePrefetchBuffer(RandomAccessFileReader* file_reader = nullptr,
                      size_t readadhead_size = 0, size_t max_readahead_size = 0,
                      bool enable = true, bool track_min_offset = false)
-      : buffer_offset_(0),
+      : buffer_((std::string("prefetch"))),
+        buffer_offset_(0),
         file_reader_(file_reader),
         readahead_size_(readadhead_size),
         max_readahead_size_(max_readahead_size),
@@ -82,7 +83,7 @@ class FilePrefetchBuffer {
   size_t min_offset_read() const { return min_offset_read_; }
 
  private:
-  AlignedBuffer buffer_;
+  RDMA_buffer buffer_;
   uint64_t buffer_offset_;
   RandomAccessFileReader* file_reader_;
   size_t readahead_size_;

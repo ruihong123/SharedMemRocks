@@ -773,7 +773,7 @@ struct DBOptions {
   // Default: 0
   //
   // Dynamically changeable through SetDBOptions() API.
-  size_t compaction_readahead_size = 0;
+  size_t compaction_readahead_size = 8*1024*1024;
 
   // This is a maximum buffer size that is used by WinMmapReadableFile in
   // unbuffered disk I/O mode. We need to maintain an aligned buffer for

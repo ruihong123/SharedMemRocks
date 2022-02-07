@@ -57,8 +57,8 @@ class RateLimiter;
 class ThreadStatusUpdater;
 struct ThreadStatus;
 class FileSystem;
-
-const size_t kDefaultPageSize = 4 * 1024;
+//size of one RDMA chunk
+const size_t kDefaultPageSize = 8 * 1024 * 1024;
 
 enum class CpuPriority {
   kIdle = 0,

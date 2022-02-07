@@ -76,10 +76,11 @@ Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
   // Create a new buffer only if current capacity is not sufficient, and memcopy
   // bytes from old buffer if needed (i.e., if chunk_len is greater than 0).
   if (buffer_.Capacity() < roundup_len) {
-    buffer_.Alignment(alignment);
-    buffer_.AllocateNewBuffer(static_cast<size_t>(roundup_len),
-                              copy_data_to_new_buffer, chunk_offset_in_buffer,
-                              static_cast<size_t>(chunk_len));
+    assert(false);
+//    buffer_.Alignment(alignment);
+//    buffer_.AllocateNewBuffer(static_cast<size_t>(roundup_len),
+//                              copy_data_to_new_buffer, chunk_offset_in_buffer,
+//                              static_cast<size_t>(chunk_len));
   } else if (chunk_len > 0) {
     // New buffer not needed. But memmove bytes from tail to the beginning since
     // chunk_len is greater than 0.
