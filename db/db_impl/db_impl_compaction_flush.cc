@@ -2941,10 +2941,10 @@ Status DBImpl::BackgroundCompaction(bool* made_progress,
     compaction_job.Run();
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-#ifndef NDEBUG
+//#ifndef NDEBUG
     printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %zu, the second level file number %zu \n",
            duration.count(), c->level(), c->num_input_files(0),c->num_input_files(1) );
-#endif
+//#endif
     TEST_SYNC_POINT("DBImpl::BackgroundCompaction:NonTrivial:AfterRun");
     mutex_.Lock();
 
