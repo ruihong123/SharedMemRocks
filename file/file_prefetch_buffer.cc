@@ -46,7 +46,7 @@ Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
   Status s;
   uint64_t chunk_offset_in_buffer = 0;
   uint64_t chunk_len = 0;
-  bool copy_data_to_new_buffer = false;
+//  bool copy_data_to_new_buffer = false;
   if (buffer_.CurrentSize() > 0 && offset >= buffer_offset_ &&
       offset <= buffer_offset_ + buffer_.CurrentSize()) {
     if (offset + n <= buffer_offset_ + buffer_.CurrentSize()) {
