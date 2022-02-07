@@ -120,7 +120,7 @@ DBOptions SanitizeOptions(const std::string& dbname, const DBOptions& src) {
   if (result.db_paths.size() == 0) {
     result.db_paths.emplace_back(dbname, std::numeric_limits<uint64_t>::max());
   }
-  assert(result.compaction_readahead_size == 8*1024*1024);
+//  assert(result.compaction_readahead_size == 8*1024*1024);
   if (result.use_direct_reads && result.compaction_readahead_size == 0) {
     TEST_SYNC_POINT_CALLBACK("SanitizeOptions:direct_io", nullptr);
     result.compaction_readahead_size = 1024 * 1024 * 2;
