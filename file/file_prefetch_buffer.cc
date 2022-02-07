@@ -65,7 +65,7 @@ Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
       assert(chunk_offset_in_buffer + chunk_len <=
              buffer_offset_ + buffer_.CurrentSize());
       if (chunk_len > 0) {
-        copy_data_to_new_buffer = true;
+//        copy_data_to_new_buffer = true;
       } else {
         // this reset is not necessary, but just to be safe.
         chunk_offset_in_buffer = 0;
