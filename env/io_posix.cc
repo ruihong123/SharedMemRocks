@@ -1031,7 +1031,10 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 
   IOStatus s;
-
+  // if the request is out side of the buffer size, then readjust the buffer size.
+  if(offset + n > sst_meta_head_->file_size){
+    n = sst_meta_head_->file_size - offset;
+  }
   assert(offset + n <= sst_meta_head_->file_size);
   size_t n_original = n;
   ibv_mr* map_pointer;

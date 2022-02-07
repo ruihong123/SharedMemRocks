@@ -96,7 +96,8 @@ Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
   if (!s.ok() || result.size() < read_len) {
     // Fake an IO error to force db_stress fault injection to ignore
     // truncated read errors
-    IGNORE_STATUS_IF_ERROR(Status::IOError());
+    printf("Prefetch goes to the end, read orign %zu, read reality %zu", read_len, result.size());
+//    IGNORE_STATUS_IF_ERROR(Status::IOError());
   }
 #endif
   if (s.ok()) {
