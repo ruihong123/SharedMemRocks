@@ -2023,6 +2023,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
       ibv_mr* mr;
       char* buff;
       Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
+      printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory this pool is %lu\n",
+             pool_name.c_str(), name_to_mem_pool.at(pool_name).size());
     }
     mem_write_lock.unlock();
   }
@@ -2060,7 +2062,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
   Local_Memory_Register(&buff, &mr_to_allocate, 1024*1024*1024,
                         pool_name);
-
+  printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory this pool is %lu\n",
+         pool_name.c_str(), name_to_mem_pool.at(pool_name).size());
 
   int block_index = name_to_mem_pool.at(pool_name).at(mr_to_allocate->addr)->allocate_memory_slot();
   mem_write_lock.unlock();

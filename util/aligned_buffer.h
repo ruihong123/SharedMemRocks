@@ -269,6 +269,7 @@ class RDMA_buffer {
   RDMA_buffer(std::string buffer_type):buff_type_(buffer_type){
 //    auto start = std::chrono::high_resolution_clock::now();
     FileSystem::Default()->rdma_mg->Allocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+    std::cout << "RDMA buffer allocated" << buff_type_ << std::endl;
 //    auto stop = std::chrono::high_resolution_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    printf("Write Memory allocate, time elapse: %ld\n", duration.count());
@@ -292,6 +293,7 @@ class RDMA_buffer {
   ~RDMA_buffer() ROCKSDB_NOEXCEPT {
 //    auto start = std::chrono::high_resolution_clock::now();
     FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
+    std::cout << "RDMA buffer deallocated" << buff_type_ << std::endl;
 //    auto stop = std::chrono::high_resolution_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    printf("Write Memory Deallocate, time elapse: %ld\n", duration.count());
@@ -326,7 +328,8 @@ class RDMA_buffer {
     capacity_ = 0;
     bufstart_ = nullptr;
     FileSystem::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(mr_, map_mr_, buff_type_);
-    printf("Write buffer deregister");
+
+    std::cout << "RDMA buffer deregister" << buff_type_ << std::endl;
     return;
   }
 
