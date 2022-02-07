@@ -3472,7 +3472,7 @@ class Benchmark {
     }
     delete[] arg;
     if (method == &Benchmark::WriteRandom)
-      sleep(15); // Digestion for SSTable compaction.
+      sleep(30); // Digestion for SSTable compaction.
     return merge_stats;
 
   }
