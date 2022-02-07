@@ -5168,7 +5168,11 @@ class Benchmark {
         s = db_with_cfh->db->Get(options,
                                  db_with_cfh->db->DefaultColumnFamily(), key,
                                  &pinnable_val, ts_ptr);
-        assert(pinnable_val.size() != 0);
+#ifndef NDEBUG
+        if (s.ok()){
+          assert(pinnable_val.size() != 0);
+        }
+#endif
       }
       if (s.ok()) {
         found++;
