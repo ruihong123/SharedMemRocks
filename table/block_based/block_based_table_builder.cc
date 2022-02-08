@@ -895,15 +895,33 @@ void BlockBasedTableBuilder::WriteBlock(const Slice& raw_block_contents,
     return;
   }
   Status compress_status;
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   CompressAndVerifyBlock(raw_block_contents, is_data_block,
                          *(r->compression_ctxs[0]), r->verify_ctxs[0].get(),
                          &(r->compressed_output), &(block_contents), &type,
                          &compress_status);
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("Compress and veryfy is %ld\n", blockfetch_duration.count());
+//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
   r->SetStatus(compress_status);
   if (!ok()) {
     return;
   }
+#ifdef PROCESSANALYSIS
+  start = std::chrono::high_resolution_clock::now();
+#endif
   WriteRawBlock(block_contents, type, handle, is_data_block);
+#ifdef PROCESSANALYSIS
+  stop = std::chrono::high_resolution_clock::now();
+  auto blockfetch_duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("Write raw block time elapse is %ld\n",  blockfetch_duration1.count());
+//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
   r->compressed_output.clear();
   if (is_data_block) {
     if (r->filter_builder != nullptr) {
@@ -1085,12 +1103,12 @@ void BlockBasedTableBuilder::WriteRawBlock(const Slice& block_contents,
     }
     EncodeFixed32(trailer + 1, checksum);
     assert(io_s.ok());
-//    TEST_SYNC_POINT_CALLBACK(
-//        "BlockBasedTableBuilder::WriteRawBlock:TamperWithChecksum",
-//        static_cast<char*>(trailer));
+    TEST_SYNC_POINT_CALLBACK(
+        "BlockBasedTableBuilder::WriteRawBlock:TamperWithChecksum",
+        static_cast<char*>(trailer));
     io_s = r->file->Append(Slice(trailer, kBlockTrailerSize));
     if (io_s.ok()) {
-//      s = InsertBlockInCache(block_contents, type, handle);
+      s = InsertBlockInCache(block_contents, type, handle);
       if (!s.ok()) {
         r->SetStatus(s);
       }
