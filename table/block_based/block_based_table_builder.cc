@@ -713,6 +713,9 @@ BlockBasedTableBuilder::~BlockBasedTableBuilder() {
 }
 
 void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   Rep* r = rep_;
   assert(rep_->state != Rep::State::kClosed);
   if (!ok()) return;
@@ -747,16 +750,16 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
         if (r->compression_opts.parallel_threads > 1) {
           r->pc_rep->curr_block_keys->Clear();
         } else {
-#ifdef PROCESSANALYSIS
-          auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//          auto start = std::chrono::high_resolution_clock::now();
+//#endif
           r->index_builder->AddIndexEntry(&r->last_key, &key,
                                           r->pending_handle);
-#ifdef PROCESSANALYSIS
-          auto stop = std::chrono::high_resolution_clock::now();
-          auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Add index to the block time elapse is %ld\n", blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//          auto stop = std::chrono::high_resolution_clock::now();
+//          auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Add index to the block time elapse is %ld\n", blockfetch_duration.count());
+//#endif
         }
       }
     }
@@ -815,6 +818,11 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
   } else if (value_type == kTypeMerge) {
     r->props.num_merge_operands++;
   }
+#ifdef PROCESSANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    printf("Add a key to table time elapse is %ld\n", blockfetch_duration.count());
+#endif
 }
 
 void BlockBasedTableBuilder::Flush() {
@@ -886,16 +894,16 @@ void BlockBasedTableBuilder::WriteBlock(BlockBuilder* block,
                                         BlockHandle* handle,
                                         bool is_data_block) {
   WriteBlock(block->Finish(), handle, is_data_block);
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   block->Reset();
-#ifdef PROCESSANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Block reset time elapse is %ld\n",  blockfetch_duration.count());
-//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Block reset time elapse is %ld\n",  blockfetch_duration.count());
+////        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+//#endif
 }
 
 void BlockBasedTableBuilder::WriteBlock(const Slice& raw_block_contents,
@@ -912,33 +920,33 @@ void BlockBasedTableBuilder::WriteBlock(const Slice& raw_block_contents,
     return;
   }
   Status compress_status;
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   CompressAndVerifyBlock(raw_block_contents, is_data_block,
                          *(r->compression_ctxs[0]), r->verify_ctxs[0].get(),
                          &(r->compressed_output), &(block_contents), &type,
                          &compress_status);
-#ifdef PROCESSANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Compress and veryfy is %ld\n", blockfetch_duration.count());
-//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Compress and veryfy is %ld\n", blockfetch_duration.count());
+////        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+//#endif
   r->SetStatus(compress_status);
   if (!ok()) {
     return;
   }
-#ifdef PROCESSANALYSIS
-  start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//  start = std::chrono::high_resolution_clock::now();
+//#endif
   WriteRawBlock(block_contents, type, handle, is_data_block);
-#ifdef PROCESSANALYSIS
-  stop = std::chrono::high_resolution_clock::now();
-  auto blockfetch_duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Write raw block time elapse is %ld\n",  blockfetch_duration1.count());
-//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//  stop = std::chrono::high_resolution_clock::now();
+//  auto blockfetch_duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Write raw block time elapse is %ld\n",  blockfetch_duration1.count());
+////        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+//#endif
   r->compressed_output.clear();
   if (is_data_block) {
     if (r->filter_builder != nullptr) {
