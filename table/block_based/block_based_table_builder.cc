@@ -819,11 +819,11 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
   } else if (value_type == kTypeMerge) {
     r->props.num_merge_operands++;
   }
-#ifdef PROCESSANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("Add a key to table time elapse is %ld\n", blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//    auto stop = std::chrono::high_resolution_clock::now();
+//    auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    printf("Add a key to table time elapse is %ld\n", blockfetch_duration.count());
+//#endif
 }
 
 void BlockBasedTableBuilder::Flush() {
