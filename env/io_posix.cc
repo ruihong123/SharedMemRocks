@@ -1030,7 +1030,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 #endif
 //  assert(n > 1000);
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
-
+  printf("RDMA read length is %zu\n", n);
   IOStatus s;
   // if the request is out side of the buffer size, then readjust the buffer size.
   if(offset + n > sst_meta_head_->file_size){
