@@ -1028,6 +1028,7 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
+  assert(n > 1000);
   const std::shared_lock<std::shared_mutex> lock(sst_meta_head_->file_lock);
 
   IOStatus s;
