@@ -1405,7 +1405,8 @@ IOStatus RDMARandomAccessFile::MultiRead(FSReadRequest* reqs,
 IOStatus RDMARandomAccessFile::Prefetch(uint64_t offset, size_t n,
                                          const IOOptions& /*opts*/,
                                          IODebugContext* /*dbg*/) {
-  return IOStatus::OK();
+
+  return IOStatus::NotSupported();
 }
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_AIX)
