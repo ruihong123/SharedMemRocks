@@ -115,9 +115,9 @@ size_t BlockBuilder::EstimateSizeAfterKV(const Slice& key,
 }
 
 Slice BlockBuilder::Finish() {
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   // Append restart array
   for (size_t i = 0; i < restarts_.size(); i++) {
     PutFixed32(&buffer_, restarts_[i]);
@@ -137,12 +137,12 @@ Slice BlockBuilder::Finish() {
 
   PutFixed32(&buffer_, block_footer);
   finished_ = true;
-#ifdef PROCESSANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Block Finish() time elapse is %ld\n",  blockfetch_duration.count());
-//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Block Finish() time elapse is %ld\n",  blockfetch_duration.count());
+////        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+//#endif
   return Slice(buffer_);
 }
 
