@@ -27,17 +27,17 @@ IOStatus WritableFileWriter::Append(const Slice& data) {
   IOStatus s;
   pending_sync_ = true;
 
-  TEST_KILL_RANDOM("WritableFileWriter::Append:0",
-                   rocksdb_kill_odds * REDUCE_ODDS2);
+//  TEST_KILL_RANDOM("WritableFileWriter::Append:0",
+//                   rocksdb_kill_odds * REDUCE_ODDS2);
 
   // Calculate the checksum of appended data
-  UpdateFileChecksum(data);
+//  UpdateFileChecksum(data);
 
   {
-    IOSTATS_TIMER_GUARD(prepare_write_nanos);
-    TEST_SYNC_POINT("WritableFileWriter::Append:BeforePrepareWrite");
-    writable_file_->PrepareWrite(static_cast<size_t>(GetFileSize()), left,
-                                 IOOptions(), nullptr);
+//    IOSTATS_TIMER_GUARD(prepare_write_nanos);
+//    TEST_SYNC_POINT("WritableFileWriter::Append:BeforePrepareWrite");
+//    writable_file_->PrepareWrite(static_cast<size_t>(GetFileSize()), left,
+//                                 IOOptions(), nullptr);
   }
 
   // See whether we need to enlarge the buffer to avoid the flush

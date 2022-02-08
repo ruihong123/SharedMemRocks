@@ -1085,12 +1085,12 @@ void BlockBasedTableBuilder::WriteRawBlock(const Slice& block_contents,
     }
     EncodeFixed32(trailer + 1, checksum);
     assert(io_s.ok());
-    TEST_SYNC_POINT_CALLBACK(
-        "BlockBasedTableBuilder::WriteRawBlock:TamperWithChecksum",
-        static_cast<char*>(trailer));
+//    TEST_SYNC_POINT_CALLBACK(
+//        "BlockBasedTableBuilder::WriteRawBlock:TamperWithChecksum",
+//        static_cast<char*>(trailer));
     io_s = r->file->Append(Slice(trailer, kBlockTrailerSize));
     if (io_s.ok()) {
-      s = InsertBlockInCache(block_contents, type, handle);
+//      s = InsertBlockInCache(block_contents, type, handle);
       if (!s.ok()) {
         r->SetStatus(s);
       }
