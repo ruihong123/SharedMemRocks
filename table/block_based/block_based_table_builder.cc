@@ -747,8 +747,16 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
         if (r->compression_opts.parallel_threads > 1) {
           r->pc_rep->curr_block_keys->Clear();
         } else {
+#ifdef PROCESSANALYSIS
+          auto start = std::chrono::high_resolution_clock::now();
+#endif
           r->index_builder->AddIndexEntry(&r->last_key, &key,
                                           r->pending_handle);
+#ifdef PROCESSANALYSIS
+          auto stop = std::chrono::high_resolution_clock::now();
+          auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("Add index to the block time elapse is %ld\n", blockfetch_duration.count());
+#endif
         }
       }
     }
@@ -878,7 +886,16 @@ void BlockBasedTableBuilder::WriteBlock(BlockBuilder* block,
                                         BlockHandle* handle,
                                         bool is_data_block) {
   WriteBlock(block->Finish(), handle, is_data_block);
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   block->Reset();
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("Block reset time elapse is %ld\n",  blockfetch_duration.count());
+//        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
 }
 
 void BlockBasedTableBuilder::WriteBlock(const Slice& raw_block_contents,
