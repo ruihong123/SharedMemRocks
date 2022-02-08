@@ -729,9 +729,9 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
 
     auto should_flush = r->flush_block_policy->Update(key, value);
     if (should_flush) {
-#ifdef PROCESSANALYSIS
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef PROCESSANALYSIS
+//      auto start = std::chrono::high_resolution_clock::now();
+//#endif
       assert(!r->data_block.empty());
       r->first_key_in_next_block = &key;
       Flush();
@@ -756,11 +756,11 @@ void BlockBasedTableBuilder::Add(const Slice& key, const Slice& value) {
 
           r->index_builder->AddIndexEntry(&r->last_key, &key,
                                           r->pending_handle);
-#ifdef PROCESSANALYSIS
-          auto stop = std::chrono::high_resolution_clock::now();
-          auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        printf("Every flush time elapse is %ld\n", blockfetch_duration.count());
-#endif
+//#ifdef PROCESSANALYSIS
+//          auto stop = std::chrono::high_resolution_clock::now();
+//          auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        printf("Every flush time elapse is %ld\n", blockfetch_duration.count());
+//#endif
         }
       }
     }
