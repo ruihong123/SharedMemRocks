@@ -85,7 +85,7 @@
 #define fdatasync fsync
 #endif
 //#define TIMEPRINT
-#define PROCESSANALYSIS
+//#define PROCESSANALYSIS
 namespace ROCKSDB_NAMESPACE {
 
 extern const bool kDefaultToAdaptiveMutex;
