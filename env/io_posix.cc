@@ -1218,9 +1218,12 @@ IOStatus RDMARandomAccessFile::Read_chunk(char*& buff_ptr, size_t size,
     sst_meta_current = sst_meta_current->next_ptr;
     remote_mr = *(sst_meta_current->mr);
     chunk_offset = 0;
-    flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
-                               thread_id, IBV_SEND_SIGNALED,1);
-    memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
+    if (second_half > 0){
+      flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
+                                 thread_id, IBV_SEND_SIGNALED,1);
+      memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
+    }
+
 //    std::cout << "read blocks accross Table chunk" << std::endl;
     if (flag!=0){
 
