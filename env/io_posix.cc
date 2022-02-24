@@ -1100,18 +1100,21 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
       sst_meta_current = sst_meta_current->next_ptr;
       remote_mr = *(sst_meta_current->mr);
       chunk_offset = 0;
-      flag = rdma_mg_->RDMA_Read(&remote_mr, &local_mr, second_half,
-                                 thread_id, IBV_SEND_SIGNALED,1);
-//    std::cout << "New read blocks accross Table chunk" << std::endl;
-      if (flag!=0){
+      if (second_half >0){
+        flag = rdma_mg_->RDMA_Read(&remote_mr, &local_mr, second_half,
+                                   thread_id, IBV_SEND_SIGNALED,1);
+        //    std::cout << "New read blocks accross Table chunk" << std::endl;
+        if (flag!=0){
 
-        return IOError("While appending to file", sst_meta_head_->fname, flag);
+          return IOError("While appending to file", sst_meta_head_->fname, flag);
 
 
+        }
+        //      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
+        chunk_offset = second_half;
+        //      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
       }
-//      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
-      chunk_offset = second_half;
-//      local_mr.addr = static_cast<void*>(static_cast<char*>(local_mr.addr) + second_half);
+
     }else{
 
       int flag =
