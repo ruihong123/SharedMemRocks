@@ -32,6 +32,11 @@ void UnrefHandle_cq(void* ptr){
 #endif
   }
 }
+void Destroy_mr(void* ptr) {
+  if (ptr == nullptr) return;
+  ibv_dereg_mr((ibv_mr*)ptr);
+  delete (char*)((ibv_mr*)ptr)->addr;
+}
 /******************************************************************************
 * Function: RDMA_Manager
 
@@ -52,10 +57,12 @@ RDMA_Manager::RDMA_Manager(
       t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local(new ThreadLocalPtr(&UnrefHandle_cq)),
+      read_buffer(new ThreadLocalPtr(&Destroy_mr)),
       rdma_config(config),
       db_name_(db_name),
       file_to_sst_meta_(file_to_sst_meta),
       fs_mutex_(fs_mutex)
+
 
 {
 //  assert(read_block_size <table_size);
@@ -65,6 +72,21 @@ RDMA_Manager::RDMA_Manager(
   Remote_Mem_Bitmap = Remote_Bitmap;
 //  Write_Local_Mem_Bitmap = Write_Bitmap;
 //  Read_Local_Mem_Bitmap = Read_Bitmap;
+
+}
+ibv_mr* RDMA_Manager::Get_local_read_mr() {
+  ibv_mr* ret;
+  ret = (ibv_mr*)read_buffer->Get();
+  std::string pool_name = "read";
+  if (ret == nullptr){
+    char* buffer = new char[name_to_size.at(pool_name)];
+    auto mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    ret = ibv_reg_mr(res->pd, buffer, name_to_size.at(pool_name), mr_flags);
+    read_buffer->Reset(ret);
+  }
+  return ret;
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -366,7 +388,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   local_mem_pool.reserve(100);
   {
     std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
-    Preregister_Memory(90);
+    Preregister_Memory(90); // should be at most 52 for rocksDB 48GB is also OKay.
   }
 
   // sync after send & recv buffer creation and receive request posting.
@@ -446,6 +468,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
                   rdma_config.ib_port, rdma_config.gid_idx);
           return;
         }
+        //TODO: some place we need to garbage collect those qps
       } else
         memset(&(res->my_gid), 0, sizeof (res->my_gid));
       /* exchange using TCP sockets info required to connect QPs */

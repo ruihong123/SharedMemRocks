@@ -1149,8 +1149,9 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //    printf("Notice that there is a larger read\n");
     ibv_mr* local_mr_pointer;
     local_mr_pointer = nullptr;
-
-    rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
+    //TODO: MAKE THE memory buffer a thread local buffer
+//    rdma_mg_->Allocate_Local_RDMA_Slot(local_mr_pointer, map_pointer, std::string("read"));
+    local_mr_pointer = rdma_mg_->Get_local_read_mr();
 
 //#ifdef GETANALYSIS
 //    auto start = std::chrono::high_resolution_clock::now();
@@ -1177,13 +1178,13 @@ IOStatus RDMARandomAccessFile::Read(uint64_t offset, size_t n,
 //
 //#endif
     *result = Slice(scratch, n_original);// n has been changed, so we need record the original n.
-    if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
-                                            std::string("read")))
-      delete local_mr_pointer;
-    else
-      s = IOError(
-          "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
-          sst_meta_head_->fname, 1);
+//    if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer, map_pointer,
+//                                            std::string("read")))
+//      delete local_mr_pointer;
+//    else
+//      s = IOError(
+//          "While RDMA Local Buffer Deallocate failed " + ToString(offset) + " len " + ToString(n),
+//          sst_meta_head_->fname, 1);
 //  stop = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Read Local buffer deallocate time elapse: %ld\n", duration.count());

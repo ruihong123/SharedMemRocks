@@ -312,6 +312,7 @@ class RDMA_Manager{
 //  RDMA_Manager()=delete;
   ~RDMA_Manager();
   // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
+  ibv_mr* Get_local_read_mr();
   void Client_Set_Up_Resources();
   //Set up the socket connection to remote shared memory.
   bool Client_Connect_to_Server_RDMA();
@@ -422,6 +423,7 @@ class RDMA_Manager{
   ibv_mr* log_image_mr = nullptr;
   std::shared_mutex log_image_mutex;
   std::shared_mutex fs_image_mutex;
+  ThreadLocalPtr* read_buffer;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:

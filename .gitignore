@@ -29,6 +29,8 @@ rocksdb.pc
 CMakeCache.txt
 CMakeFiles/
 build/
+cmake-build-release
+cmake-build-debug
 
 ldb
 manifest_dump
