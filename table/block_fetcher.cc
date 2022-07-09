@@ -243,6 +243,7 @@ Status BlockFetcher::ReadBlockContents() {
 #ifdef PROCESSANALYSIS
         auto start = std::chrono::high_resolution_clock::now();
 #endif
+        //The used_buf_ get allocated here
         PrepareBufferForBlockFromFile();
 #ifdef PROCESSANALYSIS
         auto stop = std::chrono::high_resolution_clock::now();

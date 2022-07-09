@@ -18,8 +18,8 @@ namespace ROCKSDB_NAMESPACE {
 ShardedCache::ShardedCache(size_t capacity, int num_shard_bits,
                            bool strict_capacity_limit,
                            std::shared_ptr<MemoryAllocator> allocator)
-    : Cache(std::make_shared<RDMA_Allocator>()),
-//      : Cache(std::move(allocator)),
+//    : Cache(std::make_shared<RDMA_Allocator>()),
+      : Cache(std::move(allocator)),
       num_shard_bits_(num_shard_bits),
       capacity_(capacity),
       strict_capacity_limit_(strict_capacity_limit),
