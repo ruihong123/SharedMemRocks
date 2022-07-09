@@ -14,7 +14,8 @@
 #include "util/mutexlock.h"
 
 namespace ROCKSDB_NAMESPACE {
-
+// We decided to not use the RDMA allocated buffer at the cache level because
+// the RDMA allocator is not well designed and it could be a bottleneck.
 ShardedCache::ShardedCache(size_t capacity, int num_shard_bits,
                            bool strict_capacity_limit,
                            std::shared_ptr<MemoryAllocator> allocator)
