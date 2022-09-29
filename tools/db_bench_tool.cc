@@ -5113,7 +5113,59 @@ class Benchmark {
     }
     return key_rand;
   }
+  void RangeReadRandom(ThreadState* thread) {
+    ReadOptions options;
+    //TODO(ruihong): specify the table_cache option.
+    std::string value;
+    int found = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard1;
+    std::unique_ptr<const char[]> key_guard2;
+    Slice key_start = AllocateKey(&key_guard1);
+    Slice key_end = AllocateKey(&key_guard2);
+    int i = 0;
+    int range_length = 1000*1000;
+    char value_buff[FLAGS_value_size];
+    Iterator* iter = db_.db->NewIterator(options);
+    while(i < reads_){
+      //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+      //      int k_end = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+      int k_end = k_start + range_length;
+      //TODO: directly use k_start + some value as k_end;
+      //      if (k_end < k_start){
+      //        int temp = k_start;
+      //        k_start = k_end;
+      //        k_end = temp;
+      //      }
+      //
+      //            key.Set(k);
+      GenerateKeyFromInt(k_start, FLAGS_num, &key_start);
+      GenerateKeyFromInt(k_end, FLAGS_num, &key_end);
+      //      if (db_->Get(options, key.slice(), &value).ok()) {
+      //        found++;
+      //      }
 
+      iter->Seek(key_start);
+//      int move_forward_counter = 0;
+      // iter not valid after seek, why?
+      while(iter->key().compare(key_end) <= 0 ){
+        memcpy(value_buff, iter->value().data(), FLAGS_value_size);
+
+        found++;
+//        move_forward_counter++;
+        thread->stats.FinishedOps(nullptr, db_.db, 1, kRead);
+        iter->Next();
+      }
+
+
+      i = i+ range_length;
+
+    }
+    char msg[100];
+    std::snprintf(msg, sizeof(msg), "(%d of %ld found)", found, reads_);
+    thread->stats.AddMessage(msg);
+  }
   void ReadRandom(ThreadState* thread) {
     int64_t read = 0;
     int64_t found = 0;
