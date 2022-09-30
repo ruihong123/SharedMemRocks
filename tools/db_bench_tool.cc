@@ -93,6 +93,7 @@ DEFINE_string(
     "fillrandom,"
     "filluniquerandomdeterministic,"
     "overwrite,"
+    "rangereadrandom,"
     "readrandom,"
     "newiterator,"
     "newiteratorwhilewriting,"
@@ -3049,6 +3050,8 @@ class Benchmark {
         reads_ = num_;
       } else if (name == "readreverse") {
         method = &Benchmark::ReadReverse;
+      } else if (name == "rangereadrandom") {
+        method = &Benchmark::RangeReadRandom;
       } else if (name == "readrandom") {
         if (FLAGS_multiread_stride) {
           fprintf(stderr, "entries_per_batch = %" PRIi64 "\n",
