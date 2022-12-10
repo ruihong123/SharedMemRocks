@@ -118,14 +118,14 @@ class VersionStorageInfo {
   void operator=(const VersionStorageInfo&) = delete;
   ~VersionStorageInfo();
   void print_total_file_size(){
-    size_t total_file_memory_usage = 0;
+    uint64_t total_file_memory_usage = 0;
     for (int i = 0; i < num_levels_; ++i) {
       for (auto file : files_[i]) {
         //todo: ROUND UP THE file size, because the file will allocate 8MB chunks
         total_file_memory_usage = total_file_memory_usage + file->fd.file_size;
       }
     }
-    printf("Total file size is %ld\n", total_file_memory_usage);
+    printf("Total file size is %Lf GB\n", total_file_memory_usage/ 1024.0L*1024.0L*1024.0L);
   }
   void Reserve(int level, size_t size) { files_[level].reserve(size); }
 

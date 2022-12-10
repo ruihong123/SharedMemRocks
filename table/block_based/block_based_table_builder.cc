@@ -1335,7 +1335,7 @@ void BlockBasedTableBuilder::WriteFilterBlock(
 
 
       WriteRawBlock(filter_content, kNoCompression, &filter_block_handle);
-//      printf("filter block size is %lu\n", filter_block_handle.size());
+      printf("filter block size is %lu\n", filter_block_handle.size());
     }
   }
   if (ok() && !empty_filter_block) {
@@ -1725,8 +1725,8 @@ Status BlockBasedTableBuilder::Finish() {
     WriteRawBlock(meta_index_builder.Finish(), kNoCompression,
                   &metaindex_block_handle);
   }
-//  printf(" meta index block is %lu\n", metaindex_block_handle.size());
-//  printf(" index block is %lu\n", index_block_handle.size());
+  printf(" meta index block is %lu\n", metaindex_block_handle.size());
+  printf(" index block is %lu\n", index_block_handle.size());
   if (ok()) {
     WriteFooter(metaindex_block_handle, index_block_handle);
   }
