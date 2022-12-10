@@ -3674,7 +3674,6 @@ VersionSet::VersionSet(const std::string& dbname,
 VersionSet::~VersionSet() {
   // we need to delete column_family_set_ because its destructor depends on
   // VersionSet
-  printf("Total file size is %llu", column_family_set_)
   Cache* table_cache = column_family_set_->get_table_cache();
 
   column_family_set_.reset();
