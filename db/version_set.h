@@ -125,7 +125,7 @@ class VersionStorageInfo {
         total_file_memory_usage = total_file_memory_usage + file->fd.file_size;
       }
     }
-    printf("Total file size is %Lf GB\n", total_file_memory_usage/ 1024.0L*1024.0L*1024.0L);
+    printf("Total file size is %Lf GB\n", total_file_memory_usage/ (1024.0L*1024.0L*1024.0L));
   }
   void Reserve(int level, size_t size) { files_[level].reserve(size); }
 
