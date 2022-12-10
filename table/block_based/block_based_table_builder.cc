@@ -1726,6 +1726,7 @@ Status BlockBasedTableBuilder::Finish() {
                   &metaindex_block_handle);
   }
   printf(" meta index block is %lu\n", metaindex_block_handle.size());
+  printf(" index block is %lu\n", index_block_handle.size());
   if (ok()) {
     WriteFooter(metaindex_block_handle, index_block_handle);
   }
