@@ -1443,6 +1443,7 @@ ColumnFamilySet::ColumnFamilySet(const std::string& dbname,
 }
 
 ColumnFamilySet::~ColumnFamilySet() {
+  column_family_data_.begin()->second->current_->storage_info()->print_total_file_size();
   while (column_family_data_.size() > 0) {
     // cfd destructor will delete itself from column_family_data_
     auto cfd = column_family_data_.begin()->second;

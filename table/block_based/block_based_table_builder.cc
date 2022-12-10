@@ -1332,9 +1332,10 @@ void BlockBasedTableBuilder::WriteFilterBlock(
           rep_->filter_builder->Finish(filter_block_handle, &s);
       assert(s.ok() || s.IsIncomplete());
       rep_->props.filter_size += filter_content.size();
-      printf("filter block size is %lu\n", filter_block_handle.size());
+
 
       WriteRawBlock(filter_content, kNoCompression, &filter_block_handle);
+      printf("filter block size is %lu\n", filter_block_handle.size());
     }
   }
   if (ok() && !empty_filter_block) {
@@ -1387,7 +1388,7 @@ void BlockBasedTableBuilder::WriteIndexBlock(
   Status s = index_builder_status;
   while (ok() && s.IsIncomplete()) {
     s = rep_->index_builder->Finish(&index_blocks, *index_block_handle);
-    printf(" index block is %lu\n", index_block_handle->size());
+
 
     if (!s.ok() && !s.IsIncomplete()) {
       rep_->SetStatus(s);
@@ -1398,6 +1399,7 @@ void BlockBasedTableBuilder::WriteIndexBlock(
     } else {
       WriteRawBlock(index_blocks.index_block_contents, kNoCompression,
                     index_block_handle);
+      printf(" index block is %lu\n", index_block_handle->size());
     }
     // The last index_block_handle will be for the partition index block
   }

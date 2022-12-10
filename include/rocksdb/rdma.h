@@ -392,7 +392,7 @@ class RDMA_Manager{
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
   std::list<ibv_mr*> pre_allocated_pool;
   std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap = nullptr;
-  size_t total_registered_size = 0;
+  uint64_t total_registered_size = 0;
 
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;

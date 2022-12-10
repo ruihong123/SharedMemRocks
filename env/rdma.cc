@@ -694,9 +694,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     printf("Register memory for computing node\n");
   total_registered_size = total_registered_size + (*p2mrpointer)->length;
   fprintf(stdout,
-          "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
+          "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %llu GB\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags, size, total_registered_size);
+          mr_flags, size, total_registered_size/(1024ull*1024ull*1024ull));
 
   return true;
 

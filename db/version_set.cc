@@ -758,13 +758,7 @@ class FilePickerMultiGet {
 }  // anonymous namespace
 
 VersionStorageInfo::~VersionStorageInfo() {
-  size_t total_file_memory_usage = 0;
-  for (int i = 0; i < num_levels_; ++i) {
-    for (auto file : files_[i]) {
-      total_file_memory_usage = total_file_memory_usage + file->fd.file_size;
-    }
-  }
-  printf("Total file size is %ld\n", total_file_memory_usage);
+
   delete[] files_;
 }
 
@@ -3680,7 +3674,9 @@ VersionSet::VersionSet(const std::string& dbname,
 VersionSet::~VersionSet() {
   // we need to delete column_family_set_ because its destructor depends on
   // VersionSet
+  printf("Total file size is %llu", column_family_set_)
   Cache* table_cache = column_family_set_->get_table_cache();
+
   column_family_set_.reset();
   for (auto& file : obsolete_files_) {
     if (file.metadata->table_reader_handle) {
