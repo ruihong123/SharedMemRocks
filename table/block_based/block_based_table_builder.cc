@@ -1322,6 +1322,7 @@ Status BlockBasedTableBuilder::InsertBlockInCache(const Slice& block_contents,
 void BlockBasedTableBuilder::WriteFilterBlock(
     MetaIndexBuilder* meta_index_builder) {
   BlockHandle filter_block_handle;
+
   bool empty_filter_block = (rep_->filter_builder == nullptr ||
                              rep_->filter_builder->NumAdded() == 0);
   if (ok() && !empty_filter_block) {
@@ -1331,6 +1332,8 @@ void BlockBasedTableBuilder::WriteFilterBlock(
           rep_->filter_builder->Finish(filter_block_handle, &s);
       assert(s.ok() || s.IsIncomplete());
       rep_->props.filter_size += filter_content.size();
+      printf("filter block size is %lu\n", filter_block_handle.size());
+
       WriteRawBlock(filter_content, kNoCompression, &filter_block_handle);
     }
   }
@@ -1384,6 +1387,8 @@ void BlockBasedTableBuilder::WriteIndexBlock(
   Status s = index_builder_status;
   while (ok() && s.IsIncomplete()) {
     s = rep_->index_builder->Finish(&index_blocks, *index_block_handle);
+    printf(" index block is %lu\n", index_block_handle->size());
+
     if (!s.ok() && !s.IsIncomplete()) {
       rep_->SetStatus(s);
       return;
@@ -1709,6 +1714,7 @@ Status BlockBasedTableBuilder::Finish() {
   MetaIndexBuilder meta_index_builder;
   WriteFilterBlock(&meta_index_builder);
   WriteIndexBlock(&meta_index_builder, &index_block_handle);
+
   WriteCompressionDictBlock(&meta_index_builder);
   WriteRangeDelBlock(&meta_index_builder);
   WritePropertiesBlock(&meta_index_builder);
@@ -1717,6 +1723,7 @@ Status BlockBasedTableBuilder::Finish() {
     WriteRawBlock(meta_index_builder.Finish(), kNoCompression,
                   &metaindex_block_handle);
   }
+  printf(" meta index block is %lu\n", metaindex_block_handle.size());
   if (ok()) {
     WriteFooter(metaindex_block_handle, index_block_handle);
   }
