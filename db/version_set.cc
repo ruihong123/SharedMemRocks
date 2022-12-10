@@ -757,7 +757,16 @@ class FilePickerMultiGet {
 };
 }  // anonymous namespace
 
-VersionStorageInfo::~VersionStorageInfo() { delete[] files_; }
+VersionStorageInfo::~VersionStorageInfo() {
+  size_t total_file_memory_usage = 0;
+  for (int i = 0; i < num_levels_; ++i) {
+    for (auto file : files_[i]) {
+      total_file_memory_usage = total_file_memory_usage + file->fd.file_size;
+    }
+  }
+  printf("Total file size is %ld\n", total_file_memory_usage);
+  delete[] files_;
+}
 
 Version::~Version() {
   assert(refs_ == 0);
