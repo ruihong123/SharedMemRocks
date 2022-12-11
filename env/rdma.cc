@@ -388,7 +388,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
   local_mem_pool.reserve(100);
   {
     std::unique_lock<std::shared_mutex> lck(local_mem_mutex);
-    Preregister_Memory(400); // should be at most 52 for rocksDB 48GB is also OKay.
+    Preregister_Memory(360); // should be at most 52 for rocksDB 48GB is also OKay.
   }
 
   // sync after send & recv buffer creation and receive request posting.
