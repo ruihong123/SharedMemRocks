@@ -124,7 +124,7 @@ class VersionStorageInfo {
         //todo: ROUND UP THE file size, because the file will allocate 8MB chunks
         total_file_memory_usage = total_file_memory_usage + file->fd.file_size;
       }
-      printf("NUmber of file in level %d is %lu\n", i, files_->size());
+      printf("NUmber of file in level %d is %lu\n", i, files_[i].size());
     }
     printf("Total file size is %Lf GB\n", total_file_memory_usage/ (1024.0L*1024.0L*1024.0L));
   }
